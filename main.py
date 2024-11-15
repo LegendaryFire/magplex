@@ -75,8 +75,8 @@ def refresh_plex_epg():
         response = requests.post(plex_url)
         if response.status_code != 200:
             logging.warning("Failed to update Plex EPG data.")
-            break
-        logging.info("Refreshed Plex EPG data.")
+        else:
+            logging.info("Refreshed Plex EPG data.")
         time.sleep(int(plex_refresh))
 
 
