@@ -8,6 +8,7 @@ import helper
 import stb
 from cache import ttl_cache
 import werkzeug
+from version import __version__
 
 # Begin set up of logs, ensure logs folder exists.
 if not os.path.exists('logs'):
@@ -26,6 +27,7 @@ logging.basicConfig(
     ]
 )
 
+logging.info(f"MagPlex Version {__version__} by Tristan Balon")
 app = Flask(__name__)
 
 profile = stb.STBProfile(
