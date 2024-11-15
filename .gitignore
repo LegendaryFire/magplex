@@ -1,0 +1,66 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environment variables
+.env
+.env.*
+
+# Flask cache files
+instance/
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Docker image
+magplex.tar
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm project files
+.idea/
+*.iml
+
+# macOS files
+.DS_Store
+
+# Local virtual environment files
+.venv/
+env.bak/
+venv.bak/
+
+# pipenv files
+Pipfile.lock
+
+# mypy files
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pyright
+pyright/
+
+# VS Code settings
+.vscode/

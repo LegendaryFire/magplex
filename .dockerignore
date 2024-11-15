@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+.idea/
+.git/
+*.pyc
+logs/
+build.bat
+magplex.tar
