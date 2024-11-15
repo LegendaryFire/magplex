@@ -4,6 +4,9 @@ A web based interpeter and stalker portal emulator to integrate your Mag STB wit
 ### Requirements
 You will need your Mag box `DEVICE_ID`, `DEVICE_ID2` and `SIGNATURE`. These can be obtained by sniffing the network traffic between your set top box and the portal.
 
+### Setting up the EPG
+Most portals do not have an endpoint to retreive the electronic program guide for every channel at once, so each channels EPG is pulled separately. The EPG data is cached to prevent being rate limited and reduce load on the portal server. 
+
 ### Example `docker-compose.yml`
 ```
 services:
