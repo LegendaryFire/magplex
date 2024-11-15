@@ -40,5 +40,6 @@ The channel list and channel guide data can be loaded into Threadfin by using th
 |:------------------------:|:-------------------------------------------:|
 | Channel List             | http://server-ip:5123/channel_list.m3u8     |
 | XMLTV EPG                | http://server-ip:5123/channel_guide.xml     |
+| Server Logs              | http://server-ip:5123/logs                  |
 
 Server logs are displayed in the console, and also saved to `./logs/app.log`.
