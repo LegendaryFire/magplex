@@ -3,7 +3,7 @@ import threading
 import time
 import requests
 import logging
-from flask import Flask, request, Response, redirect
+from flask import Flask, request, Response, redirect, send_file
 import helper
 import stb
 from cache import ttl_cache
@@ -60,6 +60,14 @@ def channel_list():
 def channel_guide():
     guide = get_channel_guide()
     return Response(guide, mimetype='text/xml')
+
+
+@app.route('/logs')
+def logs():
+    try:
+        return send_file('logs/app.log', as_attachment=False)
+    except FileNotFoundError:
+        return "Could not find log file.", 404
 
 
 @ttl_cache(ttl_seconds=int(os.getenv('CACHE_EXPIRATION')))
