@@ -65,7 +65,7 @@ def channel_guide():
 @app.route('/logs')
 def logs():
     try:
-        return send_file('logs/app.log', as_attachment=False)
+        return send_file(f'logs/v{__version__}.log', as_attachment=False)
     except FileNotFoundError:
         return "Could not find log file.", 404
 
