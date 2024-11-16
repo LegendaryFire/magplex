@@ -1,3 +1,4 @@
+from datetime import datetime
 from xml.sax.saxutils import escape
 from jinja2 import Template
 from lxml import etree
@@ -43,3 +44,10 @@ def build_channel_guide(channels, guides):
     xml_declaration = '<?xml version="1.0" encoding="UTF-8"?>'
     channel_guide = f'{xml_declaration}\n{doctype}\n{xml_str}'
     return channel_guide
+
+
+def dump_error(data):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"logs/{timestamp}.data"
+    with open(filename, "a") as file:
+        file.write(data)
