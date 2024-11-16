@@ -105,6 +105,9 @@ class STB:
             logging.error("Portal responded with status code 403. Exiting now.")
             sys.exit()
         self.__denied = False
+
+        if not response.text:
+            raise ErrorCodes.InvalidResponseError(f"No response received from. Status code {response.status_code}")
         data = json.loads(response.text).get('js', None)
         if not isinstance(data, list) and not data:
             raise ErrorCodes.InvalidResponseError()
@@ -115,14 +118,15 @@ class STB:
             try:
                 response = self._get(url)
                 return response
-            except requests.exceptions.RequestException as e:
+            except (ErrorCodes.InvalidResponseError, requests.exceptions.RequestException) as e:
                 logging.warning(f"Error fetching {url}: {e}")
                 return None
 
         def process_batch(batch_urls):
             with ThreadPoolExecutor(max_workers=batch_size) as executor:
                 results = list(executor.map(fetch_url, batch_urls))
-            return results
+            filtered_results = [result for result in results if result is not None]
+            return filtered_results
 
         def run_batch():
             results = []
