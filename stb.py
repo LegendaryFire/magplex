@@ -7,6 +7,8 @@ import requests.adapters
 from dataclasses import dataclass
 import logging
 
+import helper
+
 
 @dataclass
 class STBProfile:
@@ -106,9 +108,12 @@ class STB:
             sys.exit()
         self.__denied = False
 
-        if not response.text:
-            raise ErrorCodes.InvalidResponseError(f"No response received from. Status code {response.status_code}")
-        data = json.loads(response.text).get('js', None)
+        try:
+            data = json.loads(response.text).get('js', None)
+        except json.JSONDecodeError:
+            helper.dump_error(response.text)
+            raise ErrorCodes.InvalidResponseError("Unable to decode data. Data dumped to file.")
+
         if not isinstance(data, list) and not data:
             raise ErrorCodes.InvalidResponseError()
         return data
