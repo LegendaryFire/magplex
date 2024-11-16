@@ -93,7 +93,7 @@ class STB:
         headers = self._config.get('Headers')
         cookies = self._config.get('Cookies')
         response = self._session.get(url, headers=headers, cookies=cookies)
-        if 'Authorization Failed' in response.text:
+        if 'Authorization failed' in response.text:
             if self.__denied:
                 logging.warning("Portal authorization failed twice. Exiting now.")
                 sys.exit()
