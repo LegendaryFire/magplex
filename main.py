@@ -3,7 +3,7 @@ import threading
 import time
 import requests
 import logging
-from flask import Flask, request, Response, redirect, send_file
+from flask import Flask, request, Response, redirect, send_file, render_template
 import helper
 import stb
 from cache import ttl_cache
@@ -54,6 +54,11 @@ def channel_list():
     channels = instance.get_channel_list()
     playlist = helper.build_playlist(channels, domain)
     return Response(playlist, mimetype='audio/x-mpegurl')
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 @app.route('/channel_guide.xml')
