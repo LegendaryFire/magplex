@@ -9,15 +9,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
     <style>
         body[data-color-mode=light] {
-            --background-color: #f1f1f1;
             --color: #000000;
-            --navigation-border-bottom: #a8a8a8;
+            --background-color: #f1f1f1;
+            --border-color: #a8a8a8;
         }
 
         body[data-color-mode=dark] {
-            --background-color: #3a3a3a;
             --color: #cfcfcf;
-            --navigation-border-bottom: #a8a8a8;
+            --background-color: #3a3a3a;
+            --border-color: #a8a8a8;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        table {
+            background-color: var(--background-color);
+            color: var(--color);
+        }
+
+        th, td {
+            border-color: var(--border-color);
         }
 
         body {
@@ -45,7 +59,7 @@
                     gap: 35px;
                     list-style: none;
                     padding: 0 0 15px 0;
-                    border-bottom: 1px solid var(--navigation-border-bottom);
+                    border-bottom: 1px solid var(--border-color);
                 }
 
                 li {
@@ -78,12 +92,7 @@
                     width: 30px;
                 }
 
-                li.active {
-                    color: var(--color);
-                    border-bottom-color: var(--color);
-                }
-
-                li:hover {
+                li.active, li:hover {
                     color: var(--color);
                     border-bottom-color: var(--color);
                 }
@@ -98,6 +107,16 @@
         }
     </style>
 
+    <script id="channel-list-template" type="text/template">
+        <% for (const channel of channels) { %>
+            <tr>
+              <td><%- channel.channel_id %></td>
+              <td><%- channel.name %></td>
+              <td><%- channel.genre.name %></td>
+            </tr>
+        <% } %>
+    </script>
+
     <script>
         class ColorMode {
             static DARK = 'dark';
@@ -111,30 +130,118 @@
                 ?.split('=')[1] || null;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const colorModeElem = document.querySelector('.color-mode');
-            colorModeElem.addEventListener('click', () => toggleColorMode());
+        document.addEventListener('DOMContentLoaded', () => initializeUi());
+
+        function initializeUi() {
+            const colorToggleElem = document.querySelector('.color-toggle');
+            colorToggleElem.addEventListener('click', () => toggleColorMode());
 
             // Attempt to get the color mode, and set it if the cookie exists.
             const savedColorMode = getCookie('color-mode');
             if (savedColorMode !== null) {
                 toggleColorMode(savedColorMode);
             }
-        });
+
+            renderChannelList();
+        }
 
         function toggleColorMode(colorMode=null) {
-            const colorModeElem = document.querySelector('.color-mode');
+            const colorToggleElem = document.querySelector('.color-toggle');
             if (colorMode == null) {
-                colorMode = colorModeElem.dataset.colorMode === ColorMode.LIGHT ? ColorMode.DARK : ColorMode.LIGHT;
+                colorMode = colorToggleElem.dataset.colorMode === ColorMode.LIGHT ? ColorMode.DARK : ColorMode.LIGHT;
             }
 
             // Set the color mode on the body, update the UI element, and save the cookie.
             const bodyElem = document.querySelector('body');
             bodyElem.dataset.colorMode = colorMode;
-            colorModeElem.dataset.colorMode = colorMode;
-            colorModeElem.querySelector('span').innerText = colorMode === ColorMode.LIGHT ? 'light_mode' : 'dark_mode';
+            colorToggleElem.dataset.colorMode = colorMode;
+            colorToggleElem.querySelector('span').innerText = colorMode === ColorMode.LIGHT ? 'light_mode' : 'dark_mode';
             document.cookie = `color-mode=${colorMode};`;
         }
+
+        function renderTemplate(text, settings) {
+            settings = Object.assign({
+                evaluate: /<%([\s\S]+?)%>/g,
+                interpolate: /<%=([\s\S]+?)%>/g,
+                escape: /<%-([\s\S]+?)%>/g,
+                variable: undefined
+            }, settings || {});
+
+            const escapes = { "'": "'", "\\": "\\", "\r": "r", "\n": "n", "\u2028": "u2028", "\u2029": "u2029" };
+            const escapeRegExp = /\\|'|\r|\n|\u2028|\u2029/g;
+            const escapeChar = m => '\\' + escapes[m];
+            const escapeHTML = str => String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+            const bareIdentifier = /^\s*(\w|\$)+\s*$/;
+            const noMatch = /(.)^/;
+
+            const matcher = RegExp([
+                (settings.escape || noMatch).source,
+                (settings.interpolate || noMatch).source,
+                (settings.evaluate || noMatch).source
+            ].join('|') + '|$', 'g');
+
+            let index = 0;
+            let source = "__p+='";
+
+            text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
+                source += text.slice(index, offset).replace(escapeRegExp, escapeChar);
+                index = offset + match.length;
+
+                if (escape) {
+                    source += "'+\n((__t=(" + escape + "))==null?'':escapeHTML(__t))+\n'";
+                } else if (interpolate) {
+                    source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+                } else if (evaluate) {
+                    source += "';\n" + evaluate + "\n__p+='";
+                }
+                return match;
+            });
+
+            source += "';\n";
+
+            let arg = settings.variable;
+            if (arg) {
+                if (!bareIdentifier.test(arg)) throw new Error('variable is not a bare identifier: ' + arg);
+            } else {
+                source = 'with(obj||{}){\n' + source + '}\n';
+                arg = 'obj';
+            }
+
+            source = "var __t,__p='',__j=Array.prototype.join," +
+                     "print=function(){__p+=__j.call(arguments,'');};\n" +
+                     source + 'return __p;\n';
+
+            let render;
+            try {
+                render = new Function(arg, 'escapeHTML', source);
+            } catch (e) {
+                e.source = source;
+                throw e;
+            }
+
+            const compiled = function(data) {
+                return render.call(this, data, escapeHTML);
+            };
+            compiled.source = 'function(' + arg + '){\n' + source + '}';
+            return compiled;
+        }
+
+
+        function renderChannelList() {
+            const tableBody = document.querySelector('.channel-list tbody');
+            const template = document.querySelector('#channel-list-template').innerHTML;
+            fetch('/api/channels/list', {headers: {'Accept': 'application/json'}})
+                .then(res => res.json())
+                .then((channels) => {
+                    tableBody.innerHTML = renderTemplate(template)({channels});
+                });
+        }
+
     </script>
 </head>
 <body data-color-mode="light">
@@ -143,11 +250,23 @@
             <ul>
                 <li class="title">Mag Plex</li>
                 <li class="active">Home</li>
-                <li>Logs</li>
+                <li><a href="/logs" target="_blank">Logs</a></li>
                 <li class="about">About</li>
-                <li class="color-mode" data-color-mode="light"><span class="material-symbols-outlined">dark_mode</span></li>
+                <li class="color-toggle" data-color-mode="light"><span class="material-symbols-outlined">dark_mode</span></li>
             </ul>
         </nav>
+        <section>
+            <table class="channel-list">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Channel Name</th>
+                        <th>Group</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
     </main>
 </body>
 </html>
