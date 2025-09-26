@@ -10,12 +10,14 @@
     <style>
         body[data-color-mode=light] {
             --color: #000000;
+            --color-hover: #272727;
             --background-color: #f1f1f1;
             --border-color: #a8a8a8;
         }
 
         body[data-color-mode=dark] {
             --color: #cfcfcf;
+            --color-hover: #afafaf;
             --background-color: #3a3a3a;
             --border-color: #a8a8a8;
         }
@@ -23,6 +25,10 @@
         a {
             color: inherit;
             text-decoration: none;
+        }
+
+        a:hover {
+            color: var(--color-hover);
         }
 
         table {
@@ -110,7 +116,7 @@
     <script id="channel-list-template" type="text/template">
         <% for (const channel of channels) { %>
             <tr>
-              <td><%- channel.channel_id %></td>
+              <td><a href="/api/channels/<%-channel.stream_id %>"><%- channel.stream_id %></td>
               <td><%- channel.name %></td>
               <td><%- channel.genre.name %></td>
             </tr>

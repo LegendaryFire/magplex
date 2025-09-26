@@ -7,7 +7,7 @@ import requests.adapters
 from dataclasses import dataclass
 import logging
 
-import helper
+import logs
 
 
 @dataclass
