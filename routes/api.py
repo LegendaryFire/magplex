@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, request, Response, jsonify
 from flask import current_app
-from utilities import parser, cache_utils
+from utilities import parser, cache
 from utilities.media import MimeType
 from http import HTTPStatus
 
@@ -25,5 +25,5 @@ def channel_list():
 
 @api.route('/channels/guide.xml')
 def channel_guide():
-    guide = cache_utils.get_channel_guide()
+    guide = cache.get_channel_guide()
     return Response(guide, mimetype='text/xml')

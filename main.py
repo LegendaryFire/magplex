@@ -1,7 +1,7 @@
 import os
 import logging
 from flask import Flask
-import stb
+from utilities import stb
 from routes.api import api
 from routes.ui import ui
 import werkzeug

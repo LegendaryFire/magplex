@@ -1,6 +1,6 @@
 import os
 from flask import current_app
-from cache import ttl_cache
+from utilities.decorators import ttl_cache
 from utilities import parser
 
 
