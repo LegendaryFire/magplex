@@ -22,7 +22,7 @@
 
         body[data-color-mode=light] {
             --color: #000000;
-            --color-hover: #272727;
+            --color-hover: #505050;
             --background-color: #f1f1f1;
             --border-color: #a8a8a8;
         }
@@ -32,24 +32,6 @@
             --color-hover: #afafaf;
             --background-color: #3a3a3a;
             --border-color: #a8a8a8;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: var(--color-hover);
-        }
-
-        table {
-            background-color: var(--background-color);
-            color: var(--color);
-        }
-
-        th, td {
-            border-color: var(--border-color);
         }
 
         body {
@@ -63,13 +45,31 @@
             font-family: "Alan Sans", sans-serif;
         }
 
+        /* Force inheritance for table elements */
+        table, caption, thead, tbody, tfoot {
+            color: var(--color);
+            background-color: var(--background-color);
+            border-color: var(--border-color);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: var(--color-hover);
+        }
+
         main {
             align-self: center;
+            max-width: 100%;
+            width: 100%;
+            padding: 0 10px;
         }
 
         nav ul {
             display: flex;
-            gap: 35px;
             list-style: none;
             padding: 0 0 15px 0;
             border-bottom: 1px solid var(--border-color);
@@ -95,11 +95,8 @@
             font-size: 20px;
         }
 
-        nav ul li.about {
+        nav ul li.color-toggle {
             margin-left: auto;
-        }
-
-        nav ul li.color-mode {
             width: 30px;
         }
 
@@ -108,22 +105,11 @@
             border-bottom-color: var(--color);
         }
 
-        @media (min-width: 576px) {
-            main {
-                max-width: 100%;
-                width: 100%;
-                margin: 0 10px;
-            }
-
-            nav ul {
-                gap: 0;
-            }
-        }
-
         @media (min-width: 768px) {
             main {
                 max-width: 800px;
                 width: 800px;
+                margin: 0;
             }
         }
     </style>
