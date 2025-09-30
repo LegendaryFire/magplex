@@ -1,0 +1,14 @@
+channel-list input[name=channel-search] {
+    margin: 20px 0 15px 0;
+    padding: 3px 0 3px 10px;
+    width: 100%;
+    height: 25px;
+}
+
+channel-list, channel-list table {
+    width: 100%;
+}
+
+channel-list td.channel-name {
+    padding-left: 25px;
+}

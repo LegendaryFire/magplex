@@ -8,6 +8,9 @@ WORKDIR /
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Gunicorn
+RUN pip install --no-cache-dir gunicorn
+
 # Copy the rest of the application code
 COPY . .
 

@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, send_file, render_template
+from flask import Flask
 import stb
 from routes.api import api
 from routes.ui import ui
@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 
 logging.info(f"MagPlex Version {__version__} by Tristan Balon")
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(ui)
 
