@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MagPlex</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +16,10 @@
     <script src="/static/js/utilities.js"></script>
 
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         body[data-color-mode=light] {
             --color: #000000;
             --color-hover: #272727;
@@ -56,63 +61,66 @@
             margin: 0;
             background-color: var(--background-color);
             font-family: "Alan Sans", sans-serif;
-            font-optical-sizing: auto;
-            font-weight: normal;
-            font-style: normal;
         }
 
         main {
             align-self: center;
         }
 
-        nav {
-            ul {
-                & {
-                    display: flex;
-                    gap: 35px;
-                    list-style: none;
-                    padding: 0 0 15px 0;
-                    border-bottom: 1px solid var(--border-color);
-                }
+        nav ul {
+            display: flex;
+            gap: 35px;
+            list-style: none;
+            padding: 0 0 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
 
-                li {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 75px;
-                    color: grey;
-                    user-select: none;
-                    cursor: pointer;
-                    font-size: 17px;
-                }
+        nav ul li {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 75px;
+            color: grey;
+            user-select: none;
+            cursor: pointer;
+            font-size: 17px;
+        }
 
-                li.title {
-                    display: flex;
-                    align-items: center;
-                    justify-content: flex-start;
-                    color: var(--color);
-                    cursor: default;
-                    width: 100px;
-                    font-weight: bold;
-                    font-size: 20px;
-                }
+        nav ul li.title {
+            justify-content: flex-start;
+            color: var(--color);
+            cursor: default;
+            width: 100px;
+            font-weight: bold;
+            font-size: 20px;
+        }
 
-                li.about {
-                    margin-left: auto;
-                }
+        nav ul li.about {
+            margin-left: auto;
+        }
 
-                li.color-mode {
-                    width: 30px;
-                }
+        nav ul li.color-mode {
+            width: 30px;
+        }
 
-                li.active, li:hover {
-                    color: var(--color);
-                    border-bottom-color: var(--color);
-                }
+        nav ul li.active, nav ul li:hover {
+            color: var(--color);
+            border-bottom-color: var(--color);
+        }
+
+        @media (min-width: 576px) {
+            main {
+                max-width: 100%;
+                width: 100%;
+                margin: 0 10px;
+            }
+
+            nav ul {
+                gap: 0;
             }
         }
 
-        @media (min-width: 992px) {
+        @media (min-width: 768px) {
             main {
                 max-width: 800px;
                 width: 800px;
@@ -152,9 +160,9 @@
             document.cookie = `color-mode=${colorMode};`;
         }
 
-        function onClickCallback(streamId, channelName) {
+        function channelClickCallback(streamId, channelName) {
             const playerElem = document.querySelector('media-player');
-            playerElem.playStream(`/stream/${streamId}`);
+            playerElem.playStream(`/proxy/channels/${streamId}`);
             playerElem.showPlayer();
         }
 
@@ -173,7 +181,6 @@
             </ul>
         </nav>
         <section>
-            <media-player></media-player>
             <channel-list></channel-list>
         </section>
     </main>

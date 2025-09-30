@@ -3,6 +3,7 @@ channel-list input[name=channel-search] {
     padding: 3px 0 3px 10px;
     width: 100%;
     height: 25px;
+    overflow: hidden;
 }
 
 channel-list, channel-list table {

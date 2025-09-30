@@ -203,7 +203,7 @@ class STB:
     def get_channel_url(self, channel_id):
         """Generates a channel URL from channel ID."""
         create_url = self._config.get('Service', {}).get('Create_URL')
-        create_url = create_url.replace('stream_id', channel_id)
+        create_url = create_url.replace('stream_id', str(channel_id))
         response = self._get(create_url)
         generated_url = response.get('cmd')
         if not generated_url:

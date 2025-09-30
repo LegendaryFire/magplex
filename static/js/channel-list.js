@@ -71,8 +71,8 @@ class ChannelList extends HTMLElement {
             `;
             tableContent.appendChild(rowElement);
             rowElement.addEventListener('click', () => {
-                if (typeof onClickCallback === 'function') {
-                    onClickCallback(channel.stream_id, channel.name);
+                if (typeof channelClickCallback === 'function') {
+                    channelClickCallback(channel.stream_id, channel.name);
                 }
             })
         }
