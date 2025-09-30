@@ -1,10 +1,12 @@
 import os
 import logging
 from flask import Flask
+import werkzeug
+
 from utilities import stb
 from routes.api import api
 from routes.ui import ui
-import werkzeug
+from routes.proxy import proxy
 from version import __version__
 
 # Set up logs, ensure logs folder exists.
@@ -27,6 +29,7 @@ logging.basicConfig(
 logging.info(f"MagPlex Version {__version__} by Tristan Balon")
 app = Flask(__name__, static_folder="static")
 app.register_blueprint(api, url_prefix='/api')
+app.register_blueprint(proxy, url_prefix='/proxy')
 app.register_blueprint(ui)
 
 profile = stb.STBProfile(
