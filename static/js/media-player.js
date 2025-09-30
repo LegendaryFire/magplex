@@ -1,30 +1,40 @@
 class MediaPlayer extends HTMLElement {
+    constructor() {
+        super();
+        this.channelId = null;
+        this.channelName = null;
+        this.hls = new Hls();
+    }
+
     connectedCallback() {
-        this.hidePlayer();
+        this.channelId = this.dataset.channelId;
+        this.channelName = this.dataset.channelName;
         this.innerHTML = `
-            <button class="close-btn">Close</button>
+            <div class="header">
+                <h3 class="channel-name">${this.channelName}</h3>
+                <span class="close-btn material-symbols-outlined">close</button>        
+            </div>
             <video controls>
             </video>
         `;
         const closeBtn = this.querySelector('.close-btn');
-        closeBtn.addEventListener('click', () => this.hidePlayer());
+        closeBtn.addEventListener('click', () => this.closePlayer());
+        this.loadStream();
     }
 
-    showPlayer() {
-        this.hidden = false;
-    }
-
-    hidePlayer() {
-        this.hidden = true;
-    }
-
-    playStream(url) {
+    closePlayer() {
         const videoElem = document.querySelector('video');
-        const hls = new Hls();
-        hls.loadSource(url);
-        hls.attachMedia(videoElem);
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            video.play();
+        videoElem.pause();
+        this.remove();
+    }
+
+    loadStream() {
+        const channelUrl = `/proxy/channels/${this.channelId}`;
+        const videoElem = document.querySelector('video');
+        this.hls.loadSource(channelUrl);
+        this.hls.attachMedia(videoElem);
+        this.hls.on(Hls.Events.MANIFEST_PARSED, function() {
+            videoElem.play();
         });
     }
 

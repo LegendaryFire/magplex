@@ -1,7 +1,24 @@
 media-player {
+    display: flex;
+    flex-direction: column;
     position: absolute;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    background-color: inherit;
+}
+
+media-player .header {
+    display: flex;
+    align-items: center;
+    height: 50px;
+    min-height: 50px;
+    padding: 10px;
+}
+
+media-player .close-btn {
+    margin-left: auto;
 }

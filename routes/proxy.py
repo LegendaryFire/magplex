@@ -7,7 +7,7 @@ from flask import current_app, Response, request, Blueprint
 
 proxy = Blueprint("proxy", __name__)
 
-@proxy.route('/proxy/channels/<int:channel_id>')
+@proxy.route('/channels/<int:channel_id>')
 def proxy_playlist(channel_id):
     channel_url = current_app.stb.get_channel_url(channel_id)
     response = requests.get(channel_url)
@@ -35,7 +35,7 @@ def proxy_playlist(channel_id):
     )
 
 
-@proxy.route('/proxy/stream')
+@proxy.route('/stream')
 def proxy_stream():
     url = request.args.get("url")
     if not url:

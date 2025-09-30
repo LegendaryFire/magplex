@@ -142,14 +142,15 @@
             const bodyElem = document.querySelector('body');
             bodyElem.dataset.colorMode = colorMode;
             colorToggleElem.dataset.colorMode = colorMode;
-            colorToggleElem.querySelector('span').innerText = colorMode === ColorMode.LIGHT ? 'light_mode' : 'dark_mode';
+            colorToggleElem.querySelector('span').innerText = colorMode === ColorMode.LIGHT ? 'dark_mode' : 'light_mode';
             document.cookie = `color-mode=${colorMode};`;
         }
 
-        function channelClickCallback(streamId, channelName) {
-            const playerElem = document.querySelector('media-player');
-            playerElem.playStream(`/proxy/channels/${streamId}`);
-            playerElem.showPlayer();
+        function channelClickCallback(channelId, channelName) {
+            const playerElem = document.createElement('media-player');
+            playerElem.dataset.channelId = channelId;
+            playerElem.dataset.channelName = channelName;
+            document.querySelector('body').appendChild(playerElem);
         }
 
         document.addEventListener('DOMContentLoaded', () => initializeUi());
