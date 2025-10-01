@@ -55,16 +55,20 @@ class Device:
         """Gets authentication for the set-top box device."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies)
-        return response.status_code == HTTPStatus.OK and 'Authorization failed' not in response.text
+        if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
+            self.headers.pop('Authorization')  # Clear the authentication header on failure.
+            return False
+        return True
 
     def get(self, url):
+        """Authenticated get method for portal endpoints."""
         response = self.session.get(url, headers=self.headers, cookies=self.cookies)
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
         if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
             token = self.get_token()
             if token is not None:
-                self.headers['Authorization'] = f'Bearer {token}'
+                self.headers['Authorization'] = f'Bearer {token}'  # Set authorization header on success.
                 authorized = self.get_authorization()
                 if not authorized:
                     logging.warning("Unable to authorize.")
@@ -90,3 +94,9 @@ class Device:
             return None
 
         return data
+
+    def get_channel(self, stream_id):
+        """Gets a generated channel URL from stream ID."""
+        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml',
+        data = self.get(url)
+        return data.get('cmd') if data else None
