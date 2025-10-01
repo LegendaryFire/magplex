@@ -12,6 +12,7 @@ def channel(channel_id):
 
 @api.route('/channels/list')
 def channel_list():
+    """Gets the channel list from the portal, returns a playlist if supported, otherwise JSON."""
     channels = current_app.stb.get_channel_list()
     best_match = request.accept_mimetypes.best_match(MimeType.all_types())
 
