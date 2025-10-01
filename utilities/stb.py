@@ -7,7 +7,7 @@ import requests.adapters
 from dataclasses import dataclass
 import logging
 
-import logs
+from utilities import logs
 
 
 @dataclass
@@ -111,7 +111,7 @@ class STB:
         try:
             data = json.loads(response.text).get('js', None)
         except json.JSONDecodeError:
-            helper.dump_error(response.text)
+            logs.dump_error(response.text)
             raise ErrorCodes.InvalidResponseError("Unable to decode data. Data dumped to file.")
 
         if not isinstance(data, list) and not data:
