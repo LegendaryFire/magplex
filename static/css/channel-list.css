@@ -12,6 +12,16 @@ channel-list, channel-list table {
     overflow: hidden;
 }
 
+channel-list table {
+    table-layout: fixed;
+}
+
+channel-list td, th {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 channel-list tr {
     height: 25px;
 }
@@ -19,8 +29,4 @@ channel-list tr {
 channel-list tbody tr:hover {
     cursor: pointer;
     color: var(--color-hover);
-}
-
-channel-list td.channel-name {
-    padding-left: 25px;
 }

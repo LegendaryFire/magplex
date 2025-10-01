@@ -8,9 +8,14 @@ class ChannelList extends HTMLElement {
         this.innerHTML = `
             <input name="channel-search" placeholder="Search..."/>
             <table class="channel-list">
+              <colgroup>
+                <col style="width: 80px">
+                <col style="width: 65%">
+                <col>
+              </colgroup>
                 <thead>
                     <tr>
-                        <th>Number</th>
+                        <th class="channel-number">Number</th>
                         <th>Channel Name</th>
                         <th>Group</th>
                     </tr>
@@ -65,7 +70,7 @@ class ChannelList extends HTMLElement {
             rowElement.dataset['channelName'] = channel.name;
             rowElement.dataset['genre'] = channel.genre.name;
             rowElement.innerHTML = `
-                <td class="stream-id">${channel.stream_id}</td>
+                <td class="channel-number">${channel.stream_id}</td>
                 <td class="channel-name">${channel.name}</td>
                 <td class="genre">${channel.genre.name}</td>
             `;
