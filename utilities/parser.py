@@ -1,21 +1,18 @@
 from datetime import timezone, datetime
 from xml.sax.saxutils import escape
-from jinja2 import Template
 from lxml import etree
 from itertools import chain
 
-def build_playlist(channels, domain):
-    template_data = """
-        #EXTM3U
-        #EXT-X-VERSION:3
-        {% for channel in channels %}
-            #EXTINF:-1 tvg-id="{{channel.channel_id}}" tvg-name="{{channel.name}}" group-title="{{channel.genre.name}}",{{channel.name}}
-            {{ domain }}/channel/{{ channel.stream_id }}
-        {% endfor %}
-    """
-    template_data = '\n'.join(line.strip() for line in template_data.splitlines() if line.strip())
-    template = Template(template_data)
-    return template.render(channels=channels, domain=domain)
+def build_playlist(channels, base_url):
+    playlist = '#EXTM3U\n'
+    playlist += '#EXT-X-VERSION:3\n\n'
+    for channel in channels:
+        channel_id = channel.get('channel_id')
+        channel_name = channel.get('channel_name')
+        genre_name = channel.get('genre_name')
+        playlist += f'#EXTINF:-1 tvg-id="{channel_id}" tvg-name="{channel_name}" group-title="{genre_name}",{channel_name}\n'
+        playlist += f'{base_url}/channel/{channel.get('stream_id')}\n\n'
+    return playlist
 
 
 def build_channel_guide(channels, guides):

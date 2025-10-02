@@ -9,7 +9,7 @@ proxy = Blueprint("proxy", __name__)
 
 @proxy.route('/channels/<int:channel_id>')
 def proxy_playlist(channel_id):
-    channel_url = current_app.stb.get_channel_url(channel_id)
+    channel_url = current_app.stb.get_channel(channel_id)
     response = requests.get(channel_url)
     playlist_content = response.text
 

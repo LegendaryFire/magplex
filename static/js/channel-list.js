@@ -59,7 +59,7 @@ class ChannelList extends HTMLElement {
         if (q !== null && typeof(q) === 'string' && q.trim() !== '') {
             q = q.toLowerCase();
             filteredChannels = this.channelList.filter((channel) => {
-                return channel.name.toLowerCase().includes(q) || channel.genre.name.toLowerCase().includes(q);
+                return channel.channel_name.toLowerCase().includes(q) || channel.genre_name.toLowerCase().includes(q);
             });
         }
 
@@ -67,17 +67,17 @@ class ChannelList extends HTMLElement {
         for (const channel of filteredChannels) {
             const rowElement = document.createElement('tr');
             rowElement.dataset['streamId'] = channel.stream_id;
-            rowElement.dataset['channelName'] = channel.name;
-            rowElement.dataset['genre'] = channel.genre.name;
+            rowElement.dataset['channelName'] = channel.channel_name;
+            rowElement.dataset['genre'] = channel.genre_name;
             rowElement.innerHTML = `
                 <td class="channel-number">${channel.stream_id}</td>
-                <td class="channel-name">${channel.name}</td>
-                <td class="genre">${channel.genre.name}</td>
+                <td class="channel-name">${channel.channel_name}</td>
+                <td class="genre">${channel.genre_name}</td>
             `;
             tableContent.appendChild(rowElement);
             rowElement.addEventListener('click', () => {
                 if (typeof channelClickCallback === 'function') {
-                    channelClickCallback(channel.stream_id, channel.name);
+                    channelClickCallback(channel.stream_id, channel.channel_name);
                 }
             })
         }
