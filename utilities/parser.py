@@ -11,7 +11,7 @@ def build_playlist(channels, base_url):
         channel_name = channel.get('channel_name')
         genre_name = channel.get('genre_name')
         playlist += f'#EXTINF:-1 tvg-id="{channel_id}" tvg-name="{channel_name}" group-title="{genre_name}",{channel_name}\n'
-        playlist += f'{base_url}/channel/{channel.get('stream_id')}\n\n'
+        playlist += f'{base_url}/api/channels/{channel.get('stream_id')}\n\n'
     return playlist
 
 

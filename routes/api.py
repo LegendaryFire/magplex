@@ -10,6 +10,7 @@ def get_channel(channel_id):
     channel_url = current_app.stb.get_channel(channel_id)
     return redirect(channel_url, code=HTTPStatus.FOUND)
 
+@api.route('/channels/list.m3u8')
 @api.route('/channels/list')
 def get_channel_list():
     """Gets the channel list from the portal, returns a playlist if supported, otherwise JSON."""
@@ -21,15 +22,13 @@ def get_channel_list():
     genre_name_map = {g.get('genre_id'): g.get('genre_name') for g in genres}
     for index, channel in enumerate(channels):
         channels[index]['genre_name'] = genre_name_map.get(channel.get('genre_id'), "Unknown")
-    best_match = request.accept_mimetypes.best_match(MimeType.all_types())
 
-    if best_match in MimeType.m3u8_types():
+    if request.path.endswith('.m3u8'):
         domain = request.host_url[:-1]
         playlist = parser.build_playlist(channels, domain)
-        return Response(playlist, mimetype=best_match)
-
-    # Default to JSON
+        return Response(playlist, mimetype='application/vnd.apple.mpegurl')
     return jsonify(channels)
+
 
 
 @api.route('/channels/guide.xml')

@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 5123
 
 # Define the command to run the application
-CMD ["sh", "-c", "gunicorn -w $((2 * $(nproc) + 1)) -b 0.0.0.0:5123 main:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5123", "main:app"]

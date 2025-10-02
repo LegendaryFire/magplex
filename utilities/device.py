@@ -32,7 +32,7 @@ class Device:
         self.id = profile.mac
         self.authorized = True
         self.session = requests.session()
-        self.session.mount('http://', requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100, pool_block=True))
+        self.session.mount('http://', requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100, pool_block=False))
         self.profile = profile
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Unknown; Linux) AppleWebKit/538.1 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 734 Mobile Safari/538.1',
@@ -45,7 +45,7 @@ class Device:
             'stb_lang': f'{profile.language}',
             'timezone': f'{profile.timezone}',
         }
-        scheduler.add_job(self._get_channel_guide, 'interval', minutes=5, id=self.id, next_run_time=datetime.now())
+        scheduler.add_job(self._get_channel_guide, 'interval', hours=1, id=self.id, next_run_time=datetime.now())
 
     def __del__(self):
         scheduler.remove_job(self.id)
@@ -90,6 +90,7 @@ class Device:
                     logging.warning("Unable to authorize.")
                     self.authorized = False
                     return None
+                self.authorized = True
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
