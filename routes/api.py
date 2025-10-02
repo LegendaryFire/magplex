@@ -7,7 +7,7 @@ from http import HTTPStatus
 api = Blueprint("api", __name__)
 @api.route('/channels/<channel_id>')
 def channel(channel_id):
-    channel_url = current_app.stb.get_channel_url(channel_id)
+    channel_url = current_app.stb.get_channel(channel_id)
     return redirect(channel_url, code=HTTPStatus.FOUND)
 
 @api.route('/channels/list')
@@ -24,7 +24,9 @@ def channel_list():
     # Default to JSON
     return jsonify(channels)
 
+
 @api.route('/channels/guide.xml')
 def channel_guide():
-    guide = cache.get_channel_guide()
+    data = current_app.stb.get_channel_guide()
+    guide = parser.build_channel_guide(data.get('channels'), data.get('channel_guides'))
     return Response(guide, mimetype='text/xml')
