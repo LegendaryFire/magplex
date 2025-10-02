@@ -78,7 +78,11 @@ class Device:
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
+        start_time = time.perf_counter()
         response = self.session.get(url, headers=self.headers, cookies=self.cookies)
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
+        logging.warning(f'Request took {elapsed_time:.4f} seconds. URL: {url}')
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
         if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
