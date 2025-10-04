@@ -1,9 +1,10 @@
 import logging
-import os
 import sys
 
 import redis
 import werkzeug
+from apscheduler.jobstores.redis import RedisJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 
 from routes.api import api
@@ -13,10 +14,6 @@ from utilities.device import Device, Profile
 from utilities.environment import Variables
 from version import __version__
 
-# Set up logs, ensure logs folder exists.
-if not os.path.exists('logs'):
-    os.makedirs('logs')
-
 # Disable color logging style.
 werkzeug.serving._log_add_style = False
 
@@ -25,7 +22,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s]: %(message)s',
     handlers=[
-        logging.FileHandler(f'logs/v{__version__}.log'),
         logging.StreamHandler()  # Optional: also log to console
     ]
 )
@@ -41,12 +37,16 @@ app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(proxy, url_prefix='/proxy')
 app.register_blueprint(ui)
 
-app.redis = redis.Redis(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=0)
+conn = redis.Redis(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=0)
 try:
-    app.redis.ping()
+    conn.ping()
 except redis.exceptions.RedisError:
     logging.error("Unable to connect to Redis server. Please try again...")
     sys.exit()
+
+jobstores = {'default': RedisJobStore(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=1)}
+scheduler = BackgroundScheduler(jobstores=jobstores)
+scheduler.start()
 
 profile = Profile(
     portal=Variables.STB_PORTAL,
@@ -57,7 +57,7 @@ profile = Profile(
     device_id2=Variables.STB_DEVICE_ID2,
     signature=Variables.STB_SIGNATURE
 )
-app.stb = Device(app.redis, profile)
+app.stb = Device(conn, scheduler, profile)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5123)

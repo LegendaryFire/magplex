@@ -1,5 +1,7 @@
 import json
 
+def _get_bearer_token_key(instance_id):
+    return f'device:{instance_id}:token'
 
 def _get_channel_ids_key(instance_id):
     return f'device:{instance_id}:ids'
@@ -9,6 +11,17 @@ def _get_channel_key(instance_id, channel_id):
 
 def _get_channel_guide_key(instance_id, channel_id):
     return f'device:{instance_id}:guide:{channel_id}'
+
+def get_bearer_token(conn, instance_id):
+    cache_key = _get_bearer_token_key(instance_id)
+    token = conn.get(cache_key)
+    if token is not None:
+        token = token.decode("utf-8")
+    return token
+
+def set_bearer_token(conn, instance_id, token):
+    cache_key = _get_bearer_token_key(instance_id)
+    conn.set(cache_key, token)
 
 def get_all_channel_ids(conn, instance_id):
     cache_key = _get_channel_ids_key(instance_id)

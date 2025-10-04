@@ -7,13 +7,10 @@ from datetime import datetime
 from http import HTTPStatus
 
 import requests
-from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Response
+from requests.adapters import HTTPAdapter
 
-from utilities import cache
-
-scheduler = BackgroundScheduler()
-scheduler.start()
+from utilities import cache, tasks
 
 @dataclass
 class Profile:
@@ -26,13 +23,35 @@ class Profile:
     signature: str
 
 
+class DeviceManager:
+    def __init__(self):
+        self.devices = {}
+
+    def register_device(self, device):
+        if device.id in self.devices:
+            logging.warning(f"Device {device.device_id} already registered.")
+        self.devices.update({device.id: device})
+
+    def unregister_device(self, device_id):
+        if device_id not in self.devices:
+            logging.warning(f"Cannot unregister. Device {device_id} not found.")
+        self.devices.pop(device_id)
+
+    def get_device(self, device_id):
+        return self.devices.get(device_id)
+
+
+manager = DeviceManager()
 class Device:
-    def __init__(self, conn, profile):
+    def __init__(self, conn, scheduler, profile):
         self.conn = conn
+        self.scheduler = scheduler
         self.id = profile.mac
         self.authorized = True
+        self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
-        self.session.mount('http://', requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100, pool_block=False))
+        self.session.mount("http://", self.adapter)
+        self.session.mount("https://", self.adapter)
         self.profile = profile
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Unknown; Linux) AppleWebKit/538.1 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 734 Mobile Safari/538.1',
@@ -45,10 +64,13 @@ class Device:
             'stb_lang': f'{profile.language}',
             'timezone': f'{profile.timezone}',
         }
-        scheduler.add_job(self._get_channel_guide, 'interval', hours=1, id=self.id, next_run_time=datetime.now())
+        manager.register_device(self)
+        self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
+                          next_run_time=datetime.now(), args=[self.id], replace_existing=True)
 
     def __del__(self):
-        scheduler.remove_job(self.id)
+        self.scheduler.remove_job(self.id)
+        manager.unregister_device(self)
 
     def get_token(self):
         """Gets the authentication token for the session."""
@@ -78,14 +100,15 @@ class Device:
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
-        start_time = time.perf_counter()
-        response = self.session.get(url, headers=self.headers, cookies=self.cookies)
-        end_time = time.perf_counter()
-        elapsed_time = end_time - start_time
-        logging.warning(f'Request took {elapsed_time:.4f} seconds. URL: {url}')
+        self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.conn, self.id)}'
+        response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
+
+        if not self.authorized:
+            logging.warning("Unable to get data. Authorization failed.")
+            return None
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
-        if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
+        if response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
             token = self.get_token()
             if token is not None:
                 self.headers['Authorization'] = f'Bearer {token}'  # Set authorization header on success.
@@ -95,6 +118,7 @@ class Device:
                     self.authorized = False
                     return None
                 self.authorized = True
+                cache.set_bearer_token(self.conn, self.id, token)
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
@@ -113,7 +137,6 @@ class Device:
             self.authorized = False
             logging.warning("Unable to decode response data.")
             return None
-
         return data
 
     def get_list(self, urls):
@@ -200,39 +223,3 @@ class Device:
             'channels': cache.get_all_channels(self.conn, self.id),
             'channel_guides': cache.get_all_channel_guides(self.conn, self.id),
         }
-
-    def _get_channel_guide(self):
-        """Background task ran at an interval to populate the cache with EPG information."""
-        channel_list = self.get_channel_list()
-
-        # Build a list of EPG links to get the program guide for each channel.
-        guide_urls = []
-        for channel in channel_list:
-            channel_id = channel.get('channel_id')
-            guide_url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel_id}&JsHttpRequest=1-xml'
-            guide_urls.append(guide_url)
-            cache.insert_channel_id(self.conn, self.id, channel_id)
-            cache.insert_channel(self.conn, self.id, channel_id, channel)
-
-        # Process the channel guide URLs in batches to prevent rate limiting.
-        while len(guide_urls) > 0:
-            current_batch = guide_urls[:50]
-            guide_urls = guide_urls[50:]
-            responses = self.get_list(current_batch)
-            for channel_guides in responses:
-                if not channel_guides or not isinstance(channel_guides, list):
-                    continue
-
-                channel_id = channel_guides[0].get('ch_id')
-                for index, channel_guide in enumerate(channel_guides):
-                    channel_guides[index] = {
-                        'channel_id': channel_id,
-                        'channel_name': channel_guide.get('name'),
-                        'channel_description': channel_guide.get('descr'),
-                        'start_timestamp': int(channel_guide.get('start_timestamp')),
-                        'stop_timestamp': int(channel_guide.get('stop_timestamp')),
-                        'categories': [c.strip() for c in channel_guide.get('category', str()).split(',') if c.strip()]
-                    }
-
-                cache.insert_channel_guide(self.conn, self.id, channel_id, channel_guides)
-            time.sleep(0.15)  # 150ms delay to prevent rate limiting.

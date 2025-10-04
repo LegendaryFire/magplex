@@ -4,3 +4,11 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+  magplex:
+    container_name: magplex
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8080:5123"
