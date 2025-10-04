@@ -1,14 +1,16 @@
-import os
 import logging
-from flask import Flask
-import werkzeug
-import redis
-from dotenv import load_dotenv
+import os
+import sys
 
-from utilities.device import Device, Profile
+import redis
+import werkzeug
+from flask import Flask
+
 from routes.api import api
-from routes.ui import ui
 from routes.proxy import proxy
+from routes.ui import ui
+from utilities.device import Device, Profile
+from utilities.environment import Variables
 from version import __version__
 
 # Set up logs, ensure logs folder exists.
@@ -30,21 +32,30 @@ logging.basicConfig(
 
 logging.info(f"MagPlex Version {__version__} by Tristan Balon")
 
-load_dotenv()
+if not Variables.valid():
+    logging.error("Missing environment variables.")
+    sys.exit()
+
 app = Flask(__name__, static_folder="static")
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(proxy, url_prefix='/proxy')
 app.register_blueprint(ui)
 
-app.redis = redis.Redis.from_url(os.getenv('REDIS'))
+app.redis = redis.Redis(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=0)
+try:
+    app.redis.ping()
+except redis.exceptions.RedisError:
+    logging.error("Unable to connect to Redis server. Please try again...")
+    sys.exit()
+
 profile = Profile(
-    portal=os.getenv('PORTAL'),
-    mac=os.getenv('MAC_ADDRESS'),
-    language=os.getenv('STB_LANG'),
-    timezone=os.getenv('TZ'),
-    device_id=os.getenv('DEVICE_ID'),
-    device_id2=os.getenv('DEVICE_ID2'),
-    signature=os.getenv('SIGNATURE')
+    portal=Variables.STB_PORTAL,
+    mac=Variables.STB_MAC,
+    language=Variables.STB_LANGUAGE,
+    timezone=Variables.STB_TIMEZONE,
+    device_id=Variables.STB_DEVICE_ID,
+    device_id2=Variables.STB_DEVICE_ID2,
+    signature=Variables.STB_SIGNATURE
 )
 app.stb = Device(app.redis, profile)
 

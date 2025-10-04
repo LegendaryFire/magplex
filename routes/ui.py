@@ -1,8 +1,8 @@
 from http import HTTPStatus
 
-from flask import Blueprint, render_template, send_file, Response
-from version import __version__
+from flask import Blueprint, Response, render_template, send_file
 
+from version import __version__
 
 ui = Blueprint("ui", __name__)
 

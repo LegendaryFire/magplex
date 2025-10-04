@@ -1,9 +1,9 @@
-from http import HTTPStatus
-from urllib.parse import urlparse, quote, urlunparse
 import posixpath
+from http import HTTPStatus
+from urllib.parse import quote, urlparse, urlunparse
 
 import requests
-from flask import current_app, Response, request, Blueprint
+from flask import Blueprint, Response, current_app, request
 
 proxy = Blueprint("proxy", __name__)
 

@@ -1,7 +1,9 @@
-from datetime import timezone, datetime
-from xml.sax.saxutils import escape
-from lxml import etree
+from datetime import datetime, timezone
 from itertools import chain
+from xml.sax.saxutils import escape
+
+from lxml import etree
+
 
 def build_playlist(channels, base_url):
     playlist = '#EXTM3U\n'

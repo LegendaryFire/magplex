@@ -5,9 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from http import HTTPStatus
-from apscheduler.schedulers.background import BackgroundScheduler
 
 import requests
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Response
 
 from utilities import cache

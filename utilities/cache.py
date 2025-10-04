@@ -1,5 +1,6 @@
 import json
 
+
 def _get_channel_ids_key(instance_id):
     return f'device:{instance_id}:ids'
 

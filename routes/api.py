@@ -1,8 +1,8 @@
-from flask import Blueprint, redirect, request, Response, jsonify
-from flask import current_app
-from utilities import parser, cache
-from utilities.media import MimeType
 from http import HTTPStatus
+
+from flask import Blueprint, Response, current_app, jsonify, redirect, request
+
+from utilities import parser
 
 api = Blueprint("api", __name__)
 @api.route('/channels/<channel_id>')
