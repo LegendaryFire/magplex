@@ -4,6 +4,5 @@ __pycache__/
 .git/
 *.pyc
 logs/
-build.bat
 magplex.tar
 .env

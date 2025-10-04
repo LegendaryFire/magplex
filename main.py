@@ -3,12 +3,14 @@ import sys
 
 import redis
 import werkzeug
+from werkzeug.middleware.proxy_fix import ProxyFix
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 
 from routes.api import api
 from routes.proxy import proxy
+from routes.stb import stb
 from routes.ui import ui
 from utilities.device import Device, Profile
 from utilities.environment import Variables
@@ -33,7 +35,10 @@ if not Variables.valid():
     sys.exit()
 
 app = Flask(__name__, static_folder="static")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 app.register_blueprint(api, url_prefix='/api')
+app.register_blueprint(stb, url_prefix='/stb')
 app.register_blueprint(proxy, url_prefix='/proxy')
 app.register_blueprint(ui)
 
@@ -60,4 +65,4 @@ profile = Profile(
 app.stb = Device(conn, scheduler, profile)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5123)
+    app.run(host='0.0.0.0', port=8080)

@@ -1,14 +1,29 @@
 services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - "8080:8080"
+      - "34400:34400"
+    volumes:
+      - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - magplex
+    restart: unless-stopped
+
   redis:
     image: redis
     container_name: redis
     ports:
       - "6379:6379"
+    restart: unless-stopped
+
   magplex:
     container_name: magplex
     build:
       context: .
     env_file:
       - .env
-    ports:
-      - "8080:5123"
+    depends_on:
+      - redis
+    restart: unless-stopped
