@@ -14,6 +14,7 @@ class Variables:
     STB_DEVICE_ID = os.getenv('DEVICE_ID', None)
     STB_DEVICE_ID2 = os.getenv('DEVICE_ID2', None)
     STB_SIGNATURE = os.getenv('SIGNATURE', None)
+    STB_USE_BUFFER = os.getenv('USE_BUFFER', "false").lower() == "true"
 
     @classmethod
     def valid(cls):

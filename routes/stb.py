@@ -1,6 +1,10 @@
-from flask import Blueprint, Response, jsonify, request, current_app
+import json
+
+from flask import Blueprint, Response, current_app, jsonify, request
 
 stb = Blueprint("stb", __name__)
+
+
 @stb.route('/')
 def root():
     domain = request.host_url[:-1]
@@ -17,11 +21,12 @@ def root():
             <manufacturer>Silicondust</manufacturer>
             <modelName>HDTC-2US</modelName>
             <modelNumber>HDTC-2US</modelNumber>
-            <serialNumber/>
+            <serialNumber>{current_app.stb.id}</serialNumber>
             <UDN>uuid:2025-10-FBE0-RLST64</UDN>
         </device>
     </root>
     """, mimetype='text/xml')
+
 
 @stb.route('/discover.json')
 def discover():
@@ -54,10 +59,10 @@ def lineup():
     channel_list = current_app.stb.get_channel_list()
     channel_lineup = []
     for channel in channel_list:
-        # TODO: Encode channel names.
         channel_lineup.append({
-            "GuideName": channel.get('channel_name'),
+            "GuideName": json.dumps(channel.get('channel_name'), ensure_ascii=True),
             "GuideNumber": channel.get('channel_id'),
             "URL": f"{domain}/api/channels/{channel.get('stream_id')}"
         })
-    return channel_lineup
+
+    return jsonify(channel_lineup)

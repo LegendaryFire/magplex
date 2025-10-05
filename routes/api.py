@@ -6,8 +6,10 @@ from utilities import parser
 
 api = Blueprint("api", __name__)
 @api.route('/channels/<channel_id>')
-def get_channel(channel_id):
-    channel_url = current_app.stb.get_channel(channel_id)
+def get_stream(channel_id):
+    channel_url = current_app.stb.get_channel_playlist(channel_id)
+    if channel_url is None:
+        return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
     return redirect(channel_url, code=HTTPStatus.FOUND)
 
 @api.route('/channels/list.m3u8')

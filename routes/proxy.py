@@ -3,13 +3,15 @@ from http import HTTPStatus
 from urllib.parse import quote, urlparse, urlunparse
 
 import requests
-from flask import Blueprint, Response, current_app, request
+from flask import Blueprint, Response, current_app, redirect, request
 
 proxy = Blueprint("proxy", __name__)
 
-@proxy.route('/channels/<int:channel_id>')
-def proxy_playlist(channel_id):
-    channel_url = current_app.stb.get_channel(channel_id)
+@proxy.route('/channels/<int:stream_id>')
+def proxy_playlist(stream_id):
+    channel_url = current_app.stb.get_channel_playlist(stream_id)
+    if channel_url is None:
+        return Response("Unable to proxy stream, no channel URL.", status=HTTPStatus.INTERNAL_SERVER_ERROR)
     response = requests.get(channel_url)
     playlist_content = response.text
 
@@ -41,7 +43,7 @@ def proxy_stream():
     if not url:
         return Response("Missing mandatory URL parameter.", HTTPStatus.BAD_REQUEST)
 
-    r = requests.get(url, stream=True)
+    r = requests.get(url, stream=True, headers=current_app.stb.headers, cookies=current_app.stb.cookies)
     if r.status_code != HTTPStatus.OK:
         return Response("Failed to fetch stream segment.", r.status_code)
 

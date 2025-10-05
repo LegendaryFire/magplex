@@ -1,5 +1,6 @@
 import json
 
+
 def _get_bearer_token_key(instance_id):
     return f'device:{instance_id}:token'
 

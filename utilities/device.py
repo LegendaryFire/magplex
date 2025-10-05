@@ -12,6 +12,7 @@ from requests.adapters import HTTPAdapter
 
 from utilities import cache, tasks
 
+
 @dataclass
 class Profile:
     portal: str
@@ -153,13 +154,23 @@ class Device:
         # Filter out failed responses.
         return [result for result in results if result is not None]
 
-    def get_channel(self, stream_id):
-        """Gets a generated channel URL from stream ID."""
+    def get_channel_playlist(self, stream_id):
+        """Gets a generated channel playlist URL from stream ID."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None or not isinstance(data, dict):
-            logging.warning("Unable to retrieve channel.")
+            logging.warning("Unable to retrieve channel playlist.")
             return None
+        stream_link = data.get('cmd')
+        if not stream_link:
+            error = data.get('error')
+            if error == 'link_fault':
+                logging.warning(f"Unable to get playlist link. Stream ID {stream_id} does not exist.")
+                return None
+            else:
+                logging.warning("Unable to get playlist link. Unknown error.")
+                return None
+
         return data.get('cmd')
 
     def get_genres(self):

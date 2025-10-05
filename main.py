@@ -3,10 +3,10 @@ import sys
 
 import redis
 import werkzeug
-from werkzeug.middleware.proxy_fix import ProxyFix
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from routes.api import api
 from routes.proxy import proxy
