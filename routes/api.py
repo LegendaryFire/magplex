@@ -5,9 +5,9 @@ from flask import Blueprint, Response, current_app, jsonify, redirect, request
 from utilities import parser
 
 api = Blueprint("api", __name__)
-@api.route('/channels/<channel_id>')
-def get_stream(channel_id):
-    channel_url = current_app.stb.get_channel_playlist(channel_id)
+@api.route('/channels/<int:stream_id>')
+def get_channel_playlist(stream_id):
+    channel_url = current_app.stb.get_channel_playlist(stream_id)
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
     return redirect(channel_url, code=HTTPStatus.FOUND)

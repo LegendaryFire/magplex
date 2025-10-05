@@ -2,6 +2,7 @@ import json
 import logging
 import subprocess
 import threading
+from http import HTTPStatus
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
@@ -65,21 +66,23 @@ def lineup():
         channel_lineup.append({
             "GuideName": json.dumps(channel.get('channel_name'), ensure_ascii=True),
             "GuideNumber": channel.get('channel_id'),
-            "URL": f"{domain}/stb/stream/{channel.get('stream_id')}"
+            "URL": f"{domain}/stb/channels/{channel.get('stream_id')}"
         })
 
     return jsonify(channel_lineup)
 
 
-@stb.route('/stream/<int:stream_id>')
-def buffered_stream(stream_id):
-    domain = request.host_url[:-1]
+@stb.route('/channels/<int:stream_id>')
+def get_channel_playlist(stream_id):
+    channel_url = current_app.stb.get_channel_playlist(stream_id)
+    if channel_url is None:
+        return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
+
     ffmpeg_cmd = [
         "ffmpeg",
         "-re",
-        "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
         "-allowed_extensions", "ALL",
-        "-i", f"{domain}/proxy/channels/{stream_id}",
+        "-i", channel_url,
         "-c", "copy",
         "-f", "mpegts",
         "pipe:1"
