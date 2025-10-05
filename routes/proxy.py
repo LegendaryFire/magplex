@@ -1,5 +1,4 @@
 import posixpath
-import subprocess
 from http import HTTPStatus
 from urllib.parse import quote, urlparse, urlunparse, unquote
 
@@ -18,13 +17,14 @@ def proxy_playlist(stream_id):
     playlist_content = response.text
 
     parsed_url = urlparse(channel_url)
+    domain = request.host_url[:-1]
     channel_domain =  urlunparse((parsed_url.scheme, parsed_url.netloc, posixpath.dirname(parsed_url.path), "", "", ""))
     proxied_playlist = []
     for line in playlist_content.splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
             absolute_url = f'{channel_domain}/{line}'
-            proxied_url = f"/proxy/stream?url={quote(absolute_url)}&session_uid={quote(session_uid)}"
+            proxied_url = f"{domain}/proxy/stream?url={quote(absolute_url)}&session_uid={quote(session_uid)}"
             proxied_playlist.append(proxied_url)
         else:
             proxied_playlist.append(line)

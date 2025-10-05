@@ -1,4 +1,7 @@
 import json
+import logging
+import subprocess
+import threading
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
@@ -62,7 +65,46 @@ def lineup():
         channel_lineup.append({
             "GuideName": json.dumps(channel.get('channel_name'), ensure_ascii=True),
             "GuideNumber": channel.get('channel_id'),
-            "URL": f"{domain}/api/channels/{channel.get('stream_id')}"
+            "URL": f"{domain}/stb/stream/{channel.get('stream_id')}"
         })
 
     return jsonify(channel_lineup)
+
+
+@stb.route('/stream/<int:stream_id>')
+def buffered_stream(stream_id):
+    domain = request.host_url[:-1]
+    ffmpeg_cmd = [
+        "ffmpeg",
+        "-re",
+        "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
+        "-allowed_extensions", "ALL",
+        "-i", f"{domain}/proxy/channels/{stream_id}",
+        "-c", "copy",
+        "-f", "mpegts",
+        "pipe:1"
+    ]
+    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def log_errors():
+        for line in iter(process.stderr.readline, b""):
+            logging.error(line.decode(errors="ignore").strip())
+    threading.Thread(target=log_errors, daemon=True).start()
+
+    def generate():
+        try:
+            while True:
+                data = process.stdout.read(64 * 1024)  # 64KB
+                if not data:
+                    break
+                yield data
+        finally:
+            process.kill()
+
+    return Response(
+        generate(),
+        headers={
+            "Content-Type": "video/mp2t",
+            "Access-Control-Allow-Origin": "*"
+        }
+    )
