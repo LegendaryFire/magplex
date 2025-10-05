@@ -120,6 +120,7 @@ class Device:
                     return None
                 self.authorized = True
                 cache.set_bearer_token(self.conn, self.id, token)
+                time.sleep(0.25)  # Help avoid being rate limited when in an auth failed loop.
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
