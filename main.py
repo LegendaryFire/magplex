@@ -62,6 +62,7 @@ profile = Profile(
     device_id2=Variables.STB_DEVICE_ID2,
     signature=Variables.STB_SIGNATURE
 )
+
 app.stb = Device(conn, scheduler, profile)
 
 if __name__ == '__main__':

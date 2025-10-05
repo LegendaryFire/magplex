@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8080
 
 # Define the command to run the application
-CMD ["sh", "-c", "gunicorn --preload --worker-class gthread -w $((2*$(nproc)+1)) --threads 8 -b 0.0.0.0:8080 main:app"]
+CMD ["sh", "-c", "gunicorn --worker-class gthread -w $((2*$(nproc)+1)) --threads 8 -b 0.0.0.0:8080 main:app"]
