@@ -3,7 +3,7 @@ from http import HTTPStatus
 from urllib.parse import quote, urlparse, urlunparse, unquote
 
 import requests
-from flask import Blueprint, Response, current_app, redirect, request
+from flask import Blueprint, Response, current_app, request
 
 proxy = Blueprint("proxy", __name__)
 

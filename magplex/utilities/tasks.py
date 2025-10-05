@@ -1,12 +1,12 @@
 import time
 
-import utilities
+from magplex import utilities
 from magplex.utilities import cache
 
 
 def set_device_channel_guide(device_id):
     """Background task ran at an interval to populate the cache with EPG information."""
-    device = magplex.utilities.device.manager.get_device(device_id)
+    device = utilities.device.manager.get_device(device_id)
     channel_list = device.get_channel_list()
 
     # Build a list of EPG links to get the program guide for each channel.

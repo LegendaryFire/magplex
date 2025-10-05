@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 import subprocess
 import threading
 from http import HTTPStatus
@@ -77,6 +78,10 @@ def get_channel_playlist(stream_id):
     channel_url = current_app.stb.get_channel_playlist(stream_id)
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
+
+    ffmpeg = shutil.which('ffmpeg')
+    if ffmpeg is None:
+        return Response("Unable to find ffmpeg installation.", status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     ffmpeg_cmd = [
         "ffmpeg",

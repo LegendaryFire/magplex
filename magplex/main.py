@@ -2,33 +2,22 @@ import logging
 import sys
 
 import redis
-import werkzeug
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from magplex.utilities import logs
 from magplex.routes.api import api
 from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
 from magplex.routes.ui import ui
 from magplex.utilities.device import Device, Profile
 from magplex.utilities.environment import Variables
-from version import __version__
+from version import version
 
-# Disable color logging style.
-werkzeug.serving._log_add_style = False
-
-# Set up global logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s]: %(message)s',
-    handlers=[
-        logging.StreamHandler()  # Optional: also log to console
-    ]
-)
-
-logging.info(f"MagPlex Version {__version__} by Tristan Balon")
+logs.initialize()
+logging.info(f"MagPlex v{version} by LegendaryFire")
 
 if not Variables.valid():
     logging.error("Missing environment variables.")
