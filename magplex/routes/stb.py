@@ -1,11 +1,14 @@
 import json
 import logging
 import shutil
-import subprocess
+import ffmpeg
 import threading
 from http import HTTPStatus
 
+import requests
 from flask import Blueprint, Response, current_app, jsonify, request
+
+from magplex.utilities.environment import Variables
 
 stb = Blueprint("stb", __name__)
 
@@ -79,24 +82,45 @@ def get_channel_playlist(stream_id):
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
 
-    ffmpeg = shutil.which('ffmpeg')
-    if ffmpeg is None:
-        return Response("Unable to find ffmpeg installation.", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+    if Variables.BASE_FFMPEG is None:
+        logging.error("Unable to find ffmpeg installation.")
+        return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
-    ffmpeg_cmd = [
-        "ffmpeg",
-        "-re",
-        "-allowed_extensions", "ALL",
-        "-i", channel_url,
-        "-c", "copy",
-        "-f", "mpegts",
-        "pipe:1"
-    ]
-    process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Attempt to get X-Sid header if it exists.
+    response = requests.get(channel_url, stream=True, allow_redirects=True)
+
+    # Pass session header and others if they exist.
+    forward_headers = {}
+    for key in ['X-Sid', 'User-Agent', 'Referer', 'Origin']:
+        if key in response.headers:
+            forward_headers[key] = response.headers[key]
+    forward_headers = ''.join(f"{k}: {v}\r\n" for k, v in forward_headers.items())
+
+    try:
+        process = (
+            ffmpeg
+            .input(
+                channel_url,
+                re=None,
+                allowed_extensions='ALL',
+                http_persistent=1,
+                **{'headers': forward_headers}
+            )
+            .output(
+                'pipe:1',
+                format='mpegts',
+                codec='copy',
+                **{'headers': forward_headers}
+            )
+            .run_async(cmd=Variables.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=True)
+        )
+    except ffmpeg.Error as e:
+        logging.error(e.stderr.decode())
+        return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def log_errors():
-        for line in iter(process.stderr.readline, b""):
-            logging.error(line.decode(errors="ignore").strip())
+        for line in iter(process.stderr.readline, b''):
+            logging.error(line.decode(errors='ignore').strip())
     threading.Thread(target=log_errors, daemon=True).start()
 
     def generate():

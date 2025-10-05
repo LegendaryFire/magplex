@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -12,6 +13,7 @@ load_dotenv(env_path)
 class Variables:
     BASE_DIR = base_directory
     BASE_LOG = os.path.join(BASE_DIR, 'logs', f"magplex-v{version}-{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.log")
+    BASE_FFMPEG = os.getenv('FFMPEG', None) or shutil.which('ffmpeg')
     REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
     REDIS_PORT = os.getenv('REDIS_PORT', 6379)
     STB_PORTAL = os.getenv('PORTAL', None)
