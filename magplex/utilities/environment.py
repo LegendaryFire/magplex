@@ -1,8 +1,11 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent  # magplex/main.py -> project root
+env_path = BASE_DIR / ".env"
+load_dotenv(env_path)
 
 class Variables:
     REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')

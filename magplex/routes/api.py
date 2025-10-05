@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, current_app, jsonify, redirect, request
 
-from utilities import parser
+from magplex.utilities import parser
 
 api = Blueprint("api", __name__)
 @api.route('/channels/<int:stream_id>')

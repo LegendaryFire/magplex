@@ -10,7 +10,7 @@ import requests
 from flask import Response
 from requests.adapters import HTTPAdapter
 
-from utilities import cache, tasks
+from magplex.utilities import tasks, cache
 
 
 @dataclass
@@ -68,7 +68,7 @@ class Device:
         manager.register_device(self)
         if self.scheduler.get_job(self.id) is None:
             self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
-                              next_run_time=datetime.now(), args=[self.id])
+                                   next_run_time=datetime.now(), args=[self.id])
 
     def __del__(self):
         self.scheduler.remove_job(self.id)

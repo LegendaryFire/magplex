@@ -8,12 +8,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from routes.api import api
-from routes.proxy import proxy
-from routes.stb import stb
-from routes.ui import ui
-from utilities.device import Device, Profile
-from utilities.environment import Variables
+from magplex.routes.api import api
+from magplex.routes.proxy import proxy
+from magplex.routes.stb import stb
+from magplex.routes.ui import ui
+from magplex.utilities.device import Device, Profile
+from magplex.utilities.environment import Variables
 from version import __version__
 
 # Disable color logging style.
