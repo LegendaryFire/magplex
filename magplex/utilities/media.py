@@ -14,23 +14,6 @@ class EncoderMap(Enum):
     HEVC_SOFTWARE = ('libx265', 'ultrafast')
     REMUX = None
 
-    @classmethod
-    def find_encoder(cls, encoders):
-        if Variables.BASE_ENCODE:
-            if EncoderMap.HEVC_NVIDIA.get_name() in encoders:
-                return EncoderMap.HEVC_NVIDIA  # NVIDIA NVENC
-            elif EncoderMap.HEVC_INTEL.get_name() in encoders:
-                return EncoderMap.HEVC_INTEL  # Intel Quick Sync
-            elif EncoderMap.HEVC_AMD.get_name() in encoders:
-                return EncoderMap.HEVC_AMD  # AMD Advanced Media Framework
-            elif EncoderMap.HEVC_SOFTWARE.get_name() in encoders:
-                logging.warning("No hardware encoder found, falling back to software encoder.")
-                return EncoderMap.HEVC_SOFTWARE  # CPU Software Encoding
-            else:
-                logging.warning("No available H265 encoders, stream will not be encoded.")
-        return EncoderMap.REMUX
-
-
     def get_name(self):
         if self.value == EncoderMap.REMUX:
             logging.error("Encoder name does not exist when remuxing.")
@@ -44,8 +27,18 @@ class EncoderMap(Enum):
 
 
 def get_encoder():
-    encoders = subprocess.run([Variables.BASE_FFMPEG, "-encoders"], capture_output=True, text=True).stdout
-    return EncoderMap.find_encoder(encoders)
+    if Variables.BASE_CODEC:
+        if EncoderMap.HEVC_NVIDIA.get_name() == Variables.BASE_CODEC:
+            return EncoderMap.HEVC_NVIDIA
+        elif EncoderMap.HEVC_INTEL.get_name() == Variables.BASE_CODEC:
+            return EncoderMap.HEVC_INTEL
+        elif EncoderMap.HEVC_AMD.get_name() == Variables.BASE_CODEC:
+            return EncoderMap.HEVC_AMD
+        elif EncoderMap.HEVC_SOFTWARE.get_name() == Variables.BASE_CODEC:
+            return EncoderMap.HEVC_SOFTWARE
+        else:
+            logging.warning("Unable to find supported codec. Falling back to remuxing.")
+    return EncoderMap.REMUX
 
 
 def create_stream_response(url, encoder, headers):
