@@ -23,7 +23,7 @@ if not Variables.valid():
     logging.error("Missing environment variables.")
     sys.exit()
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__, static_folder="magplex/static", template_folder="magplex/templates")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 app.register_blueprint(api, url_prefix='/api')

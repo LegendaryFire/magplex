@@ -112,7 +112,7 @@ def get_channel_playlist(stream_id):
                 codec='copy',
                 **{'headers': forward_headers}
             )
-            .run_async(cmd=Variables.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=True)
+            .run_async(cmd=Variables.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=False)
         )
     except ffmpeg.Error as e:
         logging.error(e.stderr.decode())
