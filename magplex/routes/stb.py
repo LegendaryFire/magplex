@@ -68,7 +68,7 @@ def lineup():
     channel_lineup = []
     for channel in channel_list:
         channel_lineup.append({
-            "GuideName": json.dumps(channel.get('channel_name'), ensure_ascii=True),
+            "GuideName": channel.get('channel_name'),
             "GuideNumber": channel.get('channel_id'),
             "URL": f"{domain}/stb/channels/{channel.get('stream_id')}"
         })
