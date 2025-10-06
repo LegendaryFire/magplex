@@ -104,13 +104,15 @@ def get_channel_playlist(stream_id):
                 re=None,
                 allowed_extensions='ALL',
                 http_persistent=1,
-                **{'headers': forward_headers}
+                fflags='nobuffer',
+                flags='low_delay',
+                headers = forward_headers
             )
             .output(
                 'pipe:1',
                 format='mpegts',
                 codec='copy',
-                **{'headers': forward_headers}
+                headers=forward_headers
             )
             .run_async(cmd=Variables.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=False)
         )
