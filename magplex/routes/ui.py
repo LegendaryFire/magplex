@@ -1,11 +1,8 @@
-from datetime import datetime
-import os
 from http import HTTPStatus
 
 from flask import Blueprint, Response, render_template, send_file
 
 from magplex.utilities.environment import Variables
-from version import version
 
 ui = Blueprint("ui", __name__)
 

@@ -1,10 +1,7 @@
-import json
 import logging
-import shutil
-import ffmpeg
-import threading
 from http import HTTPStatus
 
+import ffmpeg
 import requests
 from flask import Blueprint, Response, current_app, jsonify, request
 

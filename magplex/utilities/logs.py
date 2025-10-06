@@ -1,9 +1,10 @@
 import logging
 import os
 
+import werkzeug
+
 from magplex.utilities.environment import Variables
 
-import werkzeug
 
 def initialize():
     # Disable color logging style.

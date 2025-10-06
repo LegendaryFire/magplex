@@ -1,9 +1,10 @@
 import os
 import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from dotenv import load_dotenv
+
 from version import version
 
 base_directory = Path(__file__).resolve().parent.parent.parent

@@ -10,7 +10,7 @@ import requests
 from flask import Response
 from requests.adapters import HTTPAdapter
 
-from magplex.utilities import tasks, cache
+from magplex.utilities import cache, tasks
 
 
 @dataclass

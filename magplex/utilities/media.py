@@ -6,6 +6,7 @@ import ffmpeg
 
 from magplex.utilities.environment import Variables
 
+
 class EncoderMap(Enum):
     HEVC_NVIDIA = ('hevc_nvenc', 'llhq')
     HEVC_INTEL = ('hevc_qsv', 'veryfast')

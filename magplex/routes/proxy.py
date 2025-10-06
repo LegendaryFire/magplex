@@ -1,6 +1,6 @@
 import posixpath
 from http import HTTPStatus
-from urllib.parse import quote, urlparse, urlunparse, unquote
+from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import requests
 from flask import Blueprint, Response, current_app, request

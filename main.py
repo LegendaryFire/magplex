@@ -7,11 +7,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from magplex.utilities import logs
 from magplex.routes.api import api
 from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
 from magplex.routes.ui import ui
+from magplex.utilities import logs
 from magplex.utilities.device import Device, Profile
 from magplex.utilities.environment import Variables
 from version import version
