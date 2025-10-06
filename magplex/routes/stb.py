@@ -120,11 +120,6 @@ def get_channel_playlist(stream_id):
         logging.error(e.stderr.decode())
         return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
-    def log_errors():
-        for line in iter(process.stderr.readline, b''):
-            logging.error(line.decode(errors='ignore').strip())
-    threading.Thread(target=log_errors, daemon=True).start()
-
     def generate():
         try:
             while True:
