@@ -1,12 +1,19 @@
 # Use an official Python runtime as a parent image
-FROM python:3.12-slim
+FROM python:3.12-bookworm
 
-# Install ffmpeg and clean up cache
-RUN apt-get update && \
-    apt-get install -y ffmpeg && \
+# Install Intel Quick Sync driver
+RUN apt update && \
+    apt install -y intel-media-va-driver vainfo && \
     rm -rf /var/lib/apt/lists/*
 
-# Set the working directory in the container
+# Use Jellyfin FFmpeg build with QSV support
+RUN wget https://repo.jellyfin.org/files/ffmpeg/debian/latest-7.x/amd64/jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb && \
+    dpkg -i jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb || apt-get update && apt-get install -y -f && \
+    rm jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb
+
+ENV PATH="/usr/lib/jellyfin-ffmpeg:${PATH}"
+
+# Reset the working directory in the container
 WORKDIR /
 
 # Copy the requirements file and install dependencies
