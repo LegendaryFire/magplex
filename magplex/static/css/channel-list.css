@@ -1,32 +1,130 @@
-channel-list input[name=channel-search] {
-    margin: 20px 0 15px 0;
-    padding: 5px 0 3px 10px;
-    width: 100%;
-    height: 35px;
-    overflow: hidden;
-}
+channel-list {
+    .fancy-border {
 
-channel-list, channel-list table {
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-}
+    }
 
-channel-list table {
-    table-layout: fixed;
-}
+    div.search-container {
 
-channel-list td, th {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 15px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            color: var(--color-inactive);
+        }
 
-channel-list tr {
-    height: 25px;
-}
+        input[type="text"]:focus {
+            box-shadow: 0 0 8px #669ab6;
+        }
 
-channel-list tbody tr:hover {
-    cursor: pointer;
-    color: var(--color-hover);
+        input[type="text"]::placeholder {
+            color: var(--color-inactive);
+            font-style: italic;
+        }
+    }
+
+    ul.channel-list {
+        & {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            list-style: none;
+            padding: 0;
+        }
+
+        li:not(:last-child) {
+            margin-bottom: 10px;
+        }
+
+        li.channel[hidden] {
+            display: none !important;
+        }
+
+        li.channel {
+            & {
+                display: flex;
+                flex-direction: row;
+                background: linear-gradient(to right, #333333 0%, #404040 28%, #404040 100%);
+                height: 85px;
+                width: 100%;
+                border-radius: 10px;
+                border: solid 2px #4d4d4d;
+                padding: 15px;
+                color: var(--color);
+                user-select: none;
+
+                position: relative;
+                background-clip: padding-box;
+                box-sizing: border-box;
+            }
+
+            &:hover {
+                border-color: transparent;
+                box-shadow: 0 3px 8px -1px rgba(0,0,0,0.8);
+
+                cursor: pointer;
+            }
+
+            &:hover:before {
+                content: '';
+                position: absolute;
+                top: 0; right: 0; bottom: 0; left: 0;
+                z-index: -1;
+                margin: -2px;
+                border-radius: inherit;
+                /* background: linear-gradient(to right, #00b2ff 0%, #6ca8ef 50%, #00b2ff 100%); */
+                background: linear-gradient(to right, #669ab6 0%, #64a5b1 50%, #669ab6 100%);
+            }
+
+            div.channel-left {
+                & {
+                    margin-top: 3px;
+                    margin-right: 15px;
+                }
+
+                span.material-symbols-outlined {
+                    color: #b1b1b1;
+                    font-size: 30px;
+                    cursor: default;
+                }
+            }
+
+            div.channel-details {
+                & {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-around;
+                    flex-grow: 1;
+                    width: 100%;
+                }
+
+                span.channel-name {
+                    color: var(--color);
+                }
+
+                span.channel-group {
+                    color: var(--color-inactive);
+                    font-size: 14px;
+                }
+            }
+
+            div.channel-right {
+                & {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1px;
+                }
+
+                span.material-symbols-outlined {
+                    color: var(--color);
+                    font-size: 32px;
+                    cursor: default;
+                }
+            }
+        }
+    }
 }

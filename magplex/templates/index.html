@@ -20,15 +20,9 @@
             box-sizing: border-box;
         }
 
-        body[data-color-mode=light] {
-            --color: #000000;
-            --color-hover: #505050;
-            --background-color: #f1f1f1;
-            --border-color: #a8a8a8;
-        }
-
         body[data-color-mode=dark] {
             --color: #cfcfcf;
+            --color-inactive: #808080;
             --color-hover: #afafaf;
             --background-color: #3a3a3a;
             --border-color: #a8a8a8;
@@ -41,7 +35,8 @@
             width: 100%;
             height: 100%;
             margin: 0;
-            background-color: var(--background-color);
+            background: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%);
+            background-attachment: fixed;
             font-family: "Alan Sans", sans-serif;
         }
 
@@ -84,7 +79,7 @@
             align-items: center;
             justify-content: center;
             width: 75px;
-            color: grey;
+            color: var(--color-inactive);
             user-select: none;
             cursor: pointer;
             font-size: 17px;
@@ -109,7 +104,7 @@
             border-bottom-color: var(--color);
         }
 
-        span.material-symbols-outlined:hover {
+        nav span.material-symbols-outlined:hover {
             cursor: pointer;
         }
 
@@ -164,7 +159,7 @@
         document.addEventListener('DOMContentLoaded', () => initializeUi());
     </script>
 </head>
-<body data-color-mode="light">
+<body data-color-mode="dark">
     <main>
         <nav>
             <ul>
@@ -175,7 +170,7 @@
                 <li class="color-toggle" data-color-mode="light"><span class="material-symbols-outlined">dark_mode</span></li>
             </ul>
         </nav>
-        <section>
+        <section style="padding-top: 5px;">
             <channel-list></channel-list>
         </section>
     </main>

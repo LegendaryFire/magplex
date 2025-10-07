@@ -220,6 +220,7 @@ class Device:
                 'channel_id': channel.get('id'),
                 'channel_number': channel.get('number'),
                 'genre_id': channel.get('tv_genre_id'),
+                'hd': channel.get('hd', '0') == '1',
                 'stream_id': stream_id
             }
 

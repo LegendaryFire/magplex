@@ -55,4 +55,4 @@ profile = Profile(
 app.stb = Device(conn, scheduler, profile)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8080, use_reloader=True, debug=True)
