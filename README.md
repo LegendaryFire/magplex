@@ -1,6 +1,6 @@
 # MagPlex 
 A web based interpeter and stalker portal emulator to integrate your Mag STB with Plex Live TV. Support for electronic program guide updates, interval refreshing and more.
-
+## Configuration
 ### Requirements
 You will need your Mag box `DEVICE_ID`, `DEVICE_ID2` and `SIGNATURE`. These can be obtained by sniffing the network traffic between your set top box and the portal.
 
@@ -23,23 +23,72 @@ services:
       - DEVICE_ID=DEVICE_ID
       - DEVICE_ID2=DEVICE_ID2
       - SIGNATURE=SIGNATURE
-      - CACHE_EXPIRATION=SECONDS
-      # - PLEX_SERVER=SERVER_IP:PORT
-      # - PLEX_TOKEN=TOKEN
-      # - PLEX_DVR=DVR_ID
-      # - PLEX_REFRESH=SECONDS
     volumes:
       - ./media/magplex/logs:/logs
     restart: unless-stopped
 ```
+#### Optional Environment Variables
+| Variable       | Default          | Description                        |
+|:---------------|:-----------------|:-----------------------------------|
+| REDIS_HOST     | Automatic        | Hostname to your redis instance    |
+| REDIS_PORT     | Automatic        | Port to your redis instance        |
+| FFMPEG         | Automatic        | Path to your FFMPEG executable     |
+| CODEC          | Remux            | The FFMPEG codec for the STB.      |
 
-### Setup and Endpoints
-The channel list and channel guide data can be loaded into Threadfin by using the endpoints found below. It is reccommended to set up the proper filters and mapping before adding Threadfin to Plex.
+#### Available Codecs
+The FFMPEG stream used by the HDHomeRun endpoint is only remuxed by default. Avoid using software encoding unless absolutely mandatory.
+| Codec       | Description                           |
+|:------------|:--------------------------------------|
+| remux       | No encoding (default)                 |
+| libx265     | Software Encoding                     |
+| hevc_qsv    | Intel QuickSync                       |
+| hevc_nvenc  | Dedicated Nvidia GPU                  |
+| hevc_amf    | Dedicated AMD GPU                     |
 
-| Endpoint                 | Link                                        |
-|:------------------------:|:-------------------------------------------:|
-| Channel List             | http://server-ip:5123/channel_list.m3u8     |
-| XMLTV EPG                | http://server-ip:5123/channel_guide.xml     |
-| Server Logs              | http://server-ip:5123/logs                  |
+### Device Specific Configuration
+#### Intel Quick Sync
+Support for Intel Quick Sync requires a Intel CPU integrated GPU with H265 encoding support. Minimum supported CPUs are Intel Kaby Lake 7th generation processors. To add support for Quick Sync, simply add your integrated GPU device to your docker compose.
+```
+devices:
+  - "/dev/dri:/dev/dri"
+```
+
+#### Nvidia Encoder (NVENC)
+Support for NVENC requires a Nvidia GPU with an H265 encoding support. Minimum supported GPUs are the Nvidia GTX 10xx series.
+```
+gpus: "all"
+environment:
+  - NVIDIA_DRIVER_CAPABILITIES=video
+```
+
+<br>
+
+## Endpoints
+### REST API Endpoints
+This is used for getting raw JSON data from your device.
+| Name                     | Port  | Endpoint                      |
+|:-------------------------|:------|:------------------------------|
+| Channel List             | 8080  | /api/channels/list            |
+| Channel Playlist         | 8080  | /api/channels/stream_id       |
+
+
+### Proxy Endpoints
+The following endpoints are proxied through the server and primarily used by the web portal. Channel streams are located at a different domain, so these endpoints are proxied to avoid CORS errors.
+| Name                     | Port       |Endpoint                          |
+|:-------------------------|:-----------|:---------------------------------|
+| Channel Playlist         | 8080/34400 | /proxy/channels/stream_id        |
+| Channel Segment          | 8080/34400 | /proxy/stream/?url=segment_url   |
+
+
+### HDHomeRun Endpoints
+The endpoints found below are primarily for use for Plex, and simulate an HDHomeRun device. Depending on your network, your device should be automatically recognized when configuring with Plex. 
+| Name                     | Port  | Endpoint                |
+|:-------------------------|:------|:------------------------|
+| Device                   | 34400 | /                       |
+| Discover                 | 34400 | /discover.json          |
+| Lineup Status            | 34400 | /lineup_status.json     |
+| Channel List             | 34400 | /lineup.json            |
+| XML TV Guide             | 34400 | /channels/guide.xml     |
+| Channel Stream           | 34400 | /channels/stream_id     |
 
 Server logs are displayed in the console, and also saved to `./logs/app.log`.
