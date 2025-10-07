@@ -1,11 +1,11 @@
 server {
-    listen 34400;
+    listen ${STB_PORT};
     server_name _;
 
     location / {
         rewrite ^/(.*) /stb/$1 break;
-        proxy_pass http://magplex:8080;
-        proxy_set_header Host $host:34400;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host:${STB_PORT};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -13,8 +13,8 @@ server {
     }
 
     location /proxy {
-        proxy_pass http://magplex:8080;
-        proxy_set_header Host $host:34400;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host:${STB_PORT};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -23,28 +23,12 @@ server {
 }
 
 server {
-    listen 34400;
+    listen ${WEB_PORT};
     server_name _;
 
     location / {
-        rewrite ^/(.*) /stb/$1 break;
-        proxy_pass http://magplex:8080;
-        proxy_set_header Host $host:34400;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Port $server_port;
-    }
-}
-
-
-server {
-    listen 8080;
-    server_name _;
-
-    location / {
-        proxy_pass http://magplex:8080;  # Use Docker service name
-        proxy_set_header Host $host:8080;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host:${WEB_PORT};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
