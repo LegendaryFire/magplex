@@ -3,12 +3,14 @@ class MediaPlayer extends HTMLElement {
         super();
         this.channelId = null;
         this.channelName = null;
+        this.streamId = null;
         this.hls = new Hls();
     }
 
     connectedCallback() {
         this.channelId = this.dataset.channelId;
         this.channelName = this.dataset.channelName;
+        this.streamId = this.dataset.streamId;
         this.innerHTML = `
             <div class="modal-container">
                 <div class="header">
@@ -33,7 +35,7 @@ class MediaPlayer extends HTMLElement {
     }
 
     loadStream() {
-        const channelUrl = `/proxy/channels/${this.channelId}`;
+        const channelUrl = `/proxy/channels/${this.streamId}`;
         const videoElem = document.querySelector('video');
         this.hls.loadSource(channelUrl);
         this.hls.attachMedia(videoElem);

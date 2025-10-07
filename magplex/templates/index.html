@@ -35,8 +35,7 @@
             width: 100%;
             height: 100%;
             margin: 0;
-            background: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%);
-            background-attachment: fixed;
+            background: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%) fixed;
             font-family: "Alan Sans", sans-serif;
         }
 
@@ -149,10 +148,11 @@
             document.cookie = `color-mode=${colorMode};`;
         }
 
-        function channelClickCallback(channelId, channelName) {
+        function channelClickCallback(channelId, channelName, streamId) {
             const playerElem = document.createElement('media-player');
             playerElem.dataset.channelId = channelId;
             playerElem.dataset.channelName = channelName;
+            playerElem.dataset.streamId = streamId;
             document.querySelector('body').appendChild(playerElem);
         }
 

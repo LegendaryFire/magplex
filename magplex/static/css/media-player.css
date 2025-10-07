@@ -10,7 +10,7 @@ media-player {
     height: 100dvh;
     max-width: 100dvw;
     max-height: 100dvh;
-    background-color: inherit;
+    background: inherit;
 }
 
 media-player .modal-container {
@@ -35,6 +35,7 @@ media-player .header {
 media-player video {
     max-width: 800px;
 }
+
 
 
 media-player .close-btn {
