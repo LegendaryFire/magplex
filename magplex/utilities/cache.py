@@ -2,16 +2,16 @@ import json
 
 
 def _get_bearer_token_key(instance_id):
-    return f'device:{instance_id}:token'
+    return f'magplex:device:{instance_id}:token'
 
 def _get_channel_ids_key(instance_id):
-    return f'device:{instance_id}:ids'
+    return f'magplex:device:{instance_id}:channel:ids'
 
-def _get_channel_key(instance_id, channel_id):
-    return f'device:{instance_id}:channel:{channel_id}'
+def _get_channel_key(instance_id: str, channel_id: str) -> str:
+    return f"magplex:device:{instance_id}:channel:{channel_id}"
 
-def _get_channel_guide_key(instance_id, channel_id):
-    return f'device:{instance_id}:guide:{channel_id}'
+def _get_channel_guide_key(instance_id: str, channel_id: str) -> str:
+    return f"magplex:device:{instance_id}:channel:{channel_id}:guide"
 
 def get_bearer_token(conn, instance_id):
     cache_key = _get_bearer_token_key(instance_id)
@@ -53,8 +53,9 @@ def get_all_channels(conn, instance_id):
     return channels
 
 def insert_channel(conn, instance_id, channel_id, channel):
+    expiry = 3 * 3600
     cache_key = _get_channel_key(instance_id, channel_id)
-    conn.set(cache_key, json.dumps(channel))
+    conn.set(cache_key, json.dumps(channel), ex=expiry)
 
 def get_all_channel_guides(conn, instance_id):
     # Get all stored channels.
@@ -76,5 +77,6 @@ def get_all_channel_guides(conn, instance_id):
     return channel_guides
 
 def insert_channel_guide(conn, instance_id, channel_id, channel_guide):
+    expiry = 3 * 3600
     cache_key = _get_channel_guide_key(instance_id, channel_id)
-    conn.set(cache_key, json.dumps(channel_guide))
+    conn.set(cache_key, json.dumps(channel_guide), ex=expiry)
