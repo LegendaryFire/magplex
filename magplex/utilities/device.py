@@ -36,7 +36,7 @@ class DeviceManager:
     def unregister_device(self, device_id):
         if device_id not in self.devices:
             logging.warning(f"Cannot unregister. Device {device_id} not found.")
-        self.devices.pop(device_id)
+        self.devices.pop(device_id, None)
 
     def get_device(self, device_id):
         return self.devices.get(device_id)
@@ -72,7 +72,7 @@ class Device:
 
     def __del__(self):
         self.scheduler.remove_job(self.id)
-        manager.unregister_device(self)
+        manager.unregister_device(self.id)
 
     def get_token(self):
         """Gets the authentication token for the session."""
