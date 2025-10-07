@@ -1,8 +1,6 @@
 from http import HTTPStatus
 
-from flask import Blueprint, Response, current_app, jsonify, redirect, request
-
-from magplex.utilities import parser
+from flask import Blueprint, Response, current_app, jsonify, redirect
 
 api = Blueprint("api", __name__)
 @api.route('/channels/<int:stream_id>')
@@ -12,7 +10,7 @@ def get_channel_playlist(stream_id):
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
     return redirect(channel_url, code=HTTPStatus.FOUND)
 
-@api.route('/channels/list.m3u8')
+
 @api.route('/channels/list')
 def get_channel_list():
     """Gets the channel list from the portal, returns a playlist if supported, otherwise JSON."""
@@ -25,16 +23,5 @@ def get_channel_list():
     for index, channel in enumerate(channels):
         channels[index]['genre_name'] = genre_name_map.get(channel.get('genre_id'), "Unknown")
 
-    if request.path.endswith('.m3u8'):
-        domain = request.host_url[:-1]
-        playlist = parser.build_playlist(channels, domain)
-        return Response(playlist, mimetype='application/vnd.apple.mpegurl')
     return jsonify(channels)
 
-
-
-@api.route('/channels/guide.xml')
-def get_channel_guide():
-    data = current_app.stb.get_channel_guide()
-    guide = parser.build_channel_guide(data.get('channels'), data.get('channel_guides'))
-    return Response(guide, mimetype='text/xml')

@@ -17,7 +17,6 @@ def proxy_playlist(stream_id):
     playlist_content = response.text
 
     parsed_url = urlparse(channel_url)
-    domain = request.host_url[:-1]
     channel_domain =  urlunparse((parsed_url.scheme, parsed_url.netloc, posixpath.dirname(parsed_url.path), "", "", ""))
     proxied_playlist = []
     for line in playlist_content.splitlines():

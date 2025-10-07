@@ -1,5 +1,4 @@
 import logging
-import subprocess
 from enum import Enum
 
 import ffmpeg

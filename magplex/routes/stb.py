@@ -5,7 +5,7 @@ import ffmpeg
 import requests
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from magplex.utilities import media
+from magplex.utilities import media, parser
 from magplex.utilities.environment import Variables
 
 stb = Blueprint("stb", __name__)
@@ -118,3 +118,9 @@ def get_channel_playlist(stream_id):
             "Access-Control-Allow-Origin": "*"
         }
     )
+
+@stb.route('/channels/guide.xml')
+def get_channel_guide():
+    data = current_app.stb.get_channel_guide()
+    guide = parser.build_channel_guide(data.get('channels'), data.get('channel_guides'))
+    return Response(guide, mimetype='text/xml')
