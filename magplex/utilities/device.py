@@ -7,6 +7,7 @@ from datetime import datetime
 from http import HTTPStatus
 
 import requests
+from apscheduler.jobstores.base import JobLookupError, ConflictingIdError
 from flask import Response
 from requests.adapters import HTTPAdapter
 
@@ -67,11 +68,17 @@ class Device:
         }
         manager.register_device(self)
         if self.scheduler.get_job(self.id) is None:
-            self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
-                                   next_run_time=datetime.now(), args=[self.id])
+            try:
+                self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
+                                       next_run_time=datetime.now(), args=[self.id])
+            except ConflictingIdError:
+                pass
 
     def __del__(self):
-        self.scheduler.remove_job(self.id)
+        try:
+            self.scheduler.remove_job(self.id)
+        except JobLookupError:
+            pass
         manager.unregister_device(self.id)
 
     def get_token(self):
