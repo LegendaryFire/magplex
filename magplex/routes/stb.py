@@ -68,7 +68,7 @@ def lineup():
         channel_lineup.append({
             "GuideName": channel.get('channel_name'),
             "GuideNumber": channel.get('channel_id'),
-            "URL": f"{domain}/stb/channels/{channel.get('stream_id')}"
+            "URL": f"{domain}/channels/{channel.get('stream_id')}"
         })
 
     return jsonify(channel_lineup)
