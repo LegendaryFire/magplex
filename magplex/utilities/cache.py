@@ -1,5 +1,7 @@
 import json
 
+def _get_device_timeout_key(instance_id):
+    return f'magplex:device:{instance_id}:timeout'
 
 def _get_bearer_token_key(instance_id):
     return f'magplex:device:{instance_id}:token'
@@ -12,6 +14,15 @@ def _get_channel_key(instance_id: str, channel_id: str) -> str:
 
 def _get_channel_guide_key(instance_id: str, channel_id: str) -> str:
     return f"magplex:device:{instance_id}:channel:{channel_id}:guide"
+
+def set_device_timeout(conn, instance_id):
+    cache_key = _get_device_timeout_key(instance_id)
+    expiry = 30
+    conn.set(cache_key, True, ex=expiry, nx=True)
+
+def get_device_timeout(conn, instance_id):
+    cache_key = _get_device_timeout_key(instance_id)
+    return conn.exists(cache_key)
 
 def get_bearer_token(conn, instance_id):
     cache_key = _get_bearer_token_key(instance_id)
