@@ -22,7 +22,7 @@ def set_device_timeout(conn, instance_id):
 
 def get_device_timeout(conn, instance_id):
     cache_key = _get_device_timeout_key(instance_id)
-    return conn.exists(cache_key)
+    return conn.exists(cache_key) == 0
 
 def get_bearer_token(conn, instance_id):
     cache_key = _get_bearer_token_key(instance_id)
