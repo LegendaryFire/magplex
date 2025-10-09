@@ -2,7 +2,10 @@
 FROM python:3.12-bookworm
 
 # Copy entrypoint to image
-COPY docker/scripts/docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker/entrypoints/docker-entrypoint.sh /docker-entrypoint.sh
+
+# Copy Gunicorn config to image
+COPY docker/scripts/gunicorn.conf.py /gunicorn.conf.py
 
 # Install Nginx
 RUN apt-get update && \

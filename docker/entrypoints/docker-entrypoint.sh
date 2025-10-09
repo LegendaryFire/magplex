@@ -14,4 +14,4 @@ ln -sf /dev/stderr /var/log/nginx/error.log
 nginx
 
 # Run gunicorn in the foreground.
-exec gunicorn --worker-class gthread -w $((2*$(nproc)+1)) --threads 8 -b 0.0.0.0:8000 main:app
+exec gunicorn -c gunicorn.conf.py main:app

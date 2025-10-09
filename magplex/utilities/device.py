@@ -83,6 +83,11 @@ class Device:
 
     def get_token(self):
         """Gets the authentication token for the session."""
+        available = cache.get_device_timeout(self.conn, self.id)
+        if not available:
+            logging.warning(f"Device is not available. Awaiting timeout.")
+            return None
+
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'
         self.headers.pop('Authorization', None)  # Remove the old authentication header.
         response = self.session.get(url, headers=self.headers, cookies=self.cookies)
@@ -100,6 +105,11 @@ class Device:
 
     def get_authorization(self):
         """Gets authentication for the set-top box device."""
+        available = cache.get_device_timeout(self.conn, self.id)
+        if not available:
+            logging.warning(f"Device is not available. Awaiting timeout.")
+            return None
+
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies)
         if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
@@ -109,6 +119,11 @@ class Device:
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
+        available = cache.get_device_timeout(self.conn, self.id)
+        if not available:
+            logging.warning(f"Device is not available. Awaiting timeout.")
+            return None
+
         self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.conn, self.id)}'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
@@ -133,6 +148,7 @@ class Device:
             else:
                 logging.warning('Unable to retrieve token.')
                 self.authorized = False
+                cache.set_device_timeout(self.conn, self.id)
                 return None
 
         self.authorized = True
