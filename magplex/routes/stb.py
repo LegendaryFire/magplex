@@ -90,6 +90,9 @@ def get_channel_playlist(stream_id):
             headers[key] = response.headers[key]
     headers = ''.join(f"{k}: {v}\r\n" for k, v in headers.items())
 
+    domain = request.host_url[:-1]
+    channel_url = f'{domain}/proxy/channels/{stream_id}'
+
     if Variables.BASE_FFMPEG is None:
         logging.error("Unable to find ffmpeg installation.")
         return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
