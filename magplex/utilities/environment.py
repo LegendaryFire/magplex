@@ -25,7 +25,6 @@ class Variables:
     STB_DEVICE_ID = os.getenv('DEVICE_ID', None)
     STB_DEVICE_ID2 = os.getenv('DEVICE_ID2', None)
     STB_SIGNATURE = os.getenv('SIGNATURE', None)
-    VERBOSE = os.getenv('VERBOSE', False)
 
     @classmethod
     def valid(cls):
