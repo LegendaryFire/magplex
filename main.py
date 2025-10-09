@@ -1,5 +1,6 @@
 import logging
 import sys
+import time
 
 import redis
 from apscheduler.jobstores.redis import RedisJobStore
@@ -24,7 +25,7 @@ if not Variables.valid():
     sys.exit()
 
 app = Flask(__name__, static_folder="magplex/static", template_folder="magplex/templates")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(stb, url_prefix='/stb')
@@ -35,7 +36,8 @@ conn = redis.Redis(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=0)
 try:
     conn.ping()
 except redis.exceptions.RedisError:
-    logging.error("Unable to connect to Redis server. Please try again...")
+    logging.error(f"Unable to connect to Redis server at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
+    time.sleep(5)
     sys.exit()
 
 jobstores = {'default': RedisJobStore(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=1)}
