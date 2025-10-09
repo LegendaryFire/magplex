@@ -20,14 +20,6 @@ RUN apt update && \
     apt install -y intel-media-va-driver vainfo && \
     rm -rf /var/lib/apt/lists/*
 
-# Install NVIDIA GPU driver
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb && \
-    dpkg -i cuda-keyring_1.1-1_all.deb && \
-    apt update && \
-    apt install -y cuda-runtime-12-8 && \
-    rm -rf cuda-keyring_1.1-1_all.deb && \
-    rm -rf /var/lib/apt/lists/*
-
 # Use Jellyfin FFmpeg build with QSV support
 RUN wget https://repo.jellyfin.org/files/ffmpeg/debian/latest-7.x/amd64/jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb && \
     dpkg -i jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb || apt update && \
