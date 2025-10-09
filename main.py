@@ -25,7 +25,7 @@ if not Variables.valid():
     sys.exit()
 
 app = Flask(__name__, static_folder="magplex/static", template_folder="magplex/templates")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=2, x_host=2)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=2, x_host=1)
 
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(stb, url_prefix='/stb')
