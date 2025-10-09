@@ -18,7 +18,7 @@ def _get_channel_guide_key(instance_id: str, channel_id: str) -> str:
 def set_device_timeout(conn, instance_id):
     cache_key = _get_device_timeout_key(instance_id)
     expiry = 30
-    conn.set(cache_key, True, ex=expiry, nx=True)
+    conn.set(cache_key, int(True), ex=expiry, nx=True)
 
 def get_device_timeout(conn, instance_id):
     cache_key = _get_device_timeout_key(instance_id)
