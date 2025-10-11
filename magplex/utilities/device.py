@@ -70,7 +70,7 @@ class Device:
         if self.scheduler.get_job(self.id) is None:
             try:
                 self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
-                                       next_run_time=datetime.now(), args=[self.id])
+                                       next_run_time=datetime.now(), max_instances=1, coalesce=True, args=[self.id])
             except ConflictingIdError:
                 pass
         else:
