@@ -73,6 +73,8 @@ class Device:
                                        next_run_time=datetime.now(), args=[self.id])
             except ConflictingIdError:
                 pass
+        else:
+            logging.error(f"Job already exists for device {self.id}.")
 
     def __del__(self):
         try:

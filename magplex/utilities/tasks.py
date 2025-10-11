@@ -8,12 +8,15 @@ from magplex.utilities import cache
 def set_device_channel_guide(device_id):
     """Background task ran at an interval to populate the cache with EPG information."""
     device = utilities.device.manager.get_device(device_id)
+    logging.info(f"Setting channel guide for device {device.id}")
     channel_list = device.get_channel_list()
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
         return
+
     # Build a list of EPG links to get the program guide for each channel.
     guide_urls = []
+    logging.info("Getting channel list to build EPG links.")
     for channel in channel_list:
         channel_id = channel.get('channel_id')
         guide_url = f'http://{device.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel_id}&JsHttpRequest=1-xml'
@@ -22,7 +25,9 @@ def set_device_channel_guide(device_id):
         cache.insert_channel(device.conn, device.id, channel_id, channel)
 
     # Process the channel guide URLs in batches to prevent rate limiting.
+    guide_count = len(guide_urls)
     while len(guide_urls) > 0:
+        logging.info(f"Fetching EPG, batch {guide_count - len(guide_urls)} of {guide_count}.")
         current_batch = guide_urls[:25]
         guide_urls = guide_urls[25:]
         responses = device.get_list(current_batch)
