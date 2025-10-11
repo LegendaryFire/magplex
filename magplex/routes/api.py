@@ -2,6 +2,8 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, current_app, jsonify, redirect
 
+from version import version
+
 api = Blueprint("api", __name__)
 @api.route('/channels/<int:stream_id>')
 def get_channel_playlist(stream_id):
@@ -25,3 +27,8 @@ def get_channel_list():
 
     return jsonify(channels)
 
+@api.route('/about')
+def get_about():
+    return jsonify({
+        'version': version,
+    })

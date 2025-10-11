@@ -9,144 +9,88 @@
     <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <link href="/static/css/media-player.css" rel="stylesheet">
+    <link href="/static/css/globals.css" rel="stylesheet">
+    <link href="/static/css/modal.css" rel="stylesheet">
+    <script src="/static/js/modal.js"></script>
     <script src="/static/js/media-player.js"></script>
     <link href="/static/css/channel-list.css" rel="stylesheet">
     <script src="/static/js/channel-list.js"></script>
+    <link href="/static/css/about-modal.css" rel="stylesheet">
+    <script src="/static/js/about-modal.js"></script>
     <script src="/static/js/utilities.js"></script>
 
     <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
-
-        body[data-color-mode=dark] {
-            --color: #cfcfcf;
-            --color-inactive: #808080;
-            --color-hover: #afafaf;
-            --background-color: #3a3a3a;
-            --border-color: #a8a8a8;
-        }
-
-        body {
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            background: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%) fixed;
-            font-family: "Alan Sans", sans-serif;
-        }
-
-        /* Force inheritance for table elements */
-        table, caption, thead, tbody, tfoot {
-            color: var(--color);
-            background-color: var(--background-color);
-            border-color: var(--border-color);
-        }
-
-        h1, h2, h3, h4, h5, h6, span, div {
-            color: var(--color);
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: var(--color-hover);
-        }
-
-        main {
-            align-self: center;
+        main, .modal-container {
             max-width: 100%;
             width: 100%;
             padding: 0 10px;
         }
 
-        nav ul {
-            display: flex;
-            list-style: none;
-            padding: 0 0 15px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        nav ul li {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 75px;
-            color: var(--color-inactive);
-            user-select: none;
-            cursor: pointer;
-            font-size: 17px;
-        }
-
-        nav ul li.title {
-            justify-content: flex-start;
-            color: var(--color);
-            cursor: default;
-            width: 100px;
-            font-weight: bold;
-            font-size: 20px;
-        }
-
-        nav ul li.color-toggle {
-            margin-left: auto;
-            width: 30px;
-        }
-
-        nav ul li.active, nav ul li:hover {
-            color: var(--color);
-            border-bottom-color: var(--color);
-        }
-
-        nav span.material-symbols-outlined:hover {
-            cursor: pointer;
-        }
-
         @media (min-width: 768px) {
-            main {
+            main,
+            .modal-container {
                 max-width: 800px;
                 width: 800px;
                 margin: 0;
             }
         }
+
+        nav {
+            ul {
+                & {
+                    display: flex;
+                    list-style: none;
+                    padding: 0 0 15px 0;
+                    border-bottom: 1px solid var(--border-color);
+                }
+
+                li {
+                    & {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 75px;
+                        color: var(--color-inactive);
+                        user-select: none;
+                        cursor: pointer;
+                        font-size: 17px;
+                    }
+
+                    &.title {
+                        justify-content: flex-start;
+                        color: var(--color);
+                        cursor: default;
+                        width: auto;
+                        font-weight: bold;
+                        font-size: 20px;
+                        margin-right: 10px;
+                    }
+
+                    &.align-right {
+                        margin-left: auto;
+                    }
+
+                    &.active,
+                    &:hover {
+                        color: var(--color);
+                        border-bottom-color: var(--color);
+                    }
+
+                    span.material-symbols-outlined:hover {
+                        cursor: pointer;
+                    }
+                }
+            }
+        }
     </style>
 
     <script>
-        class ColorMode {
-            static DARK = 'dark';
-            static LIGHT = 'light';
-        }
-
-        function initializeUi() {
-            const colorToggleElem = document.querySelector('.color-toggle');
-            colorToggleElem.addEventListener('click', () => toggleColorMode());
-
-            // Attempt to get the color mode, and set it if the cookie exists.
-            const colorModeCookie = getCookie('color-mode');
-            if (colorModeCookie !== null) {
-                toggleColorMode(colorModeCookie);
-            }
-
-        }
-
-        function toggleColorMode(colorMode=null) {
-            const colorToggleElem = document.querySelector('.color-toggle');
-            if (colorMode == null) {
-                colorMode = colorToggleElem.dataset.colorMode === ColorMode.LIGHT ? ColorMode.DARK : ColorMode.LIGHT;
-            }
-
-            // Set the color mode on the body, update the UI element, and save the cookie.
-            const bodyElem = document.querySelector('body');
-            bodyElem.dataset.colorMode = colorMode;
-            colorToggleElem.dataset.colorMode = colorMode;
-            colorToggleElem.querySelector('span').innerText = colorMode === ColorMode.LIGHT ? 'dark_mode' : 'light_mode';
-            document.cookie = `color-mode=${colorMode};`;
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+           document.querySelector('#about-btn').addEventListener('click', () => {
+               const aboutElem = document.createElement('about-modal');
+               document.querySelector('body').appendChild(aboutElem);
+           });
+        });
 
         function channelClickCallback(channelId, channelName, streamId) {
             const playerElem = document.createElement('media-player');
@@ -155,8 +99,6 @@
             playerElem.dataset.streamId = streamId;
             document.querySelector('body').appendChild(playerElem);
         }
-
-        document.addEventListener('DOMContentLoaded', () => initializeUi());
     </script>
 </head>
 <body data-color-mode="dark">
@@ -166,8 +108,7 @@
                 <li class="title">Mag Plex</li>
                 <li class="active">Home</li>
                 <li><a href="/logs" target="_blank">Logs</a></li>
-                <li class="about">About</li>
-                <li class="color-toggle" data-color-mode="light"><span class="material-symbols-outlined">dark_mode</span></li>
+                <li id="about-btn" class="align-right">About</li>
             </ul>
         </nav>
         <section style="padding-top: 5px;">

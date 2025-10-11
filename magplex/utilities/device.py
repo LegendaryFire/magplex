@@ -127,12 +127,8 @@ class Device:
         self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.conn, self.id)}'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
-        if not self.authorized:
-            logging.warning("Unable to get data. Authorization failed.")
-            return None
-
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
-        if response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
+        if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
             token = self.get_token()
             if token is not None:
                 self.headers['Authorization'] = f'Bearer {token}'  # Set authorization header on success.

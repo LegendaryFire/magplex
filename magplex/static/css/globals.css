@@ -1,0 +1,60 @@
+:root {
+    --color: #cfcfcf;
+    --color-inactive: #808080;
+    --color-hover: #afafaf;
+    --background-color: #3a3a3a;
+    --background-gradient: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%) fixed;
+    --border-color: #4d4d4d;
+    --color-input-box-shadow: #669ab6;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    background: var(--background-gradient);
+    font-family: "Alan Sans", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, span, div {
+    color: var(--color);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--color-hover);
+}
+
+input[type="text"],
+select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color: var(--color-inactive);
+}
+
+input[type="text"]:focus,
+select:focus {
+    box-shadow: 0 0 8px var(--color-input-box-shadow);
+}
+
+input[type="text"]::placeholder {
+    color: var(--color-inactive);
+    font-style: italic;
+}

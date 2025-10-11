@@ -1,49 +1,55 @@
-class MediaPlayer extends HTMLElement {
+class MediaPlayer extends Modal {
     constructor() {
         super();
-        this.channelId = null;
-        this.channelName = null;
+        this.modalTitle = null;
         this.streamId = null;
-        this.hls = new Hls();
+        this.videoElem = null;
+        this.hls = null;
     }
 
     connectedCallback() {
-        this.channelId = this.dataset.channelId;
-        this.channelName = this.dataset.channelName;
+        this.modalTitle = this.dataset.channelName;
         this.streamId = this.dataset.streamId;
-        this.innerHTML = `
-            <div class="modal-container">
-                <div class="header">
-                    <h3 class="channel-name">${this.channelName}</h3>
-                    <span class="close-btn material-symbols-outlined">close</button>        
-                </div>
-                <video controls></video>
-            </div>
-        `;
-        const closeBtn = this.querySelector('.close-btn');
-        closeBtn.addEventListener('click', () => this.closePlayer());
+
+        this.innerHTML = `<video controls></video>`;
+        super.connectedCallback();
+
+        this.videoElem = document.querySelector('video');
         this.loadStream();
+
     }
 
-    closePlayer() {
-        const videoElem = document.querySelector('video');
-        videoElem.pause();
-        this.hls.stopLoad();
-        this.hls.detachMedia();
-        this.hls.destroy();
-        this.remove();
+    onClose() {
+        if (this.videoElem) {
+            this.videoElem.pause();
+        }
+
+        if (this.hls) {
+            this.hls.stopLoad();
+            this.hls.detachMedia();
+            this.hls.destroy();
+            this.hls = null;
+        }
+
+        super.onClose();
     }
 
     loadStream() {
+        if (!Hls.isSupported()) {
+            console.error("HLS is not supported in this browser");
+            return;
+        }
+
         const channelUrl = `/proxy/channels/${this.streamId}`;
-        const videoElem = document.querySelector('video');
+        this.hls = new Hls();
         this.hls.loadSource(channelUrl);
-        this.hls.attachMedia(videoElem);
-        this.hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            videoElem.play();
+        this.hls.attachMedia(this.videoElem);
+        this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            this.videoElem.play().catch(err => {
+                console.warn("Video play failed:", err);
+            });
         });
     }
-
 }
 
 customElements.define('media-player', MediaPlayer)

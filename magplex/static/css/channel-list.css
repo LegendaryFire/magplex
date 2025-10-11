@@ -1,28 +1,16 @@
 channel-list {
-    .fancy-border {
-
-    }
-
     div.search-container {
-
-        input[type="text"] {
-            width: 100%;
-            padding: 10px 14px;
-            font-size: 15px;
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            color: var(--color-inactive);
+        & {
+            display: flex;
+            gap: 5px;
         }
 
-        input[type="text"]:focus {
-            box-shadow: 0 0 8px #669ab6;
+        input[type=text] {
+            flex-grow: 2;
         }
 
-        input[type="text"]::placeholder {
-            color: var(--color-inactive);
-            font-style: italic;
+        select {
+            width: 150px;
         }
     }
 
@@ -51,7 +39,7 @@ channel-list {
                 height: 85px;
                 width: 100%;
                 border-radius: 10px;
-                border: solid 2px #4d4d4d;
+                border: solid 2px var(--border-color);
                 padding: 15px;
                 color: var(--color);
                 user-select: none;

@@ -1,29 +1,16 @@
 class ChannelList extends HTMLElement {
     constructor() {
         super();
+        this.genres = []
         this.channels = [];
-        this.searchMap = {};
     }
 
     async connectedCallback() {
+        this.channels = await this.getChannelList();
+        this.genres = [...new Set(this.channels.map(c => c.genre_name))];
         this.appendChild(this.getSearchBarElement());
         this.appendChild(this.getChannelListElement());
-        this.channels = await this.getChannelList();
         this.renderChannelList();
-        this.searchMap = this.getSearchMap();
-    }
-
-    getSearchMap() {
-        const channelElems = this.querySelectorAll('ul li.channel');
-        const searchMap = {};
-        for (const channelElem of channelElems) {
-            const channelId = channelElem.dataset.channelId.toLowerCase();
-            const channelName = channelElem.dataset.channelName.toLowerCase();
-            const genreName = channelElem.dataset.genreName.toLowerCase();
-            const searchKey = `${channelId}${channelName}${genreName}`.toLowerCase();
-            searchMap[searchKey] = channelElem;
-        }
-        return searchMap;
     }
 
     async getChannelList() {
@@ -41,18 +28,52 @@ class ChannelList extends HTMLElement {
         searchContainerElem.classList.add('search-container');
         searchContainerElem.innerHTML = `
             <input type="text" name='search' placeholder='Search...'>
+            <select name='genre'>
+                <option value="">All</option>
+                ${this.genres.map(genre => `<option value="${genre}">${genre}</option>`).join('')}
+            </select>
         `;
-        const inputElem = searchContainerElem.querySelector('input');
-        inputElem.addEventListener('keyup', (event) => {
-            this.searchChannelList(event.currentTarget.value)
+        const searchElem = searchContainerElem.querySelector('input');
+        searchElem.addEventListener('keyup', (event) => {
+            const searchVal = event.currentTarget.value;
+            const genreVal = searchContainerElem.querySelector('[name=genre]').value;
+            this.searchChannelList(searchVal, genreVal);
         });
+
+        const genreElem = searchContainerElem.querySelector('select');
+        genreElem.addEventListener('change', (event) => {
+            const searchVal = searchContainerElem.querySelector('[name=search]').value;
+            const genreVal = event.currentTarget.value;
+            this.searchChannelList(searchVal, genreVal);
+        });
+
+
         return searchContainerElem;
     }
 
-    searchChannelList(search) {
-        search = search.trim().toLowerCase();
-        for (const [searchKey, channelElem] of Object.entries(this.searchMap)) {
-            channelElem.hidden = !searchKey.includes(search);
+    searchChannelList() {
+        const searchElem = document.querySelector('.search-container [name=search]');
+        const genreElem = document.querySelector('.search-container [name=genre]');
+        let search = searchElem.value.trim().toLowerCase();
+        search = search === '' ? null : search;
+        let genre = genreElem.value.trim().toLowerCase();
+        genre = genre === '' ? null : genre;
+        const channelElements = document.querySelectorAll('.channel');
+        for (const element of channelElements) {
+            const channelName = element.dataset.channelName.toLowerCase();
+            const genreName = element.dataset.genreName.toLowerCase();
+            if (genre === null || genreName.includes(genre)) {
+                element.hidden = false;
+            } else {
+                element.hidden = true;
+                continue;
+            }
+            if (search === null || channelName.includes(search)) {
+                element.hidden = false;
+            } else {
+                element.hidden = true;
+                continue;
+            }
         }
     }
 
