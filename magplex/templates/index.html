@@ -12,12 +12,11 @@
     <link href="/static/css/globals.css" rel="stylesheet">
     <link href="/static/css/modal.css" rel="stylesheet">
     <script src="/static/js/modal.js"></script>
-    <script src="/static/js/media-player.js"></script>
     <link href="/static/css/channel-list.css" rel="stylesheet">
     <script src="/static/js/channel-list.js"></script>
     <link href="/static/css/about-modal.css" rel="stylesheet">
     <script src="/static/js/about-modal.js"></script>
-    <script src="/static/js/utilities.js"></script>
+    <script src="/static/js/player-modal.js"></script>
 
     <style>
         main, .modal-container {
@@ -93,7 +92,7 @@
         });
 
         function channelClickCallback(channelId, channelName, streamId) {
-            const playerElem = document.createElement('media-player');
+            const playerElem = document.createElement('player-modal');
             playerElem.dataset.channelId = channelId;
             playerElem.dataset.channelName = channelName;
             playerElem.dataset.streamId = streamId;

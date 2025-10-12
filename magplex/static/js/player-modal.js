@@ -1,4 +1,4 @@
-class MediaPlayer extends Modal {
+class PlayerModal extends Modal {
     constructor() {
         super();
         this.modalTitle = null;
@@ -52,4 +52,4 @@ class MediaPlayer extends Modal {
     }
 }
 
-customElements.define('media-player', MediaPlayer)
+customElements.define('player-modal', PlayerModal)
