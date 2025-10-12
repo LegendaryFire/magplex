@@ -8,7 +8,10 @@ from magplex.utilities import cache
 def set_device_channel_guide(device_id):
     """Background task ran at an interval to populate the cache with EPG information."""
     device = utilities.device.manager.get_device(device_id)
-    logging.info(f"Setting channel guide for device {device.id}")
+    if device is None:
+        logging.error(f"Cannot set channel guide. Unable to find device {device_id}.")
+        return
+    logging.info(f"Setting channel guide for device {device.id}.")
     channel_list = device.get_channel_list()
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
@@ -46,7 +49,7 @@ def set_device_channel_guide(device_id):
                     'channel_id': channel_id,
                     'channel_name': channel_guide.get('name'),
                     'channel_description': channel_guide.get('descr'),
-                    'start_timestamp': int(stop_timestamp),
+                    'start_timestamp': int(start_timestamp),
                     'stop_timestamp': int(stop_timestamp),
                     'categories': [c.strip() for c in channel_guide.get('category', str()).split(',') if c.strip()]
                 }

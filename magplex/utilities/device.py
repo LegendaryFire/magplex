@@ -76,13 +76,6 @@ class Device:
         else:
             logging.error(f"Job already exists for device {self.id}.")
 
-    def __del__(self):
-        try:
-            self.scheduler.remove_job(self.id)
-        except JobLookupError:
-            pass
-        manager.unregister_device(self.id)
-
     def get_token(self):
         """Gets the authentication token for the session."""
         available = cache.get_device_timeout(self.conn, self.id)

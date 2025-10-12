@@ -3,6 +3,7 @@ FROM python:3.12-bookworm
 
 # Copy entrypoint to image
 COPY docker/entrypoints/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Copy Gunicorn config to image
 COPY docker/scripts/gunicorn.conf.py /gunicorn.conf.py
@@ -13,7 +14,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/nginx/nginx.conf.template /etc/nginx/templates/nginx.conf.template
-RUN chmod +x /docker-entrypoint.sh
 
 # Install Intel Quick Sync driver
 RUN apt update && \
