@@ -41,4 +41,8 @@ RUN pip install --no-cache-dir gunicorn
 # Copy the rest of the application code
 COPY . .
 
+# Update the image build date.
+COPY docker/scripts/build_date.py /build_date.py
+RUN python /build_date.py
+
 ENTRYPOINT ["/docker-entrypoint.sh"]

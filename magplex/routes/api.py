@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, current_app, jsonify, redirect
 
-from version import version
+import version
 
 api = Blueprint("api", __name__)
 @api.route('/channels/<int:stream_id>')
@@ -30,5 +30,6 @@ def get_channel_list():
 @api.route('/about')
 def get_about():
     return jsonify({
-        'version': version,
+        'version': version.version,
+        'build_date': getattr(version, "build_date", "Unknown")
     })

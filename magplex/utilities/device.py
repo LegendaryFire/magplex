@@ -4,14 +4,34 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
+from functools import wraps
 from http import HTTPStatus
 
 import requests
-from apscheduler.jobstores.base import JobLookupError, ConflictingIdError
+from apscheduler.jobstores.base import ConflictingIdError
 from flask import Response
 from requests.adapters import HTTPAdapter
 
 from magplex.utilities import cache, tasks
+
+def limit_recursion(max_depth):
+    def decorator(func):
+        attr_name = f"_{func.__name__}_depth"
+
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            depth = getattr(self, attr_name, 0)
+            if depth >= max_depth:
+                logging.warning(f"Maximum recursion depth reached for {func.__name__}(). Aborting.")
+                return None
+
+            setattr(self, attr_name, depth + 1)
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                setattr(self, attr_name, depth)
+        return wrapper
+    return decorator
 
 
 @dataclass
@@ -85,7 +105,7 @@ class Device:
 
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'
         self.headers.pop('Authorization', None)  # Remove the old authentication header.
-        response = self.session.get(url, headers=self.headers, cookies=self.cookies)
+        response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # Check for a valid response.
         if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
@@ -106,12 +126,13 @@ class Device:
             return None
 
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
-        response = self.session.get(url, headers=self.headers, cookies=self.cookies)
+        response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
         if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
             self.headers.pop('Authorization', None)  # Clear the authentication header on failure.
             return False
         return True
 
+    @limit_recursion(5)
     def get(self, url):
         """Authenticated get method for portal endpoints."""
         available = cache.get_device_timeout(self.conn, self.id)
@@ -130,16 +151,18 @@ class Device:
                 authorized = self.get_authorization()
                 if not authorized:
                     logging.warning("Unable to authorize.")
+                    cache.set_device_timeout(self.conn, self.id)
                     self.authorized = False
                     return None
+
                 self.authorized = True
                 cache.set_bearer_token(self.conn, self.id, token)
                 time.sleep(0.25)  # Help avoid being rate limited when in an auth failed loop.
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
-                self.authorized = False
                 cache.set_device_timeout(self.conn, self.id)
+                self.authorized = False
                 return None
 
         self.authorized = True
@@ -164,7 +187,7 @@ class Device:
             except requests.exceptions.RequestException:
                 return None
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=15) as executor:
             results = list(executor.map(fetch_url, urls))
 
         # Filter out failed responses.

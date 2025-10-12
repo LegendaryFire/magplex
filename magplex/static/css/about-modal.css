@@ -6,4 +6,12 @@ about-modal {
     h4 {
         margin-top: 0;
     }
+
+    .version {
+        margin-bottom: 2px;
+    }
+
+    .build-date {
+        margin-top: 2px;
+    }
 }

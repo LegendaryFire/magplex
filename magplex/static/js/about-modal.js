@@ -6,7 +6,8 @@ class AboutModal extends Modal {
         this.innerHTML = `
             <h1>Magplex</h1>
             <h4>by LegendaryFire</h4>
-            <p>Version ${aboutInfo.version}</p>
+            <p class="version">Version ${aboutInfo.version}</p>
+            <p class="build-date">Build ${aboutInfo.build_date}</p>
         `
         super.connectedCallback();
     }
