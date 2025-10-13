@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+import zoneinfo
 
 import redis
 from apscheduler.jobstores.redis import RedisJobStore
@@ -41,7 +42,7 @@ except redis.exceptions.RedisError:
     sys.exit()
 
 jobstores = {'default': RedisJobStore(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=1)}
-scheduler = BackgroundScheduler(jobstores=jobstores)
+scheduler = BackgroundScheduler(jobstores=jobstores, timezone=zoneinfo.ZoneInfo(Variables.STB_TIMEZONE))
 scheduler.start()
 
 profile = Profile(
@@ -57,4 +58,4 @@ profile = Profile(
 app.stb = Device(conn, scheduler, profile)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, use_reloader=True, debug=True)
+    app.run(host='0.0.0.0', port=8080, use_reloader=False)

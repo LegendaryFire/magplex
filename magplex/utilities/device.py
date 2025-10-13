@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import zoneinfo
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
@@ -13,25 +14,7 @@ from flask import Response
 from requests.adapters import HTTPAdapter
 
 from magplex.utilities import cache, tasks
-
-def limit_recursion(max_depth):
-    def decorator(func):
-        attr_name = f"_{func.__name__}_depth"
-
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            depth = getattr(self, attr_name, 0)
-            if depth >= max_depth:
-                logging.warning(f"Maximum recursion depth reached for {func.__name__}(). Aborting.")
-                return None
-
-            setattr(self, attr_name, depth + 1)
-            try:
-                return func(self, *args, **kwargs)
-            finally:
-                setattr(self, attr_name, depth)
-        return wrapper
-    return decorator
+from magplex.utilities.environment import Variables
 
 
 @dataclass
@@ -68,7 +51,7 @@ class Device:
     def __init__(self, conn, scheduler, profile):
         self.conn = conn
         self.scheduler = scheduler
-        self.id = profile.mac
+        self.id = profile.mac.replace(':', '')
         self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
@@ -90,11 +73,13 @@ class Device:
         if self.scheduler.get_job(self.id) is None:
             try:
                 self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
-                                       next_run_time=datetime.now(), max_instances=1, coalesce=True, args=[self.id])
+                                       next_run_time=datetime.now(zoneinfo.ZoneInfo(Variables.STB_TIMEZONE)),
+                                       max_instances=1, coalesce=True, args=[self.id])
+                logging.info(f"Channel guide background task added for device {self.id}")
             except ConflictingIdError:
                 pass
         else:
-            logging.error(f"Job already exists for device {self.id}.")
+            logging.info(f"Channel guide background task already exists for device {self.id}")
 
     def get_token(self):
         """Gets the authentication token for the session."""
@@ -132,7 +117,6 @@ class Device:
             return False
         return True
 
-    @limit_recursion(5)
     def get(self, url):
         """Authenticated get method for portal endpoints."""
         available = cache.get_device_timeout(self.conn, self.id)
@@ -145,6 +129,13 @@ class Device:
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
         if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
+            if 'Authorization failed' in response.text:
+                logging.info("Authenticating, authorization failed found in payload.")
+            elif response.status_code == HTTPStatus.FORBIDDEN:
+                logging.info("Authenticating, HTTP status forbidden.")
+            elif not self.authorized:
+                logging.info("Authenticating, authorization failed flag.")
+
             token = self.get_token()
             if token is not None:
                 self.headers['Authorization'] = f'Bearer {token}'  # Set authorization header on success.
@@ -157,7 +148,7 @@ class Device:
 
                 self.authorized = True
                 cache.set_bearer_token(self.conn, self.id, token)
-                time.sleep(0.25)  # Help avoid being rate limited when in an auth failed loop.
+                time.sleep(1)  # Sleep for 1s to avoid rate limiting.
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
@@ -187,7 +178,7 @@ class Device:
             except requests.exceptions.RequestException:
                 return None
 
-        with ThreadPoolExecutor(max_workers=15) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             results = list(executor.map(fetch_url, urls))
 
         # Filter out failed responses.

@@ -30,9 +30,9 @@ def set_device_channel_guide(device_id):
     # Process the channel guide URLs in batches to prevent rate limiting.
     guide_count = len(guide_urls)
     while len(guide_urls) > 0:
-        logging.info(f"Fetching EPG, batch {guide_count - len(guide_urls)} of {guide_count}.")
-        current_batch = guide_urls[:25]
-        guide_urls = guide_urls[25:]
+        logging.info(f"Fetching EPG, {guide_count - len(guide_urls)} of {guide_count}.")
+        current_batch = guide_urls[:3]
+        guide_urls = guide_urls[3:]
         responses = device.get_list(current_batch)
         for channel_guides in responses:
             if not channel_guides or not isinstance(channel_guides, list):
@@ -55,4 +55,4 @@ def set_device_channel_guide(device_id):
                 }
 
             cache.insert_channel_guide(device.conn, device.id, channel_id, channel_guides)
-        time.sleep(2)  # 2s delay to prevent rate limiting.
+        time.sleep(0.25)  # 250ms delay to prevent rate limiting.
