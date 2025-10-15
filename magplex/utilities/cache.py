@@ -1,5 +1,6 @@
 import json
 
+
 def _get_device_timeout_key(instance_id):
     return f'magplex:device:{instance_id}:timeout'
 

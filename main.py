@@ -10,12 +10,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 import magplex
 from magplex import database
-from magplex.utilities.database import DBConnectionPool
 from magplex.utilities import logs
+from magplex.utilities.database import DBConnectionPool
 from magplex.utilities.device import Device, Profile
 from magplex.utilities.environment import Variables
 from version import version
-
 
 # Initialize logging.
 logs.initialize()
