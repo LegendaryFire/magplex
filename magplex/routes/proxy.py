@@ -52,5 +52,5 @@ def proxy_stream():
     if r.status_code != HTTPStatus.OK:
         return Response("Failed to fetch stream segment.", r.status_code)
 
-    chunk_size = 64 * 1024  # 64KB
+    chunk_size = 32 * 1024  # 32KB
     return Response(r.iter_content(chunk_size=chunk_size), headers=r.headers)
