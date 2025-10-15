@@ -15,3 +15,5 @@ def create_app():
     app.register_blueprint(stb, url_prefix='/stb')
     app.register_blueprint(proxy, url_prefix='/proxy')
     app.register_blueprint(ui)
+
+    return app

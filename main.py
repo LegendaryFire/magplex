@@ -9,7 +9,8 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import magplex
-from magplex.database.conn import DBConnectionPool
+from magplex import database
+from magplex.utilities.database import DBConnectionPool
 from magplex.utilities import logs
 from magplex.utilities.device import Device, Profile
 from magplex.utilities.environment import Variables
@@ -31,6 +32,7 @@ if not Variables.valid():
 cache_conn = redis.Redis(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=0)
 try:
     cache_conn.ping()
+    logging.info(f"Connected to Redis database at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
 except redis.exceptions.RedisError:
     logging.error(f"Unable to connect to Redis server at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
     time.sleep(5)
@@ -47,10 +49,16 @@ db_conn = DBConnectionPool(
 )
 try:
     db_conn.ping_conn()
-except psycopg.Error:
+    logging.info(f"Connected to Postgres database at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
+except psycopg.Error as ex:
     logging.error(f"Unable to connect to Postgres server at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
     time.sleep(5)
     sys.exit()
+
+logging.info("Creating Postgres database schema if it doesn't already exist/")
+cursor = db_conn.get_cursor()
+database.create_database(cursor)
+db_conn.close_conn()
 
 
 # Start background task scheduler.

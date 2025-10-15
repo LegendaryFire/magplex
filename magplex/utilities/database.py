@@ -1,5 +1,4 @@
 import psycopg
-from flask import g
 
 class DBConnectionPool:
     def __init__(self, host, port, username, password, database):
