@@ -1,0 +1,17 @@
+about-modal {
+    h1 {
+        margin-bottom: 5px;
+    }
+
+    h4 {
+        margin-top: 0;
+    }
+
+    .version {
+        margin-bottom: 2px;
+    }
+
+    .build-date {
+        margin-top: 2px;
+    }
+}

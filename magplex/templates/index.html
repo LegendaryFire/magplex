@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MagPlex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link href="/static/css/globals.css" rel="stylesheet">
+    <link href="/static/css/modal.css" rel="stylesheet">
+    <script src="/static/js/modal.js"></script>
+    <link href="/static/css/channel-list.css" rel="stylesheet">
+    <script src="/static/js/channel-list.js"></script>
+    <link href="/static/css/about-modal.css" rel="stylesheet">
+    <script src="/static/js/about-modal.js"></script>
+    <script src="/static/js/player-modal.js"></script>
+
+    <style>
+        main, .modal-container {
+            max-width: 100%;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        @media (min-width: 768px) {
+            main,
+            .modal-container {
+                max-width: 800px;
+                width: 800px;
+                margin: 0;
+            }
+        }
+
+        nav {
+            ul {
+                & {
+                    display: flex;
+                    list-style: none;
+                    padding: 0 0 15px 0;
+                    border-bottom: 1px solid var(--border-color);
+                }
+
+                li {
+                    & {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 75px;
+                        color: var(--color-inactive);
+                        user-select: none;
+                        cursor: pointer;
+                        font-size: 17px;
+                    }
+
+                    &.title {
+                        justify-content: flex-start;
+                        color: var(--color);
+                        cursor: default;
+                        width: auto;
+                        font-weight: bold;
+                        font-size: 20px;
+                        margin-right: 10px;
+                    }
+
+                    &.align-right {
+                        margin-left: auto;
+                    }
+
+                    &.active,
+                    &:hover {
+                        color: var(--color);
+                        border-bottom-color: var(--color);
+                    }
+
+                    span.material-symbols-outlined:hover {
+                        cursor: pointer;
+                    }
+                }
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+           document.querySelector('#about-btn').addEventListener('click', () => {
+               const aboutElem = document.createElement('about-modal');
+               document.querySelector('body').appendChild(aboutElem);
+           });
+        });
+
+        function channelClickCallback(channelId, channelName, streamId) {
+            const playerElem = document.createElement('player-modal');
+            playerElem.dataset.channelId = channelId;
+            playerElem.dataset.channelName = channelName;
+            playerElem.dataset.streamId = streamId;
+            document.querySelector('body').appendChild(playerElem);
+        }
+    </script>
+</head>
+<body data-color-mode="dark">
+    <main>
+        <nav>
+            <ul>
+                <li class="title">Mag Plex</li>
+                <li class="active">Home</li>
+                <li><a href="/logs" target="_blank">Logs</a></li>
+                <li id="about-btn" class="align-right">About</li>
+            </ul>
+        </nav>
+        <section style="padding-top: 5px;">
+            <channel-list></channel-list>
+        </section>
+    </main>
+</body>
+</html>

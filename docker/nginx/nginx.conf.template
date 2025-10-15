@@ -1,0 +1,51 @@
+map $http_x_forwarded_proto $proxy_scheme {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
+server {
+    listen ${STB_PORT};
+    server_name _;
+
+    location / {
+        rewrite ^/(.*) /stb/$1 break;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host:${STB_PORT};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $proxy_scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+
+    location /stb {
+        proxy_pass http://127.0.0.1:8000/stb;
+        proxy_set_header Host $host:${STB_PORT};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $proxy_scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+
+    location /proxy {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host:${STB_PORT};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $proxy_scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+}
+
+server {
+    listen ${WEB_PORT};
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host:${WEB_PORT};
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $proxy_scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+}

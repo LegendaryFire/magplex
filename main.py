@@ -1,101 +1,61 @@
-import os
-import threading
-import time
-import requests
 import logging
-from flask import Flask, request, Response, redirect, send_file
-import helper
-import stb
-from cache import ttl_cache
-import werkzeug
-from version import __version__
+import sys
+import time
+import zoneinfo
 
-# Begin set up of logs, ensure logs folder exists.
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+import redis
+from apscheduler.jobstores.redis import RedisJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-# Disable color logging style.
-werkzeug.serving._log_add_style = False
+from magplex.routes.api import api
+from magplex.routes.proxy import proxy
+from magplex.routes.stb import stb
+from magplex.routes.ui import ui
+from magplex.utilities import logs
+from magplex.utilities.device import Device, Profile
+from magplex.utilities.environment import Variables
+from version import version
 
-# Set up global logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s]: %(message)s',
-    handlers=[
-        logging.FileHandler(f'logs/v{__version__}.log'),
-        logging.StreamHandler()  # Optional: also log to console
-    ]
+logs.initialize()
+logging.info(f"MagPlex v{version} by LegendaryFire")
+
+if not Variables.valid():
+    logging.error("Missing environment variables.")
+    sys.exit()
+
+app = Flask(__name__, static_folder="magplex/static", template_folder="magplex/templates")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=2, x_host=1)
+
+app.register_blueprint(api, url_prefix='/api')
+app.register_blueprint(stb, url_prefix='/stb')
+app.register_blueprint(proxy, url_prefix='/proxy')
+app.register_blueprint(ui)
+
+conn = redis.Redis(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=0)
+try:
+    conn.ping()
+except redis.exceptions.RedisError:
+    logging.error(f"Unable to connect to Redis server at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
+    time.sleep(5)
+    sys.exit()
+
+jobstores = {'default': RedisJobStore(host=Variables.REDIS_HOST, port=Variables.REDIS_PORT, db=1)}
+scheduler = BackgroundScheduler(jobstores=jobstores, timezone=zoneinfo.ZoneInfo(Variables.STB_TIMEZONE))
+scheduler.start()
+
+profile = Profile(
+    portal=Variables.STB_PORTAL,
+    mac=Variables.STB_MAC,
+    language=Variables.STB_LANGUAGE,
+    timezone=Variables.STB_TIMEZONE,
+    device_id=Variables.STB_DEVICE_ID,
+    device_id2=Variables.STB_DEVICE_ID2,
+    signature=Variables.STB_SIGNATURE
 )
 
-logging.info(f"MagPlex Version {__version__} by Tristan Balon")
-app = Flask(__name__)
+app.stb = Device(conn, scheduler, profile)
 
-profile = stb.STBProfile(
-    portal=os.getenv('PORTAL'),
-    mac_address=os.getenv('MAC_ADDRESS'),
-    stb_lang=os.getenv('STB_LANG'),
-    timezone=os.getenv('TZ'),
-    device_id=os.getenv('DEVICE_ID'),
-    device_id2=os.getenv('DEVICE_ID2'),
-    signature=os.getenv('SIGNATURE')
-)
-instance = stb.STB(profile)
-
-
-@app.route('/channel/<channel_id>')
-def channel(channel_id):
-    channel_url = instance.get_channel_url(channel_id)
-    return redirect(channel_url, code=302)
-
-
-@app.route('/channel_list.m3u8')
-def channel_list():
-    domain = request.host_url[:-1]
-    channels = instance.get_channel_list()
-    playlist = helper.build_playlist(channels, domain)
-    return Response(playlist, mimetype='audio/x-mpegurl')
-
-
-@app.route('/channel_guide.xml')
-def channel_guide():
-    guide = get_channel_guide()
-    return Response(guide, mimetype='text/xml')
-
-
-@app.route('/logs')
-def logs():
-    try:
-        return send_file(f'logs/v{__version__}.log', as_attachment=False)
-    except FileNotFoundError:
-        return "Could not find log file.", 404
-
-
-@ttl_cache(ttl_seconds=int(os.getenv('CACHE_EXPIRATION')))
-def get_channel_guide():
-    channels = instance.get_channel_list()
-    guides = instance.get_channel_guide()
-    guide = helper.build_channel_guide(channels, guides)
-    return guide
-
-
-def refresh_plex_epg():
-    """Refreshes the Plex guide at a given interval."""
-    while True:
-        plex_url = f'http://{plex_server_ip}/livetv/dvrs/{plex_dvr_id}/reloadGuide?X-Plex-Token={plex_token}'
-        response = requests.post(plex_url)
-        if response.status_code != 200:
-            logging.warning("Failed to update Plex EPG data.")
-        else:
-            logging.info("Refreshed Plex EPG data.")
-        time.sleep(int(plex_refresh))
-
-
-# Automatically update the Plex EPG at the set interval if environment variables are set.
-plex_refresh, plex_dvr_id, plex_server_ip, plex_token = os.getenv('PLEX_REFRESH'), os.getenv('PLEX_DVR'), os.getenv('PLEX_SERVER'), os.getenv('PLEX_TOKEN')
-if all([plex_server_ip, plex_token, str(plex_dvr_id).isdigit(), str(plex_refresh).isdigit()]):
-    thread = threading.Thread(target=refresh_plex_epg)
-    thread.start()
-
-# Start MAG box interpreter server.
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5123, debug=False)
+    app.run(host='0.0.0.0', port=8080, use_reloader=False)

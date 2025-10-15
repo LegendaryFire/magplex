@@ -16,7 +16,6 @@ instance/
 
 # Logs
 logs/
-*.log
 
 # Docker image
 magplex.tar

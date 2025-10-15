@@ -3,6 +3,7 @@ __pycache__/
 .idea/
 .git/
 *.pyc
+README.md
 logs/
-build.bat
 magplex.tar
+.env
