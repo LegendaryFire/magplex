@@ -1,5 +1,5 @@
-import redis
 import psycopg_pool
+import redis
 
 from magplex.utilities.environment import Variables
 

@@ -1,7 +1,10 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.redis import RedisJobStore
 import zoneinfo
+
+from apscheduler.jobstores.redis import RedisJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from magplex.utilities.environment import Variables
+
 
 class TaskManager:
     _scheduler = None
