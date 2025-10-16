@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MagPlex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link href="/static/css/common.css" rel="stylesheet">
+    <script src="/static/js/common.js"></script>
+
+    <style>
+        main {
+            & {
+                padding: 0 10px;
+            }
+
+            h1.title {
+                text-align: center;
+                margin-bottom: 50px;
+            }
+        }
+    </style>
+
+    <script>
+        async function userLogin() {
+            const username = document.querySelector('form input[name=username]').value;
+            const password = document.querySelector('form input[name=password]').value;
+
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!response.ok) {
+                showToast(await response.text(), ToastType.ERROR);
+            } else {
+                window.location = '/';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            document.querySelector('form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                await userLogin();
+            })
+        })
+    </script>
+</head>
+<body>
+    <main>
+        <h1 class="title">Mag Plex</h1>
+        <div class="content-container">
+            <form>
+                <label>
+                    Username
+                    <input type="text" name="username">
+                </label>
+                <label>
+                    Password
+                    <input type="password" name="password">
+                </label>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>

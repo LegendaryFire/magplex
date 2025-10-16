@@ -3,13 +3,18 @@ from http import HTTPStatus
 from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import requests
-from flask import Blueprint, Response, current_app, request
+from flask import Blueprint, Response, request
+
+from magplex.utilities.device import DeviceManager
 
 proxy = Blueprint("proxy", __name__)
 
 @proxy.route('/channels/<int:stream_id>')
 def proxy_playlist(stream_id):
-    channel_url = current_app.stb.get_channel_playlist(stream_id)
+    device = DeviceManager.get_device()
+    if device is None:
+        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+    channel_url = device.get_channel_playlist(stream_id)
     if channel_url is None:
         return Response("Unable to proxy stream, no channel URL.", status=HTTPStatus.INTERNAL_SERVER_ERROR)
     response = requests.get(channel_url)

@@ -21,18 +21,11 @@ class Variables:
     POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', None)
     POSTGRES_DB = os.getenv('POSTGRES_DB', 'postgres')
 
-    STB_PORTAL = os.getenv('PORTAL', None)
-    STB_MAC = os.getenv('MAC_ADDRESS', None)
-    STB_LANGUAGE = os.getenv('STB_LANG', None)
-    STB_TIMEZONE = os.getenv('TZ', None)
-    STB_DEVICE_ID = os.getenv('DEVICE_ID', None)
-    STB_DEVICE_ID2 = os.getenv('DEVICE_ID2', None)
-    STB_SIGNATURE = os.getenv('SIGNATURE', None)
-
     BASE_DIR = base_directory
     BASE_LOG = os.path.join(BASE_DIR, 'logs', f"magplex-v{version}-{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.log")
     BASE_FFMPEG = os.getenv('FFMPEG', None) or shutil.which('ffmpeg')
     BASE_CODEC = os.getenv('CODEC', False)
+    BASE_TIMEZONE = os.getenv('TZ', None)
 
     @classmethod
     def valid(cls):

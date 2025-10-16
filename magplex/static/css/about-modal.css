@@ -1,4 +1,47 @@
 about-modal {
+    div.content-wrapper {
+        & {
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+            width: 100%;
+            text-align: left;
+        }
+
+        div.content-group {
+            & {
+                margin-bottom: 5px;
+            }
+
+            h2.content-title {
+                margin-bottom: 10px;
+                margin-left: 5px;
+            }
+        }
+
+        div.about-container {
+            & {
+                padding: 0 6px;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            div.left-container {
+                text-wrap: nowrap;
+            }
+
+            div.right-container {
+                text-align: right;
+            }
+
+            h1 {
+                margin-top: 10px;
+            }
+        }
+
+    }
+
     h1 {
         margin-bottom: 5px;
     }

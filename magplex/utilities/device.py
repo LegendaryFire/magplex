@@ -12,8 +12,9 @@ from apscheduler.jobstores.base import ConflictingIdError
 from flask import Response
 from requests.adapters import HTTPAdapter
 
+from magplex import database
 from magplex.utilities import cache, tasks
-from magplex.utilities.database import RedisPool
+from magplex.utilities.database import PostgresPool, RedisPool
 from magplex.utilities.environment import Variables
 from magplex.utilities.scheduler import TaskManager
 
@@ -34,16 +35,14 @@ class DeviceManager:
 
     @classmethod
     def create_device(cls):
-        profile = Profile(
-            portal=Variables.STB_PORTAL,
-            mac=Variables.STB_MAC,
-            language=Variables.STB_LANGUAGE,
-            timezone=Variables.STB_TIMEZONE,
-            device_id=Variables.STB_DEVICE_ID,
-            device_id2=Variables.STB_DEVICE_ID2,
-            signature=Variables.STB_SIGNATURE
-        )
-        return Device(profile)
+        db_conn = PostgresPool.get_connection()
+        device_profile = database.device.get_user_device(db_conn)
+        db_conn.commit()
+        PostgresPool.put_connection(db_conn)
+        if device_profile is None:
+            return None
+
+        return Device(device_profile)
 
     @classmethod
     def get_device(cls):
@@ -51,12 +50,16 @@ class DeviceManager:
             cls._device = cls.create_device()
         return cls._device
 
+    @classmethod
+    def reset_device(cls):
+        cls._device = None
+
 
 class Device:
     def __init__(self, profile):
-        self.cache_conn = RedisPool.get_client()
+        self.cache_conn = RedisPool.get_connection()
         self.scheduler = TaskManager.get_scheduler()
-        self.id = profile.mac.replace(':', '')
+        self.id = profile.mac_address.replace('-', ':').replace(':', '')
         self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
@@ -70,7 +73,7 @@ class Device:
             'Referrer': f'http://{profile.portal}/stalker_portal/c/',
         }
         self.cookies = {
-            'mac': f'{profile.mac}',
+            'mac': f'{profile.mac_address.replace('-', ':')}',
             'stb_lang': f'{profile.language}',
             'timezone': f'{profile.timezone}',
         }
@@ -78,8 +81,8 @@ class Device:
         if self.scheduler.get_job(self.id) is None:
             try:
                 self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
-                                       next_run_time=datetime.now(zoneinfo.ZoneInfo(Variables.STB_TIMEZONE)),
-                                       max_instances=1, coalesce=True, args=[self.id])
+                                       next_run_time=datetime.now(zoneinfo.ZoneInfo(Variables.BASE_TIMEZONE)),
+                                       max_instances=1, coalesce=True)
                 logging.info(f"Channel guide background task added for device {self.id}")
             except ConflictingIdError:
                 pass
@@ -115,7 +118,7 @@ class Device:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
 
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
+        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id1}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
         if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
             self.headers.pop('Authorization', None)  # Clear the authentication header on failure.

@@ -1,19 +1,44 @@
-from flask import Flask
+from flask import Flask, g, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from magplex.routes.api import api
+import magplex.database as database
+from magplex.routes.channels import channels
 from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
 from magplex.routes.ui import ui
+from magplex.utilities.database import PostgresPool, RedisPool
 
 
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    app.register_blueprint(api, url_prefix='/api')
+    app.register_blueprint(channels, url_prefix='/api/channels')
     app.register_blueprint(stb, url_prefix='/stb')
     app.register_blueprint(proxy, url_prefix='/proxy')
     app.register_blueprint(ui)
+
+    @app.before_request
+    def before_request():
+        g.db_conn = PostgresPool.get_connection()
+        g.cache_conn = RedisPool.get_connection()
+
+        session_uid = request.cookies.get('session_uid')
+        if session_uid:
+            g.user_session = database.users.get_user_session(g.db_conn, session_uid)
+        else:
+            g.user_session = None
+
+    @app.teardown_request
+    def teardown_request(exception=None):
+        db_conn = getattr(g, 'db_conn', None)
+        if db_conn:
+            try:
+                if exception:
+                    db_conn.rollback()
+                else:
+                    db_conn.commit()
+            finally:
+                PostgresPool.put_connection(db_conn)
 
     return app

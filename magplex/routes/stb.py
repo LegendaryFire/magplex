@@ -3,9 +3,10 @@ from http import HTTPStatus
 
 import ffmpeg
 import requests
-from flask import Blueprint, Response, current_app, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from magplex.utilities import media, parser
+from magplex.utilities.device import DeviceManager
 from magplex.utilities.environment import Variables
 
 stb = Blueprint("stb", __name__)
@@ -13,6 +14,9 @@ stb = Blueprint("stb", __name__)
 
 @stb.route('/')
 def root():
+    device = DeviceManager.get_device()
+    if device is None:
+        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
     return Response(f"""
     <root>
@@ -27,7 +31,7 @@ def root():
             <manufacturer>Silicondust</manufacturer>
             <modelName>HDTC-2US</modelName>
             <modelNumber>HDTC-2US</modelNumber>
-            <serialNumber>{current_app.stb.id}</serialNumber>
+            <serialNumber>{device.id}</serialNumber>
             <UDN>uuid:2025-10-FBE0-RLST64</UDN>
         </device>
     </root>
@@ -61,8 +65,11 @@ def lineup_status():
 
 @stb.route('/lineup.json')
 def lineup():
+    device = DeviceManager.get_device()
+    if device is None:
+        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
-    channel_list = current_app.stb.get_channel_list()
+    channel_list = device.get_channel_list()
     channel_lineup = []
     for channel in channel_list:
         channel_lineup.append({
@@ -76,7 +83,10 @@ def lineup():
 
 @stb.route('/channels/<int:stream_id>')
 def get_channel_playlist(stream_id):
-    channel_url = current_app.stb.get_channel_playlist(stream_id)
+    device = DeviceManager.get_device()
+    if device is None:
+        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+    channel_url = device.get_channel_playlist(stream_id)
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
 
@@ -124,6 +134,9 @@ def get_channel_playlist(stream_id):
 
 @stb.route('/channels/guide.xml')
 def get_channel_guide():
-    data = current_app.stb.get_channel_guide()
+    device = DeviceManager.get_device()
+    if device is None:
+        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+    data = device.get_channel_guide()
     guide = parser.build_channel_guide(data.get('channels'), data.get('channel_guides'))
     return Response(guide, mimetype='text/xml')

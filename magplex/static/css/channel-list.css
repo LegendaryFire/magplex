@@ -14,6 +14,10 @@ channel-list {
         }
     }
 
+    div.configure-container {
+        text-align: center;
+    }
+
     ul.channel-list {
         & {
             display: flex;
@@ -35,7 +39,7 @@ channel-list {
             & {
                 display: flex;
                 flex-direction: row;
-                background: linear-gradient(to right, #333333 0%, #404040 28%, #404040 100%);
+                background: var(--container-background);
                 height: 85px;
                 width: 100%;
                 border-radius: 10px;

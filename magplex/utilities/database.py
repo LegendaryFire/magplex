@@ -51,7 +51,7 @@ class RedisPool:
         return cls._pool
 
     @classmethod
-    def get_client(cls):
+    def get_connection(cls):
         """Return a Redis client using the pool."""
         if cls._client is None:
             cls._client = redis.Redis(connection_pool=cls.create_pool())

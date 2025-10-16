@@ -7,10 +7,14 @@ class ChannelList extends HTMLElement {
 
     async connectedCallback() {
         this.channels = await this.getChannelList();
-        this.genres = [...new Set(this.channels.map(c => c.genre_name))];
-        this.appendChild(this.getSearchBarElement());
-        this.appendChild(this.getChannelListElement());
-        this.renderChannelList();
+        if (this.channels !== null) {
+            this.genres = [...new Set(this.channels.map(c => c.genre_name))];
+            this.appendChild(this.getSearchBarElement());
+            this.appendChild(this.getChannelListElement());
+            this.renderChannelList();
+        } else {
+            this.appendChild(this.getConfigureElement());
+        }
     }
 
     async getChannelList() {
@@ -18,9 +22,18 @@ class ChannelList extends HTMLElement {
             const response = await fetch('/api/channels/list', {headers: {'Accept': 'application/json'}});
             return await response.json();
         } catch (error) {
-            console.log(error);
-            return [];
+            return null;
         }
+    }
+
+    getConfigureElement() {
+        const configureDeviceElem = document.createElement('div');
+        configureDeviceElem.classList.add('configure-container')
+        configureDeviceElem.innerHTML = `
+            <h2>Unable to get channel list.</h2>
+            <h3>Ensure device is configured in the about page, and try again.</h3>
+        `;
+        return configureDeviceElem;
     }
 
     getSearchBarElement() {
@@ -78,7 +91,7 @@ class ChannelList extends HTMLElement {
     }
 
     renderChannelList() {
-        /**Renders the channels in the channel list container.*/
+        /** Renders the channels in the channel list container. */
         const channelListElem = this.querySelector('ul.channel-list');
         for (const channel of this.channels) {
             const channelElem = this.buildChannelElement(channel);

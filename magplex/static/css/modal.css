@@ -11,6 +11,8 @@
     max-width: 100dvw;
     max-height: 100dvh;
     background: var(--background-gradient);
+    overflow-y: auto;
+    z-index: 1;
 }
 
 .modal-container {
@@ -18,4 +20,5 @@
     flex-direction: column;
     justify-content: center;
     text-align: center;
+    overflow-y: auto;
 }

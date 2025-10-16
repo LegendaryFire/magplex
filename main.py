@@ -26,7 +26,7 @@ if not Variables.valid():
 
 
 # Test Redis cache connection.
-cache_conn = RedisPool.get_client()
+cache_conn = RedisPool.get_connection()
 try:
     cache_conn.ping()
     logging.info(f"Connected to Redis database at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
@@ -60,13 +60,14 @@ PostgresPool.put_connection(db_conn)
 
 # Start background task scheduler.
 scheduler = TaskManager.get_scheduler()
-scheduler.start()
+# scheduler.start()
 
 
 # Create STB profile and device.
 device = DeviceManager.get_device()
+if device is None:
+    logging.warning("Unable to get device. It's likely that a STB device has not been configured yet.")
 
 if __name__ == '__main__':
     app = magplex.create_app()
-    app.stb = device
-    app.run(host='0.0.0.0', port=8080, use_reloader=False)
+    app.run(host='0.0.0.0', port=8080, use_reloader=True, debug=True)

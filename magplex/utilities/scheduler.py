@@ -20,7 +20,7 @@ class TaskManager:
                         db=1
                     )
                 },
-                timezone=zoneinfo.ZoneInfo(Variables.STB_TIMEZONE)
+                timezone=zoneinfo.ZoneInfo(Variables.BASE_TIMEZONE)
             )
         return cls._scheduler
 

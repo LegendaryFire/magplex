@@ -4,12 +4,12 @@ import time
 from magplex.utilities import cache
 
 
-def set_device_channel_guide(device_id):
+def set_device_channel_guide():
     """Background task ran at an interval to populate the cache with EPG information."""
     from magplex.utilities.device import DeviceManager
     device = DeviceManager.get_device()
     if device is None:
-        logging.error(f"Cannot set channel guide. Unable to find device {device_id}.")
+        logging.error(f"Unable to get device. Please check configuration.")
         return
     logging.info(f"Setting channel guide for device {device.id}.")
     channel_list = device.get_channel_list()
