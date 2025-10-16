@@ -28,8 +28,6 @@ def get_device_timeout(conn, instance_id):
 def get_bearer_token(conn, instance_id):
     cache_key = _get_bearer_token_key(instance_id)
     token = conn.get(cache_key)
-    if token is not None:
-        token = token.decode("utf-8")
     return token
 
 def set_bearer_token(conn, instance_id, token):
@@ -39,7 +37,7 @@ def set_bearer_token(conn, instance_id, token):
 def get_all_channel_ids(conn, instance_id):
     cache_key = _get_channel_ids_key(instance_id)
     channel_ids = conn.smembers(cache_key)
-    return [cid.decode() for cid in channel_ids]
+    return [cid for cid in channel_ids]
 
 def insert_channel_id(conn, instance_id, channel_id):
     cache_key = _get_channel_ids_key(instance_id)

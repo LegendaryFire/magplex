@@ -1,4 +1,5 @@
-def create_database(cursor):
+def create_database(conn):
+    cursor = conn.cursor()
     query = """
         create extension if not exists pgcrypto;
 
@@ -41,5 +42,5 @@ def create_database(cursor):
             creation_timestamp      timestamp with time zone    not null default current_timestamp
         );
     """
-
     cursor.execute(query)
+    conn.commit()

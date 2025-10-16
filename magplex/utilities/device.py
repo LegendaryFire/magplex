@@ -5,7 +5,6 @@ import zoneinfo
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from functools import wraps
 from http import HTTPStatus
 
 import requests
@@ -14,7 +13,9 @@ from flask import Response
 from requests.adapters import HTTPAdapter
 
 from magplex.utilities import cache, tasks
+from magplex.utilities.database import RedisPool
 from magplex.utilities.environment import Variables
+from magplex.utilities.scheduler import TaskManager
 
 
 @dataclass
@@ -29,28 +30,32 @@ class Profile:
 
 
 class DeviceManager:
-    def __init__(self):
-        self.devices = {}
+    _device = None
 
-    def register_device(self, device):
-        if device.id in self.devices:
-            logging.warning(f"Device {device.device_id} already registered.")
-        self.devices.update({device.id: device})
+    @classmethod
+    def create_device(cls):
+        profile = Profile(
+            portal=Variables.STB_PORTAL,
+            mac=Variables.STB_MAC,
+            language=Variables.STB_LANGUAGE,
+            timezone=Variables.STB_TIMEZONE,
+            device_id=Variables.STB_DEVICE_ID,
+            device_id2=Variables.STB_DEVICE_ID2,
+            signature=Variables.STB_SIGNATURE
+        )
+        return Device(profile)
 
-    def unregister_device(self, device_id):
-        if device_id not in self.devices:
-            logging.warning(f"Cannot unregister. Device {device_id} not found.")
-        self.devices.pop(device_id, None)
-
-    def get_device(self, device_id):
-        return self.devices.get(device_id)
+    @classmethod
+    def get_device(cls):
+        if cls._device is None:
+            cls._device = cls.create_device()
+        return cls._device
 
 
-manager = DeviceManager()
 class Device:
-    def __init__(self, conn, scheduler, profile):
-        self.conn = conn
-        self.scheduler = scheduler
+    def __init__(self, profile):
+        self.cache_conn = RedisPool.get_client()
+        self.scheduler = TaskManager.get_scheduler()
         self.id = profile.mac.replace(':', '')
         self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
@@ -69,7 +74,7 @@ class Device:
             'stb_lang': f'{profile.language}',
             'timezone': f'{profile.timezone}',
         }
-        manager.register_device(self)
+
         if self.scheduler.get_job(self.id) is None:
             try:
                 self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
@@ -83,7 +88,7 @@ class Device:
 
     def get_token(self):
         """Gets the authentication token for the session."""
-        available = cache.get_device_timeout(self.conn, self.id)
+        available = cache.get_device_timeout(self.cache_conn, self.id)
         if not available:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
@@ -105,7 +110,7 @@ class Device:
 
     def get_authorization(self):
         """Gets authentication for the set-top box device."""
-        available = cache.get_device_timeout(self.conn, self.id)
+        available = cache.get_device_timeout(self.cache_conn, self.id)
         if not available:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
@@ -119,18 +124,19 @@ class Device:
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
-        available = cache.get_device_timeout(self.conn, self.id)
+        available = cache.get_device_timeout(self.cache_conn, self.id)
         if not available:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
 
-        self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.conn, self.id)}'
+        self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.cache_conn, self.id)}'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
         if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
             if 'Authorization failed' in response.text:
                 logging.info("Authenticating, authorization failed found in payload.")
+                time.sleep(5)
             elif response.status_code == HTTPStatus.FORBIDDEN:
                 logging.info("Authenticating, HTTP status forbidden.")
             elif not self.authorized:
@@ -142,17 +148,17 @@ class Device:
                 authorized = self.get_authorization()
                 if not authorized:
                     logging.warning("Unable to authorize.")
-                    cache.set_device_timeout(self.conn, self.id)
+                    cache.set_device_timeout(self.cache_conn, self.id)
                     self.authorized = False
                     return None
 
                 self.authorized = True
-                cache.set_bearer_token(self.conn, self.id, token)
+                cache.set_bearer_token(self.cache_conn, self.id, token)
                 time.sleep(1)  # Sleep for 1s to avoid rate limiting.
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
-                cache.set_device_timeout(self.conn, self.id)
+                cache.set_device_timeout(self.cache_conn, self.id)
                 self.authorized = False
                 return None
 
@@ -262,6 +268,6 @@ class Device:
     def get_channel_guide(self):
         """Gets the channel guide from available EPG data stored in the cache server."""
         return {
-            'channels': cache.get_all_channels(self.conn, self.id),
-            'channel_guides': cache.get_all_channel_guides(self.conn, self.id),
+            'channels': cache.get_all_channels(self.cache_conn, self.id),
+            'channel_guides': cache.get_all_channel_guides(self.cache_conn, self.id),
         }

@@ -1,48 +1,58 @@
-import psycopg
+import redis
+import psycopg_pool
+
+from magplex.utilities.environment import Variables
 
 
-class DBConnectionPool:
-    def __init__(self, host, port, username, password, database):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.database = database
-        self._conn = None
+class PostgresPool:
+    _pool = None
 
-    def ping_conn(self):
-        with psycopg.connect(
-            host=self.host,
-            port=self.port,
-            user=self.username,
-            password=self.password,
-            dbname=self.database,
-            connect_timeout=5
-        ) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                cur.fetchone()
+    @classmethod
+    def get_connection(cls):
+        if cls._pool is None:
+            cls.connect()
+        return cls._pool.getconn()
 
-    def get_conn(self):
-        if self._conn is None or self._conn.closed:
-            self._conn = psycopg.connect(
-                host=self.host,
-                port=self.port,
-                user=self.username,
-                password=self.password,
-                dbname=self.database
+
+    @classmethod
+    def put_connection(cls, conn):
+        if cls._pool is not None:
+            cls._pool.putconn(conn)
+
+
+    @classmethod
+    def connect(cls):
+        if cls._pool is None:
+            conninfo = (
+                f"postgresql://{Variables.POSTGRES_USER}:"
+                f"{Variables.POSTGRES_PASSWORD}@"
+                f"{Variables.POSTGRES_HOST}:"
+                f"{Variables.POSTGRES_PORT}/"
+                f"{Variables.POSTGRES_DB}"
             )
-        return self._conn
+            cls._pool = psycopg_pool.ConnectionPool(conninfo=conninfo)
 
-    def get_cursor(self):
-        return self.get_conn().cursor()
 
-    def close_conn(self):
-        if self._conn is not None:
-            try:
-                self._conn.commit()
-            except psycopg.Error:
-                self._conn.rollback()
-            finally:
-                self._conn.close()
-                self._conn = None
+class RedisPool:
+    _pool = None
+    _client = None
+
+    @classmethod
+    def create_pool(cls):
+        """Create a connection pool if it doesn’t exist yet."""
+        if cls._pool is None:
+            cls._pool = redis.ConnectionPool(
+                host=Variables.REDIS_HOST,
+                port=Variables.REDIS_PORT,
+                db=0,
+                password=getattr(Variables, "REDIS_PASSWORD", None),
+                decode_responses=True
+            )
+        return cls._pool
+
+    @classmethod
+    def get_client(cls):
+        """Return a Redis client using the pool."""
+        if cls._client is None:
+            cls._client = redis.Redis(connection_pool=cls.create_pool())
+        return cls._client
