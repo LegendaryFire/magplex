@@ -40,7 +40,9 @@ def login_attempt():
 
 @ui.route('/logout')
 def logout():
-    database.users.expire_user_session(g.db_conn, g.user_session.session_uid)
+    user_session = getattr(g, 'user_session', None)
+    if user_session is not None:
+        database.users.expire_user_session(g.db_conn, g.user_session.session_uid)
     return redirect('/login')
 
 

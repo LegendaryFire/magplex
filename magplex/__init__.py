@@ -20,6 +20,9 @@ def create_app():
 
     @app.before_request
     def before_request():
+        if request.endpoint == 'static':
+            return  # Skip database connection initialization for static content.
+
         g.db_conn = PostgresPool.get_connection()
         g.cache_conn = RedisPool.get_connection()
 

@@ -77,8 +77,9 @@ def get_user_session(conn, session_uid):
             and expiration_timestamp > current_timestamp
         """
         cursor.execute(query, locals())
-        row = cursor.fetchone()
-        return UserSession(*row) if row else None
+        for row in cursor:
+            return UserSession(*row)
+        return None
 
 
 def insert_user_session(conn, user_uid, ip_address, expiration_timestamp):
