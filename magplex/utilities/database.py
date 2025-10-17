@@ -4,6 +4,32 @@ import redis
 from magplex.utilities.environment import Variables
 
 
+class LazyPostgresConnection:
+    def __init__(self):
+        self._conn = None
+
+    def __del__(self):
+        if self._conn is not None:
+            PostgresPool.put_connection(self._conn)
+
+    def get_connection(self):
+        if self._conn is None:
+            self._conn = PostgresPool.get_connection()
+        return self._conn
+
+    def rollback(self):
+        if self._conn is not None:
+            self._conn.rollback()
+
+    def commit(self):
+        if self._conn is not None:
+            self._conn.commit()
+
+    def put_connection(self):
+        PostgresPool.put_connection(self._conn)
+        self._conn = None
+
+
 class PostgresPool:
     _pool = None
 

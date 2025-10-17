@@ -6,7 +6,7 @@ from magplex.routes.channels import channels
 from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
 from magplex.routes.ui import ui
-from magplex.utilities.database import PostgresPool, RedisPool
+from magplex.utilities.database import RedisPool, LazyPostgresConnection
 
 
 def create_app():
@@ -20,10 +20,7 @@ def create_app():
 
     @app.before_request
     def before_request():
-        if request.endpoint == 'static':
-            return  # Skip database connection initialization for static content.
-
-        g.db_conn = PostgresPool.get_connection()
+        g.db_conn = LazyPostgresConnection()
         g.cache_conn = RedisPool.get_connection()
 
         session_uid = request.cookies.get('session_uid')
@@ -42,6 +39,6 @@ def create_app():
                 else:
                     db_conn.commit()
             finally:
-                PostgresPool.put_connection(db_conn)
+                db_conn.put_connection()
 
     return app
