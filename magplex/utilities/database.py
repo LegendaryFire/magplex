@@ -8,10 +8,6 @@ class LazyPostgresConnection:
     def __init__(self):
         self._conn = None
 
-    def __del__(self):
-        if self._conn is not None:
-            PostgresPool.put_connection(self._conn)
-
     def get_connection(self):
         if self._conn is None:
             self._conn = PostgresPool.get_connection()
@@ -26,8 +22,9 @@ class LazyPostgresConnection:
             self._conn.commit()
 
     def put_connection(self):
-        PostgresPool.put_connection(self._conn)
-        self._conn = None
+        if self._conn is not None:
+            PostgresPool.put_connection(self._conn)
+            self._conn = None
 
 
 class PostgresPool:

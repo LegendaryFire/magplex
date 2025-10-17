@@ -1,10 +1,20 @@
-import zoneinfo
+import logging
+from datetime import timezone
 
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from magplex.utilities import tasks
 from magplex.utilities.environment import Variables
 
+
+class IgnoreWakeSchedulerFilter(logging.Filter):
+    def filter(self, record):
+        # record.getMessage() is the log message string
+        return "wake_scheduler" not in record.getMessage()
+
+
+logging.getLogger("apscheduler.executors.default").addFilter(IgnoreWakeSchedulerFilter())
 
 class TaskManager:
     _scheduler = None
@@ -20,8 +30,16 @@ class TaskManager:
                         db=1
                     )
                 },
-                timezone=zoneinfo.ZoneInfo(Variables.BASE_TIMEZONE)
+                job_defaults={
+                    'misfire_grace_time': 30,
+                    'coalesce': True,
+                    'max_instances': 1
+                },
+                timezone=timezone.utc
             )
+            cls._scheduler.add_job(tasks.wake_scheduler, 'interval', id="wake_scheduler",
+                                   seconds=5, replace_existing=True)
+
         return cls._scheduler
 
     @classmethod

@@ -4,6 +4,10 @@ import time
 from magplex.utilities import cache
 
 
+def wake_scheduler():
+    pass
+
+
 def set_device_channel_guide():
     """Background task ran at an interval to populate the cache with EPG information."""
     from magplex.utilities.device import DeviceManager

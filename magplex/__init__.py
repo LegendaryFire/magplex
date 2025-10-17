@@ -25,14 +25,12 @@ def create_app():
 
     @app.teardown_request
     def teardown_request(exception=None):
-        db_conn = getattr(g, 'db_conn', None)
-        if db_conn:
-            try:
-                if exception:
-                    db_conn.rollback()
-                else:
-                    db_conn.commit()
-            finally:
-                db_conn.put_connection()
+        try:
+            if exception:
+                g.db_conn.rollback()
+            else:
+                g.db_conn.commit()
+        finally:
+            g.db_conn.put_connection()
 
     return app

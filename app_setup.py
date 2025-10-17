@@ -14,7 +14,7 @@ from magplex.utilities.scheduler import TaskManager
 from version import version
 
 
-def initialize_checks():
+def initialize():
     # Initialize logging.
     logs.initialize()
     logging.info(f"MagPlex v{version} by LegendaryFire")
@@ -25,7 +25,6 @@ def initialize_checks():
         logging.error("Missing environment variables.")
         sys.exit()
 
-def initialize_worker():
     # Test Redis cache connection.
     cache_conn = RedisPool.get_connection()
     try:
@@ -44,8 +43,8 @@ def initialize_worker():
         with conn.cursor() as cur:
             cur.execute("SELECT 1")
             cur.fetchone()
-        conn.rollback()
-        conn.put_connection()
+        db_conn.rollback()
+        db_conn.put_connection()
         logging.info(f"Connected to Postgres database at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
     except psycopg.Error as ex:
         logging.error(f"Unable to connect to Postgres server at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")

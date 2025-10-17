@@ -79,6 +79,12 @@ class AboutModal extends Modal {
                         </form>
                     </div>
                 </div>
+                <div class="content-group">
+                    <h2 class="content-title">Background Tasks</h2>
+                    <div class="content-container">
+                        <button id="refresh-epg-btn">Refresh EPG</button>
+                    </div>
+                </div>
             </div>
         `;
         super.connectedCallback();
@@ -96,6 +102,11 @@ class AboutModal extends Modal {
             const user = this.serializeForm(userForm);
             this.saveUser(user);
         });
+
+        const refreshEpgBtn = document.querySelector('#refresh-epg-btn');
+        refreshEpgBtn.addEventListener('click', (event) => {
+            this.refreshEpg();
+        });
     }
 
     serializeForm(form) {
@@ -111,6 +122,16 @@ class AboutModal extends Modal {
         try {
             const response = await fetch('/about');
             return await response.json();
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async refreshEpg() {
+        try {
+            await fetch('/refresh-epg', {
+                method: 'POST'
+            });
         } catch (error) {
             return null;
         }

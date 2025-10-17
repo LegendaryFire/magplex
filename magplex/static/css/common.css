@@ -80,7 +80,6 @@ label {
 
 button {
     font-family: "Alan Sans", sans-serif;
-    margin-top: 25px;
     width: 100%;
     padding: 9px;
     font-size: 16px;
@@ -88,6 +87,10 @@ button {
     border-radius: 8px;
     border: 2px solid var(--border-color);
     color: var(--color);
+}
+
+button:not(:first-child) {
+    margin-top: 8px;
 }
 
 button:hover, button:focus-visible {
@@ -98,10 +101,16 @@ button:hover, button:focus-visible {
 }
 
 div.content-container {
-    background: var(--container-background);
-    border: 3px solid var(--border-color);
-    border-radius: 10px;
-    padding: 18px;
+    & {
+        background: var(--container-background);
+        border: 3px solid var(--border-color);
+        border-radius: 10px;
+        padding: 18px;
+    }
+
+    input:last-child {
+        margin-bottom: 20px; /* whatever value you want */
+    }
 }
 
 .toastify {

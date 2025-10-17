@@ -1,10 +1,9 @@
 import json
 import logging
 import time
-import zoneinfo
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from http import HTTPStatus
 
 import requests
@@ -15,7 +14,6 @@ from requests.adapters import HTTPAdapter
 from magplex import database
 from magplex.utilities import cache, tasks
 from magplex.utilities.database import PostgresPool, RedisPool, LazyPostgresConnection
-from magplex.utilities.environment import Variables
 from magplex.utilities.scheduler import TaskManager
 
 
@@ -81,9 +79,8 @@ class Device:
 
         if self.scheduler.get_job(self.id) is None:
             try:
-                self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1, id=self.id,
-                                       next_run_time=datetime.now(zoneinfo.ZoneInfo(Variables.BASE_TIMEZONE)),
-                                       max_instances=1, coalesce=True)
+                self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1,
+                                       id=self.id, next_run_time=datetime.now(timezone.utc))
                 logging.info(f"Channel guide background task added for device {self.id}")
             except ConflictingIdError:
                 pass
