@@ -14,7 +14,7 @@ from requests.adapters import HTTPAdapter
 
 from magplex import database
 from magplex.utilities import cache, tasks
-from magplex.utilities.database import PostgresPool, RedisPool
+from magplex.utilities.database import PostgresPool, RedisPool, LazyPostgresConnection
 from magplex.utilities.environment import Variables
 from magplex.utilities.scheduler import TaskManager
 
@@ -35,10 +35,11 @@ class DeviceManager:
 
     @classmethod
     def create_device(cls):
-        db_conn = PostgresPool.get_connection()
-        device_profile = database.device.get_user_device(db_conn)
-        db_conn.commit()
-        PostgresPool.put_connection(db_conn)
+        db_conn = LazyPostgresConnection()
+        conn = db_conn.get_connection()
+        device_profile = database.device.get_user_device(conn)
+        conn.commit()
+        PostgresPool.put_connection(conn)
         if device_profile is None:
             return None
 

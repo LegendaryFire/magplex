@@ -7,7 +7,7 @@ import redis
 
 from magplex import database
 from magplex.utilities import logs
-from magplex.utilities.database import PostgresPool, RedisPool
+from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.device import DeviceManager
 from magplex.utilities.environment import Variables
 from magplex.utilities.scheduler import TaskManager
@@ -38,13 +38,14 @@ def initialize_worker():
 
 
     # Test Postgres database connection.
+    db_conn = LazyPostgresConnection()
     try:
-        db_conn = PostgresPool.get_connection()
-        with db_conn.cursor() as cur:
+        conn = db_conn.get_connection()
+        with conn.cursor() as cur:
             cur.execute("SELECT 1")
             cur.fetchone()
-        db_conn.rollback()
-        PostgresPool.put_connection(db_conn)
+        conn.rollback()
+        conn.put_connection()
         logging.info(f"Connected to Postgres database at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
     except psycopg.Error as ex:
         logging.error(f"Unable to connect to Postgres server at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
@@ -54,9 +55,10 @@ def initialize_worker():
 
     # Create database if it doesn't already exist.
     logging.info("Creating Postgres database schema if it doesn't already exist.")
-    db_conn = PostgresPool.get_connection()
-    database.create_database(db_conn)
-    PostgresPool.put_connection(db_conn)
+    conn = db_conn.get_connection()
+    database.create_database(conn)
+    db_conn.commit()
+    db_conn.put_connection()
 
 
     # Start background task scheduler.

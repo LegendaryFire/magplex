@@ -52,4 +52,3 @@ def create_database(conn):
         );
     """
     cursor.execute(query)
-    conn.commit()

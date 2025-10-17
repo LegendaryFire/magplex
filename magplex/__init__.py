@@ -23,12 +23,6 @@ def create_app():
         g.db_conn = LazyPostgresConnection()
         g.cache_conn = RedisPool.get_connection()
 
-        session_uid = request.cookies.get('session_uid')
-        if session_uid:
-            g.user_session = database.users.get_user_session(g.db_conn, session_uid)
-        else:
-            g.user_session = None
-
     @app.teardown_request
     def teardown_request(exception=None):
         db_conn = getattr(g, 'db_conn', None)
