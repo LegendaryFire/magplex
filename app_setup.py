@@ -9,7 +9,7 @@ from magplex import database
 from magplex.utilities import logs
 from magplex.utilities.database import RedisPool, LazyPostgresConnection, PostgresPool
 from magplex.utilities.device import DeviceManager
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 from magplex.utilities.scheduler import TaskManager
 from version import version
 
@@ -21,7 +21,7 @@ def initialize():
 
 
     # Check & make sure all environment variables are provided.
-    if not Variables.valid():
+    if not Environment.valid():
         logging.error("Missing environment variables.")
         sys.exit()
 
@@ -29,9 +29,9 @@ def initialize():
     cache_conn = RedisPool.get_connection()
     try:
         cache_conn.ping()
-        logging.info(f"Connected to Redis database at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
+        logging.info(f"Connected to Redis database at {Environment.REDIS_HOST}:{Environment.REDIS_PORT}.")
     except redis.exceptions.RedisError:
-        logging.error(f"Unable to connect to Redis server at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
+        logging.error(f"Unable to connect to Redis server at {Environment.REDIS_HOST}:{Environment.REDIS_PORT}.")
         time.sleep(30)
         sys.exit()
 
@@ -43,9 +43,9 @@ def initialize():
             cursor.execute("SELECT 1")
             cursor.fetchone()
         conn.close()
-        logging.info(f"Connected to Postgres database at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
+        logging.info(f"Connected to Postgres database at {Environment.POSTGRES_HOST}:{Environment.POSTGRES_PORT}.")
     except psycopg.Error:
-        logging.error(f"Unable to connect to Postgres server at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
+        logging.error(f"Unable to connect to Postgres server at {Environment.POSTGRES_HOST}:{Environment.POSTGRES_PORT}.")
         time.sleep(30)
         sys.exit()
 
@@ -57,8 +57,6 @@ def initialize():
     conn.commit()
     conn.close()
 
-    # Make sure the pool is closed before forking to worker processes. That way connections don't get forked.
-    PostgresPool.close_pool()
 
     # Start background task scheduler.
     scheduler = TaskManager.get_scheduler()

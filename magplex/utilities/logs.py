@@ -3,7 +3,7 @@ import os
 
 import werkzeug
 
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 
 
 def initialize():
@@ -14,5 +14,5 @@ def initialize():
     os.makedirs('logs', exist_ok=True)
 
     # Set up global logging configuration
-    handlers = [logging.StreamHandler(), logging.FileHandler(Variables.BASE_LOG)]
+    handlers = [logging.StreamHandler(), logging.FileHandler(Environment.BASE_LOG)]
     logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s]: %(message)s', handlers=handlers)

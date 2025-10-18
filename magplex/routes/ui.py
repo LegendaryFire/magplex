@@ -9,7 +9,7 @@ import magplex.database as database
 import version
 from magplex.decorators import login_required
 from magplex.utilities.device import DeviceManager
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 from magplex.utilities.scheduler import TaskManager
 
 ui = Blueprint("ui", __name__)
@@ -57,7 +57,7 @@ def index():
 @login_required
 def logs():
     try:
-        return send_file(Variables.BASE_LOG, as_attachment=False)
+        return send_file(Environment.BASE_LOG, as_attachment=False)
     except FileNotFoundError:
         return Response("Could not find log file.", HTTPStatus.NOT_FOUND)
 

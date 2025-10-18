@@ -5,7 +5,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from magplex.utilities import tasks
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 
 
 class IgnoreWakeSchedulerFilter(logging.Filter):
@@ -25,8 +25,8 @@ class TaskManager:
             cls._scheduler = BackgroundScheduler(
                 jobstores={
                     'default': RedisJobStore(
-                        host=Variables.REDIS_HOST,
-                        port=Variables.REDIS_PORT,
+                        host=Environment.REDIS_HOST,
+                        port=Environment.REDIS_PORT,
                         db=1
                     )
                 },

@@ -11,7 +11,7 @@ base_directory = Path(__file__).resolve().parent.parent.parent
 env_path = base_directory.joinpath('.env')
 load_dotenv(env_path)
 
-class Variables:
+class Environment:
     REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
     REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 

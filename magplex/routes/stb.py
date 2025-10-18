@@ -7,7 +7,7 @@ from flask import Blueprint, Response, jsonify, request
 
 from magplex.utilities import media, parser
 from magplex.utilities.device import DeviceManager
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 
 stb = Blueprint("stb", __name__)
 
@@ -103,7 +103,7 @@ def get_channel_playlist(stream_id):
     domain = request.host_url[:-1]
     channel_url = f'{domain}/proxy/channels/{stream_id}'
 
-    if Variables.BASE_FFMPEG is None:
+    if Environment.BASE_FFMPEG is None:
         logging.error("Unable to find ffmpeg installation.")
         return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 

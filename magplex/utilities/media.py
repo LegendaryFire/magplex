@@ -3,7 +3,7 @@ from enum import Enum
 
 import ffmpeg
 
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 
 
 class EncoderMap(Enum):
@@ -26,14 +26,14 @@ class EncoderMap(Enum):
 
 
 def get_encoder():
-    if Variables.BASE_CODEC:
-        if EncoderMap.HEVC_NVIDIA.get_name() == Variables.BASE_CODEC:
+    if Environment.BASE_CODEC:
+        if EncoderMap.HEVC_NVIDIA.get_name() == Environment.BASE_CODEC:
             return EncoderMap.HEVC_NVIDIA
-        elif EncoderMap.HEVC_INTEL.get_name() == Variables.BASE_CODEC:
+        elif EncoderMap.HEVC_INTEL.get_name() == Environment.BASE_CODEC:
             return EncoderMap.HEVC_INTEL
-        elif EncoderMap.HEVC_AMD.get_name() == Variables.BASE_CODEC:
+        elif EncoderMap.HEVC_AMD.get_name() == Environment.BASE_CODEC:
             return EncoderMap.HEVC_AMD
-        elif EncoderMap.HEVC_SOFTWARE.get_name() == Variables.BASE_CODEC:
+        elif EncoderMap.HEVC_SOFTWARE.get_name() == Environment.BASE_CODEC:
             return EncoderMap.HEVC_SOFTWARE
         else:
             logging.warning("Unable to find supported codec. Falling back to remuxing.")
@@ -67,4 +67,4 @@ def create_stream_response(url, encoder, headers):
             acodec='aac',
             audio_bitrate='128k'
         )
-    return process.run_async(cmd=Variables.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=False)
+    return process.run_async(cmd=Environment.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=False)

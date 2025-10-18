@@ -4,7 +4,7 @@ import psycopg
 import psycopg_pool
 import redis
 
-from magplex.utilities.environment import Variables
+from magplex.utilities.variables import Environment
 
 logging.getLogger('psycopg.pool').setLevel(logging.DEBUG)
 
@@ -16,17 +16,6 @@ class LazyPostgresConnection:
         """Lazily get a live connection from the pool."""
         if self._conn is None or self._conn.closed:
             self._conn = PostgresPool.get_connection()
-        else:
-            # Ping the connection and make sure it's alive and well.
-            try:
-                with self._conn.cursor() as cur:
-                    cur.execute("SELECT 1")
-            except psycopg.OperationalError:
-                try:
-                    self._conn.close()
-                except (psycopg.OperationalError, psycopg.InterfaceError):
-                    pass
-                self._conn = PostgresPool.get_connection()
         return self._conn
 
     def cursor(self, *args, **kwargs):
@@ -67,6 +56,21 @@ class LazyPostgresConnection:
 
 class PostgresPool:
     _pool = None
+    _min_size = 4
+    _max_size = 100
+    _pool_name = None
+
+    @classmethod
+    def set_min_size(cls, min_size):
+        cls._min_size = min_size
+
+    @classmethod
+    def set_max_size(cls, max_size):
+        cls._max_size = max_size
+
+    @classmethod
+    def set_pool_name(cls, pool_name):
+        cls._pool_name = pool_name
 
     @classmethod
     def get_connection(cls):
@@ -85,17 +89,17 @@ class PostgresPool:
     def connect(cls):
         if cls._pool is None:
             conninfo = (
-                f"postgresql://{Variables.POSTGRES_USER}:"
-                f"{Variables.POSTGRES_PASSWORD}@"
-                f"{Variables.POSTGRES_HOST}:"
-                f"{Variables.POSTGRES_PORT}/"
-                f"{Variables.POSTGRES_DB}"
+                f"postgresql://{Environment.POSTGRES_USER}:"
+                f"{Environment.POSTGRES_PASSWORD}@"
+                f"{Environment.POSTGRES_HOST}:"
+                f"{Environment.POSTGRES_PORT}/"
+                f"{Environment.POSTGRES_DB}"
             )
             cls._pool = psycopg_pool.ConnectionPool(
                 conninfo=conninfo,
-                open=False,
-                min_size=0,
-                max_size=25,
+                open=True,
+                min_size=cls._min_size,
+                max_size=cls._max_size,
                 max_lifetime=900,
                 max_idle=60
             )
@@ -116,10 +120,10 @@ class RedisPool:
         """Create a connection pool if it doesn’t exist yet."""
         if cls._pool is None:
             cls._pool = redis.ConnectionPool(
-                host=Variables.REDIS_HOST,
-                port=Variables.REDIS_PORT,
+                host=Environment.REDIS_HOST,
+                port=Environment.REDIS_PORT,
                 db=0,
-                password=getattr(Variables, "REDIS_PASSWORD", None),
+                password=getattr(Environment, "REDIS_PASSWORD", None),
                 decode_responses=True
             )
         return cls._pool
