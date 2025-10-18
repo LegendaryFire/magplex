@@ -7,7 +7,7 @@ import redis
 
 from magplex import database
 from magplex.utilities import logs
-from magplex.utilities.database import RedisPool, LazyPostgresConnection
+from magplex.utilities.database import RedisPool, LazyPostgresConnection, PostgresPool
 from magplex.utilities.device import DeviceManager
 from magplex.utilities.environment import Variables
 from magplex.utilities.scheduler import TaskManager
@@ -32,33 +32,33 @@ def initialize():
         logging.info(f"Connected to Redis database at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
     except redis.exceptions.RedisError:
         logging.error(f"Unable to connect to Redis server at {Variables.REDIS_HOST}:{Variables.REDIS_PORT}.")
-        time.sleep(5)
+        time.sleep(30)
         sys.exit()
 
 
     # Test Postgres database connection.
-    db_conn = LazyPostgresConnection()
     try:
-        conn = db_conn.get_connection()
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
-            cur.fetchone()
-        db_conn.rollback()
-        db_conn.put_connection()
+        conn = LazyPostgresConnection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        conn.close()
         logging.info(f"Connected to Postgres database at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
-    except psycopg.Error as ex:
+    except psycopg.Error:
         logging.error(f"Unable to connect to Postgres server at {Variables.POSTGRES_HOST}:{Variables.POSTGRES_PORT}.")
-        time.sleep(5)
+        time.sleep(30)
         sys.exit()
 
 
     # Create database if it doesn't already exist.
     logging.info("Creating Postgres database schema if it doesn't already exist.")
-    conn = db_conn.get_connection()
+    conn = LazyPostgresConnection()
     database.create_database(conn)
-    db_conn.commit()
-    db_conn.put_connection()
+    conn.commit()
+    conn.close()
 
+    # Make sure the pool is closed before forking to worker processes. That way connections don't get forked.
+    PostgresPool.close_pool()
 
     # Start background task scheduler.
     scheduler = TaskManager.get_scheduler()

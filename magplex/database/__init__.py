@@ -2,7 +2,6 @@ from . import device, users
 
 
 def create_database(conn):
-    cursor = conn.cursor()
     query = """
         create extension if not exists pgcrypto;
 
@@ -51,4 +50,7 @@ def create_database(conn):
             creation_timestamp      timestamp with time zone    not null default current_timestamp
         );
     """
-    cursor.execute(query)
+
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+    return None

@@ -33,11 +33,8 @@ class DeviceManager:
 
     @classmethod
     def create_device(cls):
-        db_conn = LazyPostgresConnection()
-        conn = db_conn.get_connection()
-        device_profile = database.device.get_user_device(conn)
-        conn.commit()
-        PostgresPool.put_connection(conn)
+        with LazyPostgresConnection() as conn:
+            device_profile = database.device.get_user_device(conn)
         if device_profile is None:
             return None
 

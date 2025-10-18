@@ -1,30 +1,68 @@
+import logging
+
+import psycopg
 import psycopg_pool
 import redis
 
 from magplex.utilities.environment import Variables
 
+logging.getLogger('psycopg.pool').setLevel(logging.DEBUG)
 
 class LazyPostgresConnection:
     def __init__(self):
         self._conn = None
 
     def get_connection(self):
-        if self._conn is None:
+        """Lazily get a live connection from the pool."""
+        if self._conn is None or self._conn.closed:
             self._conn = PostgresPool.get_connection()
+        else:
+            # Ping the connection and make sure it's alive and well.
+            try:
+                with self._conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+            except psycopg.OperationalError:
+                try:
+                    self._conn.close()
+                except (psycopg.OperationalError, psycopg.InterfaceError):
+                    pass
+                self._conn = PostgresPool.get_connection()
         return self._conn
 
-    def rollback(self):
-        if self._conn is not None:
-            self._conn.rollback()
+    def cursor(self, *args, **kwargs):
+        """Expose cursor() directly, lazily getting the connection."""
+        return self.get_connection().cursor(*args, **kwargs)
 
     def commit(self):
-        if self._conn is not None:
-            self._conn.commit()
+        if self._conn:
+            try:
+                self._conn.commit()
+            except psycopg.OperationalError:
+                pass
 
-    def put_connection(self):
-        if self._conn is not None:
+    def rollback(self):
+        if self._conn:
+            try:
+                self._conn.rollback()
+            except psycopg.OperationalError:
+                pass
+
+    def close(self):
+        """Return connection to pool instead of closing."""
+        if self._conn:
             PostgresPool.put_connection(self._conn)
             self._conn = None
+
+    def __enter__(self):
+        return self.get_connection()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type:
+            self.rollback()
+        else:
+            self.commit()
+        self.close()
+        logging.info("Connection returned through Postgres lazy context manager.")
 
 
 class PostgresPool:
@@ -53,7 +91,20 @@ class PostgresPool:
                 f"{Variables.POSTGRES_PORT}/"
                 f"{Variables.POSTGRES_DB}"
             )
-            cls._pool = psycopg_pool.ConnectionPool(conninfo=conninfo)
+            cls._pool = psycopg_pool.ConnectionPool(
+                conninfo=conninfo,
+                open=False,
+                min_size=0,
+                max_size=25,
+                max_lifetime=900,
+                max_idle=60
+            )
+
+    @classmethod
+    def close_pool(cls):
+        if cls._pool:
+            cls._pool.close()
+            cls._pool = None
 
 
 class RedisPool:

@@ -13,7 +13,7 @@ def set_device_channel_guide():
     from magplex.utilities.device import DeviceManager
     device = DeviceManager.get_device()
     if device is None:
-        logging.error(f"Unable to get device. Please check configuration.")
+        logging.error(f"Unable to get device for channel guide update. Please check configuration.")
         return
     logging.info(f"Setting channel guide for device {device.id}.")
     channel_list = device.get_channel_list()
@@ -32,9 +32,8 @@ def set_device_channel_guide():
         cache.insert_channel(device.cache_conn, device.id, channel_id, channel)
 
     # Process the channel guide URLs in batches to prevent rate limiting.
-    guide_count = len(guide_urls)
+    logging.info(f"Fetching channel guide data for device {device.id}.")
     while len(guide_urls) > 0:
-        logging.info(f"Fetching EPG, {guide_count - len(guide_urls)} of {guide_count}.")
         current_batch = guide_urls[:3]
         guide_urls = guide_urls[3:]
         responses = device.get_list(current_batch)

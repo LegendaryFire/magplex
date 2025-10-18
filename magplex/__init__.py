@@ -31,6 +31,6 @@ def create_app():
             else:
                 g.db_conn.commit()
         finally:
-            g.db_conn.put_connection()
+            g.db_conn.close()
 
     return app

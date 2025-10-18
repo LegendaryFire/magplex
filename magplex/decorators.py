@@ -3,6 +3,7 @@ from functools import wraps
 from flask import g, redirect, request
 
 import magplex.database as database
+from magplex.utilities.database import LazyPostgresConnection
 
 
 def login_required(f):
@@ -10,8 +11,8 @@ def login_required(f):
     def decorated(*args, **kwargs):
         session_uid = request.cookies.get('session_uid')
         if session_uid:
-            conn = g.db_conn.get_connection()
-            g.user_session = database.users.get_user_session(conn, session_uid)
+            with LazyPostgresConnection() as conn:
+                g.user_session = database.users.get_user_session(conn, session_uid)
         else:
             g.user_session = None
 
