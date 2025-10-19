@@ -61,7 +61,7 @@ class PasswordModal extends Modal {
         }
     }
 
-    onClose() {
+    closeModal() {
         if (this.passwordChanged) {
             window.location.href = '/';
         }

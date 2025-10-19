@@ -2,7 +2,6 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
 
@@ -13,19 +12,8 @@ from requests.adapters import HTTPAdapter
 
 from magplex import database
 from magplex.utilities import cache, tasks
-from magplex.utilities.database import PostgresPool, RedisPool, LazyPostgresConnection
+from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.scheduler import TaskManager
-
-
-@dataclass
-class Profile:
-    portal: str
-    mac: str
-    timezone: str
-    language: str
-    device_id: str
-    device_id2: str
-    signature: str
 
 
 class DeviceManager:
@@ -37,7 +25,7 @@ class DeviceManager:
         device_profile = database.device.get_user_device(conn)
         if device_profile is None:
             return None
-
+        conn.close()
         return Device(device_profile)
 
     @classmethod
@@ -53,6 +41,7 @@ class DeviceManager:
 
 class Device:
     def __init__(self, profile):
+        self.device_uid = profile.device_uid
         self.cache_conn = RedisPool.get_connection()
         self.scheduler = TaskManager.get_scheduler()
         self.id = profile.mac_address.replace('-', ':').replace(':', '')
@@ -231,7 +220,7 @@ class Device:
 
         return genre_list
 
-    def get_channel_list(self):
+    def get_channel_list(self, filter_channels=True):
         """Gets a list of available channels from the portal."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
         data = self.get(url)
@@ -242,18 +231,32 @@ class Device:
         if not channel_list or not isinstance(channel_list, list):
             return None
 
+        conn = LazyPostgresConnection()
+        enabled_channels = database.channels.get_enabled_channels(conn, self.device_uid)
+        enabled_channels = [channel.channel_id for channel in enabled_channels]
+        conn.close()
+
         # Iterate in reverse to make sure pop doesn't affect the enumeration.
         for index in reversed(range(len(channel_list))):
             channel = channel_list[index]
+            channel_id = channel.get('id')
+
+            # If we are using channel filters, and the channel was not in
+            channel_enabled = int(channel_id) in enabled_channels
+            if filter_channels and enabled_channels and not channel_enabled:
+                channel_list.pop(index)
+                continue
+
             streams = channel.get('cmds')
             stream_id = streams[0].get('id') if streams and isinstance(streams[0], dict) else None
             channel_list[index] = {
+                'channel_id': channel_id,
                 'channel_name': channel.get('name'),
-                'channel_id': channel.get('id'),
                 'channel_number': channel.get('number'),
                 'genre_id': channel.get('tv_genre_id'),
                 'hd': channel.get('hd', '0') == '1',
-                'stream_id': stream_id
+                'stream_id': stream_id,
+                'enabled': channel_enabled
             }
 
             # Skip the channel if invalid data was found.

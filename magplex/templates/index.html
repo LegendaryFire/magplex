@@ -26,6 +26,7 @@
     <script src="/static/js/modals/username.js"></script>
     <script src="/static/js/modals/password.js"></script>
     <script src="/static/js/modals/device.js"></script>
+    <script src="/static/js/modals/channel-filter.js"></script>
     <script src="/static/js/modals/player.js"></script>
 
     <style>
@@ -99,9 +100,11 @@
                const settingsModal = document.createElement('settings-modal');
                document.querySelector('body').appendChild(settingsModal);
            });
+
+           document.querySelector('channel-list').channelClickCallback = playMediaCallback;
         });
 
-        function channelClickCallback(channelId, channelName, streamId) {
+        function playMediaCallback(channelId, channelName, streamId) {
             const playerModal = document.createElement('player-modal');
             playerModal.dataset.channelId = channelId;
             playerModal.dataset.channelName = channelName;

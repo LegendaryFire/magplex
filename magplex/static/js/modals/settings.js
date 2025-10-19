@@ -20,6 +20,7 @@ class SettingsModal extends Modal {
                     <div class="content-container">
                         <div class="button-row">
                             <button id="configure-device-btn">Configure Device</button>
+                            <button id="channel-filter-btn">Filter Channels</button>
                         </div>
                     </div>
                 </div>
@@ -54,6 +55,12 @@ class SettingsModal extends Modal {
         configureDeviceBtn.addEventListener('click', (event) => {
             const deviceModal = document.createElement('device-modal');
             document.querySelector('body').appendChild(deviceModal);
+        });
+
+        const configureFilterBtn = document.querySelector('#channel-filter-btn');
+        configureFilterBtn.addEventListener('click', (event) => {
+            const channelFilterModal = document.createElement('channel-filter-modal');
+            document.querySelector('body').appendChild(channelFilterModal);
         });
 
         const usernameBtn = document.querySelector('#change-username-btn');

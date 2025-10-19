@@ -10,7 +10,7 @@ channel-list {
         }
 
         select {
-            width: 150px;
+            width: 170px;
         }
     }
 
@@ -27,19 +27,78 @@ channel-list {
             padding: 0;
         }
 
-        li:not(:last-child) {
-            margin-bottom: 10px;
+        &[edit-mode] {
+            li.channel {
+                &:hover {
+                    box-shadow: 0 3px 8px -1px rgba(0,0,0,0.8);
+                    cursor: pointer;
+                }
+
+                &[selected]:before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: -2;
+                    margin: -2px;
+                    border-radius: inherit;
+                    background: linear-gradient(to right, #669ab6 0%, #64a5b1 50%, #669ab6 100%);
+                }
+
+                &::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: -1;
+                    background: var(--container-background);
+                    border-radius: inherit;
+                }
+
+                & > * {
+                    position: relative;
+                    z-index: 1;
+                }
+            }
         }
 
-        li.channel[hidden] {
-            display: none !important;
+        &:not([edit-mode]) {
+            li.channel {
+                &:hover {
+                    border-color: transparent;
+                    box-shadow: 0 3px 8px -1px rgba(0,0,0,0.8);
+                    cursor: pointer;
+                }
+
+                &:hover:before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: -2;
+                    margin: -2px;
+                    border-radius: inherit;
+                    background: linear-gradient(to right, #669ab6 0%, #64a5b1 50%, #669ab6 100%);
+                }
+
+                &::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: -1;
+                    background: var(--container-background);
+                    border-radius: inherit;
+                }
+
+                & > * {
+                    position: relative;
+                    z-index: 1;
+                }
+            }
         }
 
         li.channel {
             & {
                 display: flex;
                 flex-direction: row;
-                background: var(--container-background);
+                background: transparent;
                 height: 85px;
                 width: 100%;
                 border-radius: 10px;
@@ -47,28 +106,17 @@ channel-list {
                 padding: 15px;
                 color: var(--color);
                 user-select: none;
-
                 position: relative;
-                background-clip: padding-box;
                 box-sizing: border-box;
+                isolation: isolate;  /* Needs it's own stacking context for overlay */
             }
 
-            &:hover {
-                border-color: transparent;
-                box-shadow: 0 3px 8px -1px rgba(0,0,0,0.8);
-
-                cursor: pointer;
+            &[hidden] {
+                display: none;
             }
 
-            &:hover:before {
-                content: '';
-                position: absolute;
-                top: 0; right: 0; bottom: 0; left: 0;
-                z-index: -1;
-                margin: -2px;
-                border-radius: inherit;
-                /* background: linear-gradient(to right, #00b2ff 0%, #6ca8ef 50%, #00b2ff 100%); */
-                background: linear-gradient(to right, #669ab6 0%, #64a5b1 50%, #669ab6 100%);
+            &:not(:last-child) {
+                margin-bottom: 10px;
             }
 
             div.channel-left {

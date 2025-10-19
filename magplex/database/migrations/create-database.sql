@@ -43,6 +43,15 @@ create unique index if not exists devices_user_uid_idx on devices (user_uid);
 create unique index if not exists devices_mac_address on devices (mac_address);
 
 
+create table if not exists channels (
+    channel_id              int                         not null,
+    device_uid              uuid                        not null references devices (device_uid) on delete cascade,
+    creation_timestamp      timestamp with time zone    not null default current_timestamp,
+    primary key (device_uid, channel_id)
+);
+create index if not exists channels_channel_idx on channels (channel_id);
+
+
 create table if not exists migrations (
     migration_name          varchar(128)                not null primary key,
     creation_timestamp      timestamp with time zone    not null default current_timestamp

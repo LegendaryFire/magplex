@@ -1,1 +1,1 @@
-from . import device, users
+from . import device, users, channels
