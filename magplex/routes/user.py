@@ -71,10 +71,10 @@ def login():
     username = request.json.get('username')
     password = request.json.get('password')
     if not username or not password:
-        return Response('Missing mandatory parameters.', HTTPStatus.BAD_REQUEST)
+        return ErrorResponse('Missing either username or password. Please try again.', HTTPStatus.BAD_REQUEST)
     user_account = database.users.validate_user(g.db_conn, username, password)
     if user_account is None:
-        return Response('Invalid user credentials.', HTTPStatus.UNAUTHORIZED)
+        return ErrorResponse('Invalid user credentials, please try again.', HTTPStatus.UNAUTHORIZED)
 
     expiration_timestamp = datetime.now() + timedelta(days=90)
     user_session = database.users.insert_user_session(g.db_conn, user_account.user_uid,

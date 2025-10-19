@@ -6,7 +6,14 @@ class ChannelList extends HTMLElement {
     }
 
     async connectedCallback() {
+        this.innerHTML = `
+            <div class="message-container">
+                <h2>Loading channel list.</h2>
+                <h3>Please wait...</h3>
+            </div>
+        `
         this.channels = await this.getChannelList();
+        this.innerHTML = ``;
         if (this.channels !== null) {
             this.genres = [...new Set(this.channels.map(c => c.genre_name))];
             this.appendChild(this.getSearchBarElement());
@@ -28,7 +35,7 @@ class ChannelList extends HTMLElement {
 
     getConfigureElement() {
         const configureDeviceElem = document.createElement('div');
-        configureDeviceElem.classList.add('configure-container')
+        configureDeviceElem.classList.add('message-container')
         configureDeviceElem.innerHTML = `
             <h2>Unable to get channel list.</h2>
             <h3>Ensure device is configured in the about page, and try again.</h3>

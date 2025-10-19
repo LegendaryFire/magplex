@@ -1,32 +1,22 @@
 settings-modal {
     div.about-container {
         & {
-            margin-top: 15px;
             padding: 0 6px;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             justify-content: space-between;
-        }
-
-        div.left-container {
-            text-wrap: nowrap;
-        }
-
-        div.right-container {
-            text-align: right;
+            align-items: center;
         }
 
         h1 {
-            margin-top: 10px;
+            margin-top: 0;
+            margin-bottom: 0;
         }
-    }
 
-    h1 {
-        margin-bottom: 5px;
-    }
-
-    h4 {
-        margin-top: 0;
+        h4 {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
     }
 
     .version {
@@ -35,5 +25,7 @@ settings-modal {
 
     .build-date {
         margin-top: 2px;
+        margin-bottom: 0;
+        text-align: center;
     }
 }

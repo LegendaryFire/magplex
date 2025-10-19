@@ -30,15 +30,19 @@ class SettingsModal extends Modal {
                         <button id="refresh-epg-btn">Refresh EPG</button>
                     </div>
                 </div>
+                
                 <div class="content-group">
-                    <div class="about-container">
-                        <div class="left-container">
-                            <h1>Magplex</h1>
-                            <h4>by LegendaryFire</h4>
-                        </div>
-                        <div class="right-container">
-                            <p class="version">Version ${aboutInfo.version}</p>
-                            <p class="build-date">${aboutInfo.build_date}</p>
+                    <h2 class="content-title">About</h2>
+                    <div class="content-container">
+                        <div class="about-container">
+                            <div class="left-container">
+                                <h1>Magplex</h1>
+                                <h4>by LegendaryFire</h4>
+                            </div>
+                            <div class="right-container">
+                                <p class="version">Version ${aboutInfo.version}</p>
+                                <p class="build-date">${aboutInfo.build_date}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -81,12 +85,15 @@ class SettingsModal extends Modal {
     }
 
     async refreshEpg() {
-        try {
-            await fetch('/api/device/channels/guides', {
-                method: 'POST'
-            });
-        } catch (error) {
-            return null;
+        const response = await fetch('/api/device/channels/guides', {
+            method: 'POST'
+        });
+        if (!response.ok) {
+            const data = await response.json()
+            const message = parseError(data);
+            showToast(message, ToastType.ERROR);
+        } else {
+            showToast("Manual channel guide refresh has been triggered!", ToastType.SUCCESS);
         }
     }
 }

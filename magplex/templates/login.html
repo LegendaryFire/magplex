@@ -38,7 +38,9 @@
             });
 
             if (!response.ok) {
-                showToast(await response.text(), ToastType.ERROR);
+                const data = await response.json()
+                const message = parseError(data);
+                showToast(message, ToastType.ERROR);
             } else {
                 window.location = '/';
             }
