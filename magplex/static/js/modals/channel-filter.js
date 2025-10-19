@@ -9,7 +9,7 @@ class ChannelFilterModal extends Modal {
         this.innerHTML = `
             <div class="content-wrapper">
                 <div class="content-group">
-                    <h2 class="content-title">Device</h2>
+                    <h2 class="content-title">Channel Filter</h2>
                     <div class="content-container">
                         <form id="device-form">
                             <channel-list edit-mode></channel-list>

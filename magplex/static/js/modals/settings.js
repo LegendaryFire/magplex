@@ -20,7 +20,7 @@ class SettingsModal extends Modal {
                     <div class="content-container">
                         <div class="button-row">
                             <button id="configure-device-btn">Configure Device</button>
-                            <button id="channel-filter-btn">Filter Channels</button>
+                            <button id="channel-filter-btn">Channel Filter</button>
                         </div>
                     </div>
                 </div>
