@@ -21,10 +21,10 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 # Use Jellyfin FFmpeg build with QSV support
-RUN wget https://repo.jellyfin.org/files/ffmpeg/debian/latest-7.x/amd64/jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb && \
-    dpkg -i jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb || apt update && \
+RUN wget https://repo.jellyfin.org/files/ffmpeg/debian/latest-7.x/amd64/jellyfin-ffmpeg7_7.1.2-3-bookworm_amd64.deb && \
+    dpkg -i jellyfin-ffmpeg7_7.1.2-3-bookworm_amd64.deb || apt update && \
     apt install -y -f && \
-    rm jellyfin-ffmpeg7_7.1.2-2-bookworm_amd64.deb
+    rm jellyfin-ffmpeg7_7.1.2-3-bookworm_amd64.deb
 
 ENV PATH="/usr/lib/jellyfin-ffmpeg:${PATH}"
 

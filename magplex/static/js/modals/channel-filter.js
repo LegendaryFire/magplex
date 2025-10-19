@@ -50,7 +50,7 @@ class ChannelFilterModal extends Modal {
             }
         }
         this.refreshChannelList = true;
-        showToast(`Channel ${channelId} ${enable ? 'enabled' : 'disabled'} successfully.`, ToastType.SUCCESS);
+        showToast(`Channel ${channelId} ${enable ? 'enabled' : 'disabled'} successfully.`, enable ? ToastType.SUCCESS : ToastType.ERROR);
     }
 
     closeModal() {
