@@ -23,7 +23,7 @@ settings-modal {
         margin-bottom: 2px;
     }
 
-    .build-date {
+    .build-date, .version {
         margin-top: 2px;
         margin-bottom: 0;
         text-align: center;
