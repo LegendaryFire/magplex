@@ -16,11 +16,16 @@
     <link href="/static/css/channel-list.css" rel="stylesheet">
     <script src="/static/js/channel-list.js"></script>
 
-    <!-- Modals -->
+    <!-- Modal Styles -->
     <link href="/static/css/modals/base.css" rel="stylesheet">
-    <script src="/static/js/modals/base.js"></script>
     <link href="/static/css/modals/settings.css" rel="stylesheet">
+
+    <!-- Modals Scripts -->
+    <script src="/static/js/modals/base.js"></script>
     <script src="/static/js/modals/settings.js"></script>
+    <script src="/static/js/modals/username.js"></script>
+    <script src="/static/js/modals/password.js"></script>
+    <script src="/static/js/modals/device.js"></script>
     <script src="/static/js/modals/player.js"></script>
 
     <style>
@@ -91,17 +96,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
            document.querySelector('#settings-btn').addEventListener('click', () => {
-               const settingsBtnElem = document.createElement('settings-modal');
-               document.querySelector('body').appendChild(settingsBtnElem);
+               const settingsModal = document.createElement('settings-modal');
+               document.querySelector('body').appendChild(settingsModal);
            });
         });
 
         function channelClickCallback(channelId, channelName, streamId) {
-            const playerElem = document.createElement('player-modal');
-            playerElem.dataset.channelId = channelId;
-            playerElem.dataset.channelName = channelName;
-            playerElem.dataset.streamId = streamId;
-            document.querySelector('body').appendChild(playerElem);
+            const playerModal = document.createElement('player-modal');
+            playerModal.dataset.channelId = channelId;
+            playerModal.dataset.channelName = channelName;
+            playerModal.dataset.streamId = streamId;
+            document.querySelector('body').appendChild(playerModal);
         }
     </script>
 </head>
@@ -115,9 +120,7 @@
                 <li class="align-right"><a href="/api/user/logout" target="_blank">Logout</a></li>
             </ul>
         </nav>
-        <section style="padding-top: 5px;">
-            <channel-list></channel-list>
-        </section>
+        <channel-list></channel-list>
     </main>
 </body>
 </html>

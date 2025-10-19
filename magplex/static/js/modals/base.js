@@ -20,10 +20,10 @@ class Modal extends HTMLElement {
             </div>
         `
 
-        this.querySelector('nav .close-btn').addEventListener('click', () => this.onClose());
+        this.querySelector('nav .close-btn').addEventListener('click', () => this.closeModal());
     }
 
-    onClose() {
+    closeModal() {
         this.remove();
     }
 }

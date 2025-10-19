@@ -1,4 +1,4 @@
-from flask import Flask, g, request
+from flask import Flask, g, request, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import magplex.database as database
@@ -8,6 +8,7 @@ from magplex.routes.stb import stb
 from magplex.routes.ui import ui
 from magplex.routes.user import user
 from magplex.utilities.database import RedisPool, LazyPostgresConnection
+from magplex.utilities.error import ErrorResponse
 
 
 def create_app():

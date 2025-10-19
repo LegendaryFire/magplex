@@ -1,12 +1,35 @@
-class Settings extends Modal {
+class SettingsModal extends Modal {
     async connectedCallback() {
         const aboutInfo = await this.getInfo();
-        const device = await this.getDevice();
-        const user = await this.getUser();
 
         this.modalTitle = "Settings";
         this.innerHTML = `
             <div class="content-wrapper">
+                <div class="content-group">
+                    <h2 class="content-title">User</h2>
+                    <div class="content-container">
+                        <div class="button-row">
+                            <button id="change-username-btn">Change Username</button>
+                            <button id="change-password-btn">Change Password</button>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="content-group">
+                    <h2 class="content-title">Device</h2>
+                    <div class="content-container">
+                        <div class="button-row">
+                            <button id="configure-device-btn">Configure Device</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-group">
+                    <h2 class="content-title">Background Tasks</h2>
+                    <div class="content-container">
+                        <button id="refresh-epg-btn">Refresh EPG</button>
+                    </div>
+                </div>
                 <div class="content-group">
                     <div class="about-container">
                         <div class="left-container">
@@ -19,103 +42,33 @@ class Settings extends Modal {
                         </div>
                     </div>
                 </div>
-                <div class="content-group">
-                    <h2 class="content-title">Device</h2>
-                    <div class="content-container">
-                        <form id="device-form">
-                            <label>
-                                MAC Address
-                                <input type="text" name="mac_address" placeholder="D4-3A-E9-A3-EF-C7" value="${device?.mac_address ?? ''}" required>
-                            </label>
-                            <label>
-                                Device ID 1
-                                <input type="text" name="device_id1" placeholder="9F238DDD45B637EED88C83C220E8CABFD82E89E2135961F4383C590C4AA7EE98" value="${device?.device_id1 ?? ''}">
-                            </label>
-                            <label>
-                                Device ID 2
-                                <input type="text" name="device_id2" placeholder="BF63FB6C5C52EAD90CD0B6B257EDEB06B77FFA3EDA96DAEE2385C48091E171A0" value="${device?.device_id2 ?? ''}">
-                            </label>
-                            <label>
-                                Signature
-                                <input type="text" name="signature" placeholder="0B59594118C1F594175717F92D25218AD9674D990829175674F08D7FE2BD9DE0" value="${device?.signature ?? ''}">
-                            </label>
-                            <label>
-                                Language
-                                <input type="text" name="language" placeholder="en" value="${device?.language ?? ''}" required>
-                            </label>
-                            <label>
-                                Timezone
-                                <input type="text" name="timezone" placeholder="America/Vancouver" value="${device?.timezone ?? ''}" required>
-                            </label>
-                            <label>
-                                Portal
-                                <input type="text" name="portal" placeholder="example.portal.tv" value="${device?.portal ?? ''}" required>
-                            </label>
-                            <button type="submit">Save</button>
-                        </form>
-                    </div>
-                </div>
-                <div class="content-group">
-                    <h2 class="content-title">Credentials</h2>
-                    <div class="content-container">
-                        <form id="user-form">
-                            <label>
-                                Username
-                                <input type="text" name="username" placeholder="${user?.username ?? ''}" required>
-                            </label>
-                            <label>
-                                Current Password
-                                <input type="password" name="current_password" placeholder="Current Password" required>
-                            </label>
-                            <label>
-                                New Password
-                                <input type="password" name="new_password" placeholder="New Password">
-                            </label>
-                            <label>
-                                New Password Confirmed
-                                <input type="password" name="new_password_confirmed" placeholder="New Password Confirmed">
-                            </label>
-                            <button type="submit">Save</button>
-                        </form>
-                    </div>
-                </div>
-                <div class="content-group">
-                    <h2 class="content-title">Background Tasks</h2>
-                    <div class="content-container">
-                        <button id="refresh-epg-btn">Refresh EPG</button>
-                    </div>
-                </div>
             </div>
         `;
         super.connectedCallback();
 
-        const deviceForm = document.querySelector('#device-form');
-        deviceForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            const device = this.serializeForm(deviceForm);
-            this.saveDevice(device);
+        const configureDeviceBtn = document.querySelector('#configure-device-btn');
+        configureDeviceBtn.addEventListener('click', (event) => {
+            const deviceModal = document.createElement('device-modal');
+            document.querySelector('body').appendChild(deviceModal);
         });
 
-        const userForm = document.querySelector('#user-form');
-        userForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            const user = this.serializeForm(userForm);
-            this.saveUser(user);
+        const usernameBtn = document.querySelector('#change-username-btn');
+        usernameBtn.addEventListener('click', (event) => {
+            const usernameModal = document.createElement('username-modal');
+            document.querySelector('body').appendChild(usernameModal);
+        });
+
+        const passwordBtn = document.querySelector('#change-password-btn');
+        passwordBtn.addEventListener('click', (event) => {
+            const passwordModal = document.createElement('password-modal');
+            document.querySelector('body').appendChild(passwordModal);
         });
 
         const refreshEpgBtn = document.querySelector('#refresh-epg-btn');
         refreshEpgBtn.addEventListener('click', (event) => {
             this.refreshEpg();
         });
-    }
 
-    serializeForm(form) {
-        const formData = new FormData(form);
-        const obj = {};
-        for (const [key, value] of formData.entries()) {
-            obj[key] = value;
-        }
-        return obj;
     }
 
     async getInfo() {
@@ -129,59 +82,13 @@ class Settings extends Modal {
 
     async refreshEpg() {
         try {
-            await fetch('/api/device/guide', {
+            await fetch('/api/device/channels/guides', {
                 method: 'POST'
             });
         } catch (error) {
             return null;
         }
     }
-
-    async getDevice() {
-        try {
-            const response = await fetch('/api/user/device');
-            return await response.json();
-        } catch (error) {
-            return null;
-        }
-    }
-
-    async saveDevice(device) {
-        const response = await fetch('/api/user/device', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(device)
-        });
-
-        if (!response.ok) {
-            showToast(await response.text(), ToastType.ERROR);
-        } else {
-            showToast("Device settings have been saved successfully!", ToastType.SUCCESS);
-        }
-    }
-
-    async getUser() {
-        try {
-            const response = await fetch('/api/user');
-            return await response.json();
-        } catch (error) {
-            return null;
-        }
-    }
-
-    async saveUser(user) {
-        const response = await fetch('/user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(user)
-        });
-
-        if (!response.ok) {
-            showToast(await response.text(), ToastType.ERROR);
-        } else {
-            showToast("User credentials have been saved successfully!", ToastType.SUCCESS);
-        }
-    }
 }
 
-customElements.define('settings-modal', Settings);
+customElements.define('settings-modal', SettingsModal);

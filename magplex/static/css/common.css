@@ -81,7 +81,7 @@ label {
 button {
     font-family: "Alan Sans", sans-serif;
     width: 100%;
-    padding: 9px;
+    padding: 10px;
     font-size: 16px;
     background: var(--primary-button-color);
     border-radius: 8px;
@@ -97,7 +97,25 @@ button:hover, button:focus-visible {
     cursor: pointer;
     outline: none;
     border: 2px solid transparent;
-    box-shadow: 0 0 8px var(--color-input-box-shadow);
+    box-shadow: inset 0 0 3px #7ed6ff;
+}
+
+div.button-row {
+    & {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    button:not(:first-child) {
+        margin-top: 0;
+    }
+
+    @media (max-width: 800px) {
+        & {
+            flex-direction: column;
+        }
+    }
 }
 
 div.content-container {

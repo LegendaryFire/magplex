@@ -19,7 +19,7 @@ class PlayerModal extends Modal {
 
     }
 
-    onClose() {
+    closeModal() {
         if (this.videoElem) {
             this.videoElem.pause();
         }
@@ -31,7 +31,7 @@ class PlayerModal extends Modal {
             this.hls = null;
         }
 
-        super.onClose();
+        super.closeModal();
     }
 
     loadStream() {

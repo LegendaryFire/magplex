@@ -6,8 +6,10 @@ from flask import Blueprint, request, Response, g, jsonify, redirect
 from magplex import database
 from magplex.decorators import login_required
 from magplex.utilities.device import DeviceManager
+from magplex.utilities.error import ErrorResponse
 
 user = Blueprint("user", __name__)
+
 
 @user.get('/')
 @login_required
@@ -16,34 +18,52 @@ def get_user():
     return jsonify(user_account)
 
 
-@user.post('/')
+@user.post('/username')
 @login_required
-def save_user():
-    # Start by validating the current password against the user.
+def save_username():
+    current_username = request.json.get('current_username')
+    new_username = request.json.get('new_username')
+    password = request.json.get('password')
+    if not current_username or not new_username or not password:
+        return ErrorResponse("Missing required fields.", HTTPStatus.BAD_REQUEST)
+    if any(char.isspace() for char in new_username):
+        return ErrorResponse("New username can't contain spaces.", HTTPStatus.BAD_REQUEST)
+
     session_user = database.users.get_user(g.db_conn, g.user_session.user_uid)
+    validated_user = database.users.validate_user(g.db_conn, session_user.username, password)
+    if not validated_user:
+        return ErrorResponse("Invalid credentials, please try again.", HTTPStatus.FORBIDDEN)
+
+    if new_username == validated_user.username:
+        return ErrorResponse("New username is the same as current.", HTTPStatus.FORBIDDEN)
+
+    database.users.update_username(g.db_conn, session_user.user_uid, new_username)
+    return Response(status=HTTPStatus.OK)
+
+
+@user.post('/password')
+@login_required
+def save_password():
     current_password = request.json.get('current_password')
+    new_password = request.json.get('new_password')
+    new_password_repeated = request.json.get('new_password_repeated')
+
+    session_user = database.users.get_user(g.db_conn, g.user_session.user_uid)
+    if not current_password or not new_password or not new_password_repeated:
+        return ErrorResponse("Missing required fields.", HTTPStatus.BAD_REQUEST)
+
     validated_user = database.users.validate_user(g.db_conn, session_user.username, current_password)
     if not validated_user:
-        return Response("Invalid password, please try again.", HTTPStatus.BAD_REQUEST)
+        return ErrorResponse("Invalid credentials, please try again.", HTTPStatus.FORBIDDEN)
 
-    username = request.json.get('username')
-    if ' ' in username:
-        return Response("Username can't contain spaces.", HTTPStatus.BAD_REQUEST)
-    if not username or len(username) < 8:
-        return Response("Username must be at least 8 characters long.", HTTPStatus.BAD_REQUEST)
-    if username != session_user.username:
-        database.users.update_username(g.db_conn, session_user.user_uid, username)
-
-    new_password = request.json.get('new_password')
-    new_password_confirmed = request.json.get('new_password_confirmed')
     if len(new_password) < 8:
-        return Response("Password must be at least 8 characters long.", HTTPStatus.BAD_REQUEST)
-    if new_password == new_password_confirmed:
-        database.users.update_password(g.db_conn, session_user.user_uid, new_password)
-    else:
-        return Response("Passwords entered did not match. Please try again.", status=HTTPStatus.BAD_REQUEST)
+        return ErrorResponse("New password must be at least 8 characters long.", HTTPStatus.FORBIDDEN)
 
-    return Response(status=HTTPStatus.NO_CONTENT)
+    if new_password != new_password_repeated:
+        return ErrorResponse("The new passwords do not match, please try again.", HTTPStatus.BAD_REQUEST)
+
+    database.users.update_password(g.db_conn, session_user.user_uid, new_password)
+    return Response(status=HTTPStatus.OK)
 
 
 @user.post('/login')

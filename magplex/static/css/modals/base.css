@@ -1,24 +1,51 @@
-.modal-overlay {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: flex-start;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100dvw;
-    height: 100dvh;
-    max-width: 100dvw;
-    max-height: 100dvh;
-    background: var(--background-gradient);
-    overflow-y: auto;
-    z-index: 1;
-}
-
 .modal-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
     text-align: center;
     overflow-y: auto;
+}
+
+.modal-overlay {
+    & {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100dvw;
+        height: 100dvh;
+        max-width: 100dvw;
+        max-height: 100dvh;
+        background: var(--background-gradient);
+        overflow-y: auto;
+        z-index: 1;
+    }
+
+    div.content-wrapper {
+        & {
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+            width: 100%;
+            text-align: left;
+        }
+
+        div.content-group {
+            & {
+                margin-bottom: 5px;
+            }
+
+            &:last-child {
+                margin-bottom: 50px;
+            }
+
+            h2.content-title {
+                margin-bottom: 10px;
+                margin-left: 5px;
+            }
+        }
+    }
 }

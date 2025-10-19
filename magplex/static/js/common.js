@@ -13,3 +13,17 @@ function showToast(message, toastType) {
         position: "center",
     }).showToast();
 }
+
+function serializeForm(form) {
+    const formData = new FormData(form);
+    const obj = {};
+    for (const [key, value] of formData.entries()) {
+        obj[key] = value;
+    }
+    return obj;
+}
+
+function parseError(response) {
+    const errorMessage = response?.error?.message;
+    return errorMessage ? errorMessage : "Unknown error occurred.";
+}

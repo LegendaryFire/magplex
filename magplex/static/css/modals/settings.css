@@ -1,49 +1,24 @@
 settings-modal {
-    div.content-wrapper {
+    div.about-container {
         & {
+            margin-top: 15px;
+            padding: 0 6px;
             display: flex;
+            flex-direction: row;
             justify-content: space-between;
-            flex-direction: column;
-            width: 100%;
-            text-align: left;
         }
 
-        div.content-group {
-            & {
-                margin-bottom: 5px;
-            }
-
-            &:last-child {
-                margin-bottom: 50px;
-            }
-
-            h2.content-title {
-                margin-bottom: 10px;
-                margin-left: 5px;
-            }
+        div.left-container {
+            text-wrap: nowrap;
         }
 
-        div.about-container {
-            & {
-                padding: 0 6px;
-                display: flex;
-                flex-direction: row;
-                justify-content: space-between;
-            }
-
-            div.left-container {
-                text-wrap: nowrap;
-            }
-
-            div.right-container {
-                text-align: right;
-            }
-
-            h1 {
-                margin-top: 10px;
-            }
+        div.right-container {
+            text-align: right;
         }
 
+        h1 {
+            margin-top: 10px;
+        }
     }
 
     h1 {

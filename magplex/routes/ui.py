@@ -1,16 +1,10 @@
-import logging
-from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 
-from flask import (Blueprint, Response, g, jsonify, redirect, render_template,
-                   request, send_file)
+from flask import Blueprint, Response,jsonify, render_template, send_file
 
-import magplex.database as database
 import version
 from magplex.decorators import login_required
-from magplex.utilities.device import DeviceManager
 from magplex.utilities.variables import Environment
-from magplex.utilities.scheduler import TaskManager
 
 ui = Blueprint("ui", __name__)
 
