@@ -12,7 +12,7 @@ create table if not exists users (
 create unique index if not exists users_email_idx on users (username);
 
 insert into users (username, password, is_admin)
-    from select 'admin', crypt('admin', gen_salt('bf')), true
+    select 'admin', crypt('admin', gen_salt('bf')), true
     where not exists (select 1 from users where is_admin = true);
 
 
@@ -44,7 +44,6 @@ create unique index if not exists devices_mac_address on devices (mac_address);
 
 
 create table if not exists migrations (
-    migration_uuid          int                         not null primary key,
-    migration_name          varchar(128)                not null,
+    migration_name          varchar(128)                not null primary key,
     creation_timestamp      timestamp with time zone    not null default current_timestamp
 );

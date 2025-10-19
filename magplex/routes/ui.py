@@ -87,8 +87,8 @@ def save_device():
     portal = request.json.get('portal')
     language = request.json.get('language')
     tz = request.json.get('timezone')
-    database.device.save_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
-                                     portal, language, tz)
+    database.device.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
+                                       portal, language, tz)
     DeviceManager.reset_device()
     return Response(status=HTTPStatus.NO_CONTENT)
 
@@ -104,9 +104,12 @@ def get_user():
 def refresh_epg():
     scheduler = TaskManager.get_scheduler()
     device = DeviceManager.get_device()
+    if device is None:
+        logging.warning(f"Unable to refresh EPG, ensure a device has been added first.")
+
     job = scheduler.get_job(device.id)
     if not job:
-        logging.warning(f"Could not find job located in job store.")
+        logging.warning(f"Unable to refresh EPG, ensure a device has been added first.")
         return Response(status=HTTPStatus.NOT_FOUND)
 
     job.modify(next_run_time=datetime.now(timezone.utc))

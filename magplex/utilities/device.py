@@ -13,7 +13,7 @@ from requests.adapters import HTTPAdapter
 
 from magplex import database
 from magplex.utilities import cache, tasks
-from magplex.utilities.database import PostgresPool, RedisPool, LazyPostgresConnection
+from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.scheduler import TaskManager
 
 

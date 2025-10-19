@@ -26,7 +26,7 @@ server {
         proxy_set_header X-Forwarded-Port $server_port;
     }
 
-    location /proxy {
+    location /api/proxy {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host:${STB_PORT};
         proxy_set_header X-Real-IP $remote_addr;

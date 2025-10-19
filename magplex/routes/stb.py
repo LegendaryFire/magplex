@@ -75,17 +75,22 @@ def lineup():
         channel_lineup.append({
             "GuideName": channel.get('channel_name'),
             "GuideNumber": channel.get('channel_id'),
-            "URL": f"{domain}/channels/{channel.get('stream_id')}"
+            "URL": f"{domain}/playlist.m3u8?stream_id={channel.get('stream_id')}"
         })
 
     return jsonify(channel_lineup)
 
 
-@stb.route('/channels/<int:stream_id>')
+@stb.route('/playlist.m3u8')
 def get_channel_playlist(stream_id):
+    stream_id = request.args.get('stream_id')
+    if stream_id is None:
+        return Response("Missing required parameter 'stream_id'.", status=HTTPStatus.BAD_REQUEST)
+
     device = DeviceManager.get_device()
     if device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.BAD_REQUEST)
+
     channel_url = device.get_channel_playlist(stream_id)
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
@@ -101,7 +106,7 @@ def get_channel_playlist(stream_id):
     headers = ''.join(f"{k}: {v}\r\n" for k, v in headers.items())
 
     domain = request.host_url[:-1]
-    channel_url = f'{domain}/proxy/channels/{stream_id}'
+    channel_url = f'{domain}/api/proxy/channels/{stream_id}'
 
     if Environment.BASE_FFMPEG is None:
         logging.error("Unable to find ffmpeg installation.")
@@ -132,7 +137,7 @@ def get_channel_playlist(stream_id):
         }
     )
 
-@stb.route('/channels/guide.xml')
+@stb.route('/guide.xml')
 def get_channel_guide():
     device = DeviceManager.get_device()
     if device is None:

@@ -5,9 +5,9 @@ import time
 import psycopg
 import redis
 
-from magplex import database
+from magplex.database.migrations import migrations
 from magplex.utilities import logs
-from magplex.utilities.database import RedisPool, LazyPostgresConnection, PostgresPool
+from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.device import DeviceManager
 from magplex.utilities.variables import Environment
 from magplex.utilities.scheduler import TaskManager
@@ -52,10 +52,8 @@ def initialize():
 
     # Create database if it doesn't already exist.
     logging.info("Creating Postgres database schema if it doesn't already exist.")
-    conn = LazyPostgresConnection()
-    database.create_database(conn)
-    conn.commit()
-    conn.close()
+    migrations.create_database()
+    migrations.run_missing_migrations()
 
 
     # Start background task scheduler.

@@ -19,7 +19,7 @@ class ChannelList extends HTMLElement {
 
     async getChannelList() {
         try {
-            const response = await fetch('/api/channels/list', {headers: {'Accept': 'application/json'}});
+            const response = await fetch('/api/channels/', {headers: {'Accept': 'application/json'}});
             return await response.json();
         } catch (error) {
             return null;

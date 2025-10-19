@@ -14,8 +14,8 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     app.register_blueprint(channels, url_prefix='/api/channels')
+    app.register_blueprint(proxy, url_prefix='/api/proxy')
     app.register_blueprint(stb, url_prefix='/stb')
-    app.register_blueprint(proxy, url_prefix='/proxy')
     app.register_blueprint(ui)
 
     @app.before_request

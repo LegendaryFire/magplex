@@ -28,7 +28,7 @@ def proxy_playlist(stream_id):
         line = line.strip()
         if line and not line.startswith("#"):
             absolute_url = f'{channel_domain}/{line}'
-            proxied_url = f"/proxy/stream.ts?url={quote(absolute_url)}&session_uid={quote(session_uid)}"
+            proxied_url = f"/api/proxy/stream.ts?url={quote(absolute_url)}&session_uid={quote(session_uid)}"
             proxied_playlist.append(proxied_url)
         else:
             proxied_playlist.append(line)

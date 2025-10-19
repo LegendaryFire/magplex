@@ -29,7 +29,7 @@ def get_user_device(conn):
         return DeviceProfile(*row) if row else None
 
 
-def save_user_device(conn, user_uid, mac_address, device_id1, device_id2, signature, portal, language, timezone):
+def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, signature, portal, language, timezone):
     with conn.cursor() as cursor:
         query = """
             insert into devices (user_uid, mac_address, device_id1, device_id2, signature, portal, language, timezone)

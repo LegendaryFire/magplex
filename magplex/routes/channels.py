@@ -17,7 +17,7 @@ def get_channel_playlist(stream_id):
     return redirect(channel_url, code=HTTPStatus.FOUND)
 
 
-@channels.route('/list')
+@channels.route('/')
 def get_channel_list():
     """Gets the channel list from the portal, returns a playlist if supported, otherwise JSON."""
     device = DeviceManager.get_device()
