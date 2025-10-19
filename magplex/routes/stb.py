@@ -1,12 +1,15 @@
 import logging
+from datetime import datetime, timezone
 from http import HTTPStatus
 
 import ffmpeg
 import requests
 from flask import Blueprint, Response, jsonify, request
 
+from magplex.decorators import login_required
 from magplex.utilities import media, parser
 from magplex.utilities.device import DeviceManager
+from magplex.utilities.scheduler import TaskManager
 from magplex.utilities.variables import Environment
 
 stb = Blueprint("stb", __name__)
@@ -54,6 +57,7 @@ def discover():
         "TunerCount": 1
     })
 
+
 @stb.route('/lineup_status.json')
 def lineup_status():
     return jsonify({
@@ -62,6 +66,7 @@ def lineup_status():
         "Source": "Cable",
         "Lineup": "Complete"
     })
+
 
 @stb.route('/lineup.json')
 def lineup():
@@ -75,14 +80,14 @@ def lineup():
         channel_lineup.append({
             "GuideName": channel.get('channel_name'),
             "GuideNumber": channel.get('channel_id'),
-            "URL": f"{domain}/playlist.m3u8?stream_id={channel.get('stream_id')}"
+            "URL": f"{domain}/stb/playlist.m3u8?stream_id={channel.get('stream_id')}"
         })
 
     return jsonify(channel_lineup)
 
 
 @stb.route('/playlist.m3u8')
-def get_channel_playlist(stream_id):
+def get_channel_playlist():
     stream_id = request.args.get('stream_id')
     if stream_id is None:
         return Response("Missing required parameter 'stream_id'.", status=HTTPStatus.BAD_REQUEST)
@@ -137,7 +142,8 @@ def get_channel_playlist(stream_id):
         }
     )
 
-@stb.route('/guide.xml')
+
+@stb.get('/guide.xml')
 def get_channel_guide():
     device = DeviceManager.get_device()
     if device is None:
@@ -145,3 +151,4 @@ def get_channel_guide():
     data = device.get_channel_guide()
     guide = parser.build_channel_guide(data.get('channels'), data.get('channel_guides'))
     return Response(guide, mimetype='text/xml')
+

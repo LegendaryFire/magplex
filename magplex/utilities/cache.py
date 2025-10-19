@@ -86,6 +86,12 @@ def get_all_channel_guides(conn, instance_id):
             channel_guides.append(json.loads(data))
     return channel_guides
 
+def get_channel_guide(conn, instance_id, channel_id):
+    cache_key = _get_channel_guide_key(instance_id, channel_id)
+    channel_guide = conn.get(cache_key)
+    channel_guide = json.loads(channel_guide) if channel_guide else None
+    return channel_guide
+
 def insert_channel_guide(conn, instance_id, channel_id, channel_guide):
     expiry = 3 * 3600
     cache_key = _get_channel_guide_key(instance_id, channel_id)

@@ -29,6 +29,18 @@ def get_user_device(conn):
         return DeviceProfile(*row) if row else None
 
 
+def get_user_devices(conn, user_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
+                portal, language, timezone, modified_timestamp, creation_timestamp
+            from devices
+            where user_uid = %(user_uid)s
+        """
+        cursor.execute(query, locals())
+        return [DeviceProfile(*row) for row in cursor]
+
+
 def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, signature, portal, language, timezone):
     with conn.cursor() as cursor:
         query = """

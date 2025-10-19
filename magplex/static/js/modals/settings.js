@@ -1,10 +1,10 @@
-class AboutModal extends Modal {
+class Settings extends Modal {
     async connectedCallback() {
         const aboutInfo = await this.getInfo();
         const device = await this.getDevice();
         const user = await this.getUser();
 
-        this.modalTitle = "About";
+        this.modalTitle = "Settings";
         this.innerHTML = `
             <div class="content-wrapper">
                 <div class="content-group">
@@ -129,7 +129,7 @@ class AboutModal extends Modal {
 
     async refreshEpg() {
         try {
-            await fetch('/refresh-epg', {
+            await fetch('/api/device/guide', {
                 method: 'POST'
             });
         } catch (error) {
@@ -139,7 +139,7 @@ class AboutModal extends Modal {
 
     async getDevice() {
         try {
-            const response = await fetch('/device');
+            const response = await fetch('/api/user/device');
             return await response.json();
         } catch (error) {
             return null;
@@ -147,7 +147,7 @@ class AboutModal extends Modal {
     }
 
     async saveDevice(device) {
-        const response = await fetch('/device', {
+        const response = await fetch('/api/user/device', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(device)
@@ -162,7 +162,7 @@ class AboutModal extends Modal {
 
     async getUser() {
         try {
-            const response = await fetch('/user');
+            const response = await fetch('/api/user');
             return await response.json();
         } catch (error) {
             return null;
@@ -184,4 +184,4 @@ class AboutModal extends Modal {
     }
 }
 
-customElements.define('about-modal', AboutModal);
+customElements.define('settings-modal', Settings);

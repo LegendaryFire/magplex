@@ -13,13 +13,15 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <link href="/static/css/common.css" rel="stylesheet">
     <script src="/static/js/common.js"></script>
-    <link href="/static/css/modal.css" rel="stylesheet">
-    <script src="/static/js/modal.js"></script>
     <link href="/static/css/channel-list.css" rel="stylesheet">
     <script src="/static/js/channel-list.js"></script>
-    <link href="/static/css/about-modal.css" rel="stylesheet">
-    <script src="/static/js/about-modal.js"></script>
-    <script src="/static/js/player-modal.js"></script>
+
+    <!-- Modals -->
+    <link href="/static/css/modals/base.css" rel="stylesheet">
+    <script src="/static/js/modals/base.js"></script>
+    <link href="/static/css/modals/settings.css" rel="stylesheet">
+    <script src="/static/js/modals/settings.js"></script>
+    <script src="/static/js/modals/player.js"></script>
 
     <style>
         main, .modal-container {
@@ -88,9 +90,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-           document.querySelector('#about-btn').addEventListener('click', () => {
-               const aboutElem = document.createElement('about-modal');
-               document.querySelector('body').appendChild(aboutElem);
+           document.querySelector('#settings-btn').addEventListener('click', () => {
+               const settingsBtnElem = document.createElement('settings-modal');
+               document.querySelector('body').appendChild(settingsBtnElem);
            });
         });
 
@@ -109,8 +111,8 @@
             <ul>
                 <li class="title">Mag Plex</li>
                 <li class="active">Home</li>
-                <li id="about-btn">About</li>
-                <li class="align-right"><a href="/logout" target="_blank">Logout</a></li>
+                <li id="settings-btn">Settings</li>
+                <li class="align-right"><a href="/api/user/logout" target="_blank">Logout</a></li>
             </ul>
         </nav>
         <section style="padding-top: 5px;">

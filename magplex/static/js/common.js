@@ -7,10 +7,9 @@ class ToastType {
 function showToast(message, toastType) {
     Toastify({
         text: message,
-        duration: 3000,
+        duration: 2500,
         className: toastType,
         gravity: "top",
-        position: "right",
-        stopOnFocus: true,
+        position: "center",
     }).showToast();
 }

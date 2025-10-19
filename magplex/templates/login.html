@@ -31,7 +31,7 @@
             const username = document.querySelector('form input[name=username]').value;
             const password = document.querySelector('form input[name=password]').value;
 
-            const response = await fetch('/login', {
+            const response = await fetch('/api/user/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

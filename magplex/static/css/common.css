@@ -115,19 +115,21 @@ div.content-container {
 
 .toastify {
     z-index: 2;
+    user-select: none;
+    cursor: default;
 }
 
 .toast-success {
     padding: 18px 15px 18px 15px;
-    background: linear-gradient(to right, #00b09b, #96c93d);
+    background: linear-gradient(to right, #649119, #4b7800);
 }
 
 .toast-error {
     padding: 18px 15px 18px 15px;
-    background: linear-gradient(to right, #ff5f6d, #ffc371);
+    background: linear-gradient(to right, #af414b, #962832);
 }
 
 .toast-warning {
     padding: 18px 15px 18px 15px;
-    background: linear-gradient(to right, #f7b733, #fc4a1a);
+    background: linear-gradient(to right, #c88c19, #af8700);
 }
