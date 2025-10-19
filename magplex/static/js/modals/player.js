@@ -40,7 +40,7 @@ class PlayerModal extends Modal {
             return;
         }
 
-        const channelUrl = `/proxy/channels/${this.streamId}`;
+        const channelUrl = `/api/proxy/channels/${this.streamId}`;
         this.hls = new Hls();
         this.hls.loadSource(channelUrl);
         this.hls.attachMedia(this.videoElem);
