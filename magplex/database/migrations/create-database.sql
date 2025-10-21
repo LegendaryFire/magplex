@@ -43,12 +43,30 @@ create unique index if not exists devices_user_uid_idx on devices (user_uid);
 create unique index if not exists devices_mac_address on devices (mac_address);
 
 
+create table if not exists genres (
+    device_uid              uuid                        not null references devices (device_uid),
+    genre_id                int                         not null,
+    genre_name              varchar(128)                not null,
+    creation_timestamp      timestamp with time zone    not null default current_timestamp,
+    primary key (device_uid, genre_id)
+);
+
+
 create table if not exists channels (
     channel_id              int                         not null,
+    channel_number          int                         not null,
+    channel_name            varchar(128)                not null,
+    channel_hd              boolean                     not null default false,
+    channel_enabled         boolean                     not null default true,
+    genre_id                int                         not null references genres (genre_id),
+    stream_id               int                         not null,
     device_uid              uuid                        not null references devices (device_uid) on delete cascade,
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
-    primary key (device_uid, channel_id)
+    primary key (device_uid, channel_id),
+    foreign key (device_uid, genre_id) references genres (device_uid, genre_id)
 );
+create index if not exists channels_device_uid_channel_number_idx on channels (device_uid, channel_number);
+create index if not exists channels_device_uid_genre_id_idx on channels (device_uid, genre_id);
 create index if not exists channels_channel_idx on channels (channel_id);
 
 
