@@ -60,14 +60,14 @@ def refresh_channel_guides():
 @login_required
 def enable_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.channels.insert_enabled_channel(g.db_conn, user_device.device_uid, channel_id)
+    database.channels.update_channel_enabled(g.db_conn, user_device.device_uid, channel_id, True)
     return Response(status=HTTPStatus.OK)
 
 @device.post('/channels/<int:channel_id>/disable')
 @login_required
 def disable_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.channels.delete_enabled_channel(g.db_conn, user_device.device_uid, channel_id)
+    database.channels.update_channel_enabled(g.db_conn, user_device.device_uid, channel_id, False)
     return Response(status=HTTPStatus.OK)
 
 @device.get('/channels/<int:channel_id>/guide')
