@@ -8,7 +8,7 @@ import redis
 from magplex.database.migrations import migrations
 from magplex.utilities import logs
 from magplex.utilities.database import RedisPool, LazyPostgresConnection
-from magplex.utilities.device import DeviceManager
+from magplex.device.device import DeviceManager
 from magplex.utilities.variables import Environment
 from magplex.utilities.scheduler import TaskManager
 from version import version

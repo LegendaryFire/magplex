@@ -1,6 +1,7 @@
 create table if not exists genres (
     device_uid              uuid                        not null references devices (device_uid),
     genre_id                int                         not null,
+    genre_number            int                         not null,
     genre_name              varchar(128)                not null,
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
     primary key (device_uid, genre_id)

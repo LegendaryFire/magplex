@@ -1,15 +1,12 @@
 import logging
-from datetime import datetime, timezone
 from http import HTTPStatus
 
 import ffmpeg
 import requests
 from flask import Blueprint, Response, jsonify, request
 
-from magplex.decorators import login_required
 from magplex.utilities import media, parser
-from magplex.utilities.device import DeviceManager
-from magplex.utilities.scheduler import TaskManager
+from magplex.device.device import DeviceManager
 from magplex.utilities.variables import Environment
 
 stb = Blueprint("stb", __name__)

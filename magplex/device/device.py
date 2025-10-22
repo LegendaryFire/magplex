@@ -10,8 +10,7 @@ from apscheduler.jobstores.base import ConflictingIdError
 from flask import Response
 from requests.adapters import HTTPAdapter
 
-from magplex import database
-from magplex.utilities import cache, tasks
+from magplex.database import db_device
 from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.scheduler import TaskManager
 
@@ -22,7 +21,7 @@ class DeviceManager:
     @classmethod
     def create_device(cls):
         conn = LazyPostgresConnection()
-        device_profile = database.device.get_user_device(conn)
+        device_profile = db_device.get_user_device(conn)
         if device_profile is None:
             return None
         conn.close()
@@ -44,7 +43,6 @@ class Device:
         self.device_uid = profile.device_uid
         self.cache_conn = RedisPool.get_connection()
         self.scheduler = TaskManager.get_scheduler()
-        self.id = profile.mac_address.replace('-', ':').replace(':', '')
         self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
@@ -63,19 +61,29 @@ class Device:
             'timezone': f'{profile.timezone}',
         }
 
-        if self.scheduler.get_job(self.id) is None:
+        if self.scheduler.get_job(self.device_uid) is None:
             try:
                 self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1,
-                                       id=self.id, next_run_time=datetime.now(timezone.utc))
-                logging.info(f"Channel guide background task added for device {self.id}")
+                                       id=self.device_uid, next_run_time=datetime.now(timezone.utc))
+                logging.info(f"Channel guide background task added for device {self.device_uid}")
             except ConflictingIdError:
                 pass
         else:
-            logging.info(f"Channel guide background task already exists for device {self.id}")
+            logging.info(f"Channel guide background task already exists for device {self.device_uid}")
+
+        if self.scheduler.get_job(self.device_uid) is None:
+            try:
+                self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1,
+                                       id=self.device_uid, next_run_time=datetime.now(timezone.utc))
+                logging.info(f"Channel guide background task added for device {self.device_uid}")
+            except ConflictingIdError:
+                pass
+        else:
+            logging.info(f"Channel guide background task already exists for device {self.device_uid}")
 
     def get_token(self):
         """Gets the authentication token for the session."""
-        available = cache.get_device_timeout(self.cache_conn, self.id)
+        available = cache.get_device_timeout(self.cache_conn, self.device_uid)
         if not available:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
@@ -97,7 +105,7 @@ class Device:
 
     def get_authorization(self):
         """Gets authentication for the set-top box device."""
-        available = cache.get_device_timeout(self.cache_conn, self.id)
+        available = cache.get_device_timeout(self.cache_conn, self.device_uid)
         if not available:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
@@ -111,12 +119,12 @@ class Device:
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
-        available = cache.get_device_timeout(self.cache_conn, self.id)
+        available = cache.get_device_timeout(self.cache_conn, self.device_uid)
         if not available:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
 
-        self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.cache_conn, self.id)}'
+        self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.cache_conn, self.device_uid)}'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
@@ -135,17 +143,17 @@ class Device:
                 authorized = self.get_authorization()
                 if not authorized:
                     logging.warning("Unable to authorize.")
-                    cache.set_device_timeout(self.cache_conn, self.id)
+                    cache.set_device_timeout(self.cache_conn, self.device_uid)
                     self.authorized = False
                     return None
 
                 self.authorized = True
-                cache.set_bearer_token(self.cache_conn, self.id, token)
+                cache.set_bearer_token(self.cache_conn, self.device_uid, token)
                 time.sleep(1)  # Sleep for 1s to avoid rate limiting.
                 return self.get(url)
             else:
                 logging.warning('Unable to retrieve token.')
-                cache.set_device_timeout(self.cache_conn, self.id)
+                cache.set_device_timeout(self.cache_conn, self.device_uid)
                 self.authorized = False
                 return None
 
@@ -220,55 +228,10 @@ class Device:
 
         return genre_list
 
-    def get_channel_list(self, filter_channels=True):
-        """Gets a list of available channels from the portal."""
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
-        data = self.get(url)
-        if data is None:
-            return Response("Unable to get channel list.", HTTPStatus.INTERNAL_SERVER_ERROR)
-
-        channel_list = data.get('data') if data else None
-        if not channel_list or not isinstance(channel_list, list):
-            return None
-
+    def get_enabled_channels(self):
         conn = LazyPostgresConnection()
-        enabled_channels = database.channels.get_enabled_channels(conn, self.device_uid)
-        enabled_channels = [channel.channel_id for channel in enabled_channels]
-        conn.close()
+        channels = db_device.get_channels(conn, self.device_uid, channel_enabled=True)
+        tasks.set_channels()
 
-        # Iterate in reverse to make sure pop doesn't affect the enumeration.
-        for index in reversed(range(len(channel_list))):
-            channel = channel_list[index]
-            channel_id = channel.get('id')
-
-            # If we are using channel filters, and the channel was not in
-            channel_enabled = int(channel_id) in enabled_channels
-            if filter_channels and enabled_channels and not channel_enabled:
-                channel_list.pop(index)
-                continue
-
-            streams = channel.get('cmds')
-            stream_id = streams[0].get('id') if streams and isinstance(streams[0], dict) else None
-            channel_list[index] = {
-                'channel_id': channel_id,
-                'channel_name': channel.get('name'),
-                'channel_number': channel.get('number'),
-                'genre_id': channel.get('tv_genre_id'),
-                'hd': channel.get('hd', '0') == '1',
-                'stream_id': stream_id,
-                'enabled': channel_enabled
-            }
-
-            # Skip the channel if invalid data was found.
-            if any(v is None for v in channel_list[index].values()):
-                channel_list.pop(index)
-                continue
-
-        return channel_list
-
-    def get_channel_guide(self):
-        """Gets the channel guide from available EPG data stored in the cache server."""
-        return {
-            'channels': cache.get_all_channels(self.cache_conn, self.id),
-            'channel_guides': cache.get_all_channel_guides(self.cache_conn, self.id),
-        }
+    def get_all_channels(self):
+        pass

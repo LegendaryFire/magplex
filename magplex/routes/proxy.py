@@ -5,7 +5,7 @@ from urllib.parse import quote, unquote, urlparse, urlunparse
 import requests
 from flask import Blueprint, Response, request
 
-from magplex.utilities.device import DeviceManager
+from magplex.device.device import DeviceManager
 
 proxy = Blueprint("proxy", __name__)
 

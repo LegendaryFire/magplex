@@ -7,7 +7,7 @@ from flask import Blueprint, Response, redirect, jsonify, g, request
 import magplex.database as database
 from magplex.decorators import login_required
 from magplex.utilities import cache
-from magplex.utilities.device import DeviceManager
+from magplex.device.device import DeviceManager
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.scheduler import TaskManager
 
@@ -60,14 +60,14 @@ def refresh_channel_guides():
 @login_required
 def enable_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.channels.update_channel_enabled(g.db_conn, user_device.device_uid, channel_id, True)
+    database.channels.update_channel_status(g.db_conn, user_device.device_uid, channel_id, True)
     return Response(status=HTTPStatus.OK)
 
 @device.post('/channels/<int:channel_id>/disable')
 @login_required
 def disable_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.channels.update_channel_enabled(g.db_conn, user_device.device_uid, channel_id, False)
+    database.channels.update_channel_status(g.db_conn, user_device.device_uid, channel_id, False)
     return Response(status=HTTPStatus.OK)
 
 @device.get('/channels/<int:channel_id>/guide')

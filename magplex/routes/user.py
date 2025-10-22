@@ -5,7 +5,7 @@ from flask import Blueprint, request, Response, g, jsonify, redirect
 
 from magplex import database
 from magplex.decorators import login_required
-from magplex.utilities.device import DeviceManager
+from magplex.device.device import DeviceManager
 from magplex.utilities.error import ErrorResponse
 
 user = Blueprint("user", __name__)
