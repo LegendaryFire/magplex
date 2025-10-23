@@ -10,7 +10,6 @@ from magplex.utilities.variables import Environment
 
 class IgnoreWakeSchedulerFilter(logging.Filter):
     def filter(self, record):
-        # record.getMessage() is the log message string
         return "wake_scheduler" not in record.getMessage()
 
 

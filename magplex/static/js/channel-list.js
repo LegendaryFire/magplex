@@ -138,7 +138,7 @@ class ChannelList extends HTMLElement {
         channelElem.dataset['channelName'] = channel.channel_name;
         channelElem.dataset['genreName'] = channel.genre_name;
         channelElem.dataset['streamId'] = channel.stream_id;
-        channelElem.toggleAttribute('selected', this.editMode && channel.enabled)
+        channelElem.toggleAttribute('selected', this.editMode && channel.channel_enabled)
 
         channelElem.innerHTML = `
             <div class="channel-left">
@@ -164,7 +164,7 @@ class ChannelList extends HTMLElement {
                 }
 
                 if (typeof this.channelToggleCallback === 'function') {
-                    this.channelToggleCallback(channel.channel_id, channel.channel_name, !selectedState);
+                    this.channelToggleCallback(channel.channel_id);
                 }
             } else {
                 if (typeof this.channelClickCallback === 'function') {

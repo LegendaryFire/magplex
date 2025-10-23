@@ -4,9 +4,8 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, redirect, jsonify, g, request
 
-from magplex.device import database
+from magplex.device import database, cache
 from magplex.decorators import login_required
-from magplex.utilities import cache
 from magplex.device.device import DeviceManager
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.scheduler import TaskManager
@@ -18,6 +17,7 @@ device = Blueprint("device", __name__)
 @login_required
 def get_channels():
     filter_channels = request.args.get("filter", None)
+    filter_channels = filter_channels.lower() == 'true' if filter_channels is not None else None
     user_device = DeviceManager.get_device()
     if user_device is None:
         return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
@@ -48,18 +48,23 @@ def refresh_channel_guides():
     logging.info(f"Manually triggered EPG refresh for device {user_device.device_uid}.")
     return Response(status=HTTPStatus.ACCEPTED)
 
-@device.post('/channels/<int:channel_id>/enable')
+@device.post('/channels/toggle')
 @login_required
-def enable_channel(channel_id):
+def toggle_channels():
+    channels_enabled = request.json.get('channels_enabled')
+    if channels_enabled is None:
+        return ErrorResponse("Missing mandatory data.")
     user_device = DeviceManager.get_device()
-    database.update_channel_status(g.db_conn, user_device.device_uid, channel_id, True)
+    database.update_channels_status(g.db_conn, user_device.device_uid, channels_enabled)
+    cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
 
-@device.post('/channels/<int:channel_id>/disable')
+@device.post('/channels/<int:channel_id>/toggle')
 @login_required
-def disable_channel(channel_id):
+def toggle_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.update_channel_status(g.db_conn, user_device.device_uid, channel_id, False)
+    database.update_channel_status(g.db_conn, user_device.device_uid, channel_id)
+    cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
 
 @device.get('/channels/<int:channel_id>/guide')

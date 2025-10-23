@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import timezone, datetime
+from datetime import datetime
 
 from magplex.utilities.database import LazyPostgresConnection
 from magplex.device import database
@@ -36,7 +36,7 @@ def set_channels():
             logging.warning(f"Missing fields for channel {channel_id}.")
             continue
         database.insert_channel(conn, device.device_uid, channel_id, channel_number, channel_name, channel_hd,
-                                   genre_number, stream_id, channel_enabled=None)
+                                   genre_number, stream_id)
         inserted_channels.add(int(channel_id))
     conn.commit()
 
@@ -61,7 +61,7 @@ def set_device_channel_guide():
         return
     logging.info(f"Setting channel guide for device {device.device_uid}.")
 
-    channel_list = device.get_enabled_channels()
+    channel_list = device.get_channels(True)
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
         return
@@ -86,10 +86,8 @@ def set_device_channel_guide():
 
             channel_id = channel_guides[0].get('ch_id')
             for guide in channel_guides:
-                start_timestamp =  guide.get('start_timestamp')
-                start_timestamp = datetime.strptime(start_timestamp, "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
-                stop_timestamp = guide.get('stop_timestamp')
-                stop_timestamp = datetime.strptime(stop_timestamp, "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+                start_timestamp = datetime.fromtimestamp(guide.get('start_timestamp'))
+                stop_timestamp = datetime.fromtimestamp(guide.get('stop_timestamp'))
                 title = guide.get('name')
                 description = guide.get('descr')
                 categories = [c.strip() for c in guide.get('category', str()).split(',') if c.strip()]
