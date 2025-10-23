@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, redirect, jsonify, g, request
 
-import magplex.database as database
+from magplex.device import database
 from magplex.decorators import login_required
 from magplex.utilities import cache
 from magplex.device.device import DeviceManager
@@ -16,12 +16,12 @@ device = Blueprint("device", __name__)
 
 @device.route('/channels')
 @login_required
-def get_channel_list():
-    filter_channels = request.args.get("filter", False)
+def get_channels():
+    filter_channels = request.args.get("filter", None)
     user_device = DeviceManager.get_device()
     if user_device is None:
         return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
-    channels_list = user_device.get_channel_list(filter_channels=filter_channels)
+    channels_list = user_device.get_channels(enabled=filter_channels)
     genres = user_device.get_genres()
     if genres is None:
         return Response("Unable to get playlist genres.", HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -37,7 +37,7 @@ def get_channel_list():
 @login_required
 def get_all_channel_guides():
     user_device = DeviceManager.get_device()
-    channel_guide = cache.get_all_channel_guides(g.cache_conn, user_device.id)
+    channel_guide = cache.get_all_channel_guides(g.cache_conn, user_device.device_uid)
     return jsonify(channel_guide)
 
 
@@ -48,33 +48,33 @@ def refresh_channel_guides():
     user_device = DeviceManager.get_device()
     if user_device is None:
         return ErrorResponse("Unable to refresh EPG, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
-    job = scheduler.get_job(user_device.id)
+    job = scheduler.get_job(user_device.device_uid)
     if not job:
         return ErrorResponse("Unable to refresh EPG, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    logging.info(f"Manually triggered EPG refresh for device {user_device.id}.")
+    logging.info(f"Manually triggered EPG refresh for device {user_device.device_uid}.")
     return Response(status=HTTPStatus.ACCEPTED)
 
 @device.post('/channels/<int:channel_id>/enable')
 @login_required
 def enable_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.channels.update_channel_status(g.db_conn, user_device.device_uid, channel_id, True)
+    database.update_channel_status(g.db_conn, user_device.device_uid, channel_id, True)
     return Response(status=HTTPStatus.OK)
 
 @device.post('/channels/<int:channel_id>/disable')
 @login_required
 def disable_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.channels.update_channel_status(g.db_conn, user_device.device_uid, channel_id, False)
+    database.update_channel_status(g.db_conn, user_device.device_uid, channel_id, False)
     return Response(status=HTTPStatus.OK)
 
 @device.get('/channels/<int:channel_id>/guide')
 @login_required
 def get_channel_guide(channel_id):
     user_device = DeviceManager.get_device()
-    channel_guide = cache.get_channel_guide(g.cache_conn, user_device.id, channel_id)
+    channel_guide = cache.get_channel_guide(g.cache_conn, user_device.device_uid, channel_id)
     return jsonify(channel_guide)
 
 

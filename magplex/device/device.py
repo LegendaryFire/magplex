@@ -7,10 +7,10 @@ from http import HTTPStatus
 
 import requests
 from apscheduler.jobstores.base import ConflictingIdError
-from flask import Response
 from requests.adapters import HTTPAdapter
 
-from magplex.database import db_device
+from magplex.device import cache, database, tasks
+from magplex import users
 from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.scheduler import TaskManager
 
@@ -21,7 +21,7 @@ class DeviceManager:
     @classmethod
     def create_device(cls):
         conn = LazyPostgresConnection()
-        device_profile = db_device.get_user_device(conn)
+        device_profile = users.database.get_user_device(conn)
         if device_profile is None:
             return None
         conn.close()
@@ -40,7 +40,7 @@ class DeviceManager:
 
 class Device:
     def __init__(self, profile):
-        self.device_uid = profile.device_uid
+        self.device_uid = str(profile.device_uid)
         self.cache_conn = RedisPool.get_connection()
         self.scheduler = TaskManager.get_scheduler()
         self.authorized = True
@@ -228,10 +228,10 @@ class Device:
 
         return genre_list
 
-    def get_enabled_channels(self):
-        conn = LazyPostgresConnection()
-        channels = db_device.get_channels(conn, self.device_uid, channel_enabled=True)
-        tasks.set_channels()
+    def get_channels(self, enabled=None):
+        conn = RedisPool.get_connection()
+        channels = cache.get_channels(conn, self.device_uid)
+        if enabled is not None:
+            channels = [c for c in channels if c.channel_enabled == enabled]
+        return channels
 
-    def get_all_channels(self):
-        pass

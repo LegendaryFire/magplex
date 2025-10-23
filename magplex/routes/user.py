@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, request, Response, g, jsonify, redirect
 
-from magplex import database
+from magplex.users import database
 from magplex.decorators import login_required
 from magplex.device.device import DeviceManager
 from magplex.utilities.error import ErrorResponse
@@ -14,7 +14,7 @@ user = Blueprint("user", __name__)
 @user.get('/')
 @login_required
 def get_user():
-    user_account = database.users.get_user(g.db_conn, g.user_session.user_uid)
+    user_account = database.get_user(g.db_conn, g.user_session.user_uid)
     return jsonify(user_account)
 
 
@@ -29,15 +29,15 @@ def save_username():
     if any(char.isspace() for char in new_username):
         return ErrorResponse("New username can't contain spaces.", HTTPStatus.BAD_REQUEST)
 
-    session_user = database.users.get_user(g.db_conn, g.user_session.user_uid)
-    validated_user = database.users.validate_user(g.db_conn, session_user.username, password)
+    session_user = database.get_user(g.db_conn, g.user_session.user_uid)
+    validated_user = database.validate_user(g.db_conn, session_user.username, password)
     if not validated_user:
         return ErrorResponse("Invalid credentials, please try again.", HTTPStatus.FORBIDDEN)
 
     if new_username == validated_user.username:
         return ErrorResponse("New username is the same as current.", HTTPStatus.FORBIDDEN)
 
-    database.users.update_username(g.db_conn, session_user.user_uid, new_username)
+    database.update_username(g.db_conn, session_user.user_uid, new_username)
     return Response(status=HTTPStatus.OK)
 
 
@@ -48,11 +48,11 @@ def save_password():
     new_password = request.json.get('new_password')
     new_password_repeated = request.json.get('new_password_repeated')
 
-    session_user = database.users.get_user(g.db_conn, g.user_session.user_uid)
+    session_user = database.get_user(g.db_conn, g.user_session.user_uid)
     if not current_password or not new_password or not new_password_repeated:
         return ErrorResponse("Missing required fields.", HTTPStatus.BAD_REQUEST)
 
-    validated_user = database.users.validate_user(g.db_conn, session_user.username, current_password)
+    validated_user = database.validate_user(g.db_conn, session_user.username, current_password)
     if not validated_user:
         return ErrorResponse("Invalid credentials, please try again.", HTTPStatus.FORBIDDEN)
 
@@ -62,7 +62,7 @@ def save_password():
     if new_password != new_password_repeated:
         return ErrorResponse("The new passwords do not match, please try again.", HTTPStatus.BAD_REQUEST)
 
-    database.users.update_password(g.db_conn, session_user.user_uid, new_password)
+    database.update_password(g.db_conn, session_user.user_uid, new_password)
     return Response(status=HTTPStatus.OK)
 
 
@@ -72,12 +72,12 @@ def login():
     password = request.json.get('password')
     if not username or not password:
         return ErrorResponse('Missing either username or password. Please try again.', HTTPStatus.BAD_REQUEST)
-    user_account = database.users.validate_user(g.db_conn, username, password)
+    user_account = database.validate_user(g.db_conn, username, password)
     if user_account is None:
         return ErrorResponse('Invalid user credentials, please try again.', HTTPStatus.UNAUTHORIZED)
 
     expiration_timestamp = datetime.now() + timedelta(days=90)
-    user_session = database.users.insert_user_session(g.db_conn, user_account.user_uid,
+    user_session = database.insert_user_session(g.db_conn, user_account.user_uid,
                                                       request.remote_addr, expiration_timestamp)
 
     response = jsonify(user_account)
@@ -90,14 +90,14 @@ def login():
 def logout():
     user_session = getattr(g, 'user_session', None)
     if user_session is not None:
-        database.users.expire_user_session(g.db_conn, g.user_session.session_uid)
+        database.expire_user_session(g.db_conn, g.user_session.session_uid)
     return redirect('/')
 
 
 @user.get('device')
 @login_required
 def get_user_device():
-    return jsonify(database.device.get_user_device(g.db_conn))
+    return jsonify(database.get_user_device(g.db_conn))
 
 
 @user.post('/device')
@@ -110,7 +110,7 @@ def save_user_device():
     portal = request.json.get('portal')
     language = request.json.get('language')
     tz = request.json.get('timezone')
-    database.device.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
+    database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
                                        portal, language, tz)
     DeviceManager.reset_device()
     return Response(status=HTTPStatus.NO_CONTENT)

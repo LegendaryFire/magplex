@@ -2,6 +2,7 @@ from flask import Flask, g, request, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import magplex.database as database
+from magplex import users
 from magplex.routes.device import device
 from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
@@ -28,7 +29,7 @@ def create_app():
         session_uid = request.cookies.get('session_uid')
         if session_uid:
             with LazyPostgresConnection() as conn:
-                g.user_session = database.users.get_user_session(conn, session_uid)
+                g.user_session = users.database.get_user_session(conn, session_uid)
 
     @app.teardown_request
     def teardown_request(exception=None):

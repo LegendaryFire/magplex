@@ -31,7 +31,7 @@ def root():
             <manufacturer>Silicondust</manufacturer>
             <modelName>HDTC-2US</modelName>
             <modelNumber>HDTC-2US</modelNumber>
-            <serialNumber>{device.id}</serialNumber>
+            <serialNumber>{device.device_uid}</serialNumber>
             <UDN>uuid:2025-10-FBE0-RLST64</UDN>
         </device>
     </root>
