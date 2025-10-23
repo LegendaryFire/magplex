@@ -1,6 +1,7 @@
 import json
 
 import magplex.device.tasks as tasks
+from magplex.utilities.serializers import DataclassEncoder
 
 
 def _get_device_timeout_key(instance_id):
@@ -32,7 +33,7 @@ def get_channels(conn, device_uid):
     if channel_list is not None:
         return json.loads(channel_list)
     channel_list = tasks.set_channels()
-    conn.set(cache_key, json.dumps(channel_list, default=str), ex=3600)
+    conn.set(cache_key, json.dumps(channel_list, cls=DataclassEncoder, default=str), ex=3600)
     return channel_list
 
 

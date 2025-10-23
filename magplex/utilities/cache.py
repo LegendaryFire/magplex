@@ -1,5 +1,7 @@
 import json
 
+from magplex.utilities.serializers import DataclassEncoder
+
 
 def _get_channel_ids_key(instance_id):
     return f'magplex:device:{instance_id}:channel:ids'
@@ -45,4 +47,4 @@ def get_channel_guide(conn, instance_id, channel_id):
 def insert_channel_guide(conn, instance_id, channel_id, channel_guide):
     expiry = 3 * 3600
     cache_key = _get_channel_guide_key(instance_id, channel_id)
-    conn.set(cache_key, json.dumps(channel_guide), ex=expiry)
+    conn.set(cache_key, json.dumps(channel_guide, cls=DataclassEncoder), ex=expiry)

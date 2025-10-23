@@ -22,14 +22,6 @@ def get_channels():
     if user_device is None:
         return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
     channels_list = user_device.get_channels(enabled=filter_channels)
-    genres = user_device.get_genres()
-    if genres is None:
-        return Response("Unable to get playlist genres.", HTTPStatus.INTERNAL_SERVER_ERROR)
-
-    genre_name_map = {g.get('genre_id'): g.get('genre_name') for g in genres}
-    for index, channel in enumerate(channels_list):
-        channels_list[index]['genre_name'] = genre_name_map.get(channel.get('genre_id'), "Unknown")
-
     return jsonify(channels_list)
 
 

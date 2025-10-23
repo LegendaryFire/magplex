@@ -12,6 +12,7 @@ class Channel:
     channel_hd: bool
     channel_enabled: bool
     genre_id: int
+    genre_name: str
     stream_id: int
     creation_timestamp: datetime
 
@@ -62,10 +63,10 @@ def get_channel(conn, device_uid, channel_id):
 def get_channels(conn, device_uid, channel_enabled=None):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, genre_id,
-                   stream_id, creation_timestamp
-            from channels
-            where device_uid = %(device_uid)s
+            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, g.genre_id,
+                   g.genre_name, stream_id, c.creation_timestamp
+            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
+            where c.device_uid = %(device_uid)s
             and (%(channel_enabled)s::boolean is null or channel_enabled = %(channel_enabled)s)
         """
         cursor.execute(query, locals())
