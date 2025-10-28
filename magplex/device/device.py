@@ -3,6 +3,7 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from enum import StrEnum
 from http import HTTPStatus
 
 import requests
@@ -61,17 +62,37 @@ class Device:
         }
         self._schedule_tasks()
 
+
     def _schedule_tasks(self):
         job_list = {tasks.save_channels, tasks.save_device_channel_guide}
         scheduler = TaskManager.get_scheduler()
         for job in job_list:
+            job_name = f'{self.device_uid}:{job.__name__}'
             try:
-                if scheduler.get_job(job) is None:
-                    scheduler.add_job(job, 'interval', hours=1, id=self.device_uid, next_run_time=datetime.now(timezone.utc))
+                if scheduler.get_job(job_name) is None:
+                    scheduler.add_job(job, 'interval', hours=1, id=job_name, next_run_time=datetime.now(timezone.utc))
                 else:
                     logging.warning('Scheduler background task already exists, skipping.')
             except ConflictingIdError:
                 logging.warning('Scheduler conflicting ID error ignored')
+
+
+    def __validate_response(self, response):
+        invalid_responses = {'Authorization failed', 'Access denied'}
+        valid_response = True
+        if not self.authorized:
+            logging.warning('Device not authorized')
+            valid_response = False
+        if response.status_code is not HTTPStatus.OK:
+            logging.warning('Invalid response code received')
+            valid_response = False
+        for response in invalid_responses:
+            if response in response.text:
+                logging.warning('Invalid text found in response')
+                valid_response = False
+        if not valid_response:
+            self.headers.pop('Authorization', None)
+        return valid_response
 
 
     def get_token(self):
@@ -81,20 +102,23 @@ class Device:
             logging.warning(f"Device is not available. Awaiting timeout.")
             return None
 
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'
         self.headers.pop('Authorization', None)  # Remove the old authentication header.
+        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # Check for a valid response.
-        if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
+        valid_response = self.__validate_response(response)
+        if not valid_response:
+            logging.warning(f'Invalid response while getting access token')
             return None
 
-        # Attempt to deserialize the response and return the token if it exists.
         try:
             token = json.loads(response.text).get('js', {}).get('token')
-            return token if token else None
         except json.JSONDecodeError:
             return None
+
+        return token if token else None
+
 
     def get_authorization(self):
         """Gets authentication for the set-top box device."""
@@ -105,10 +129,8 @@ class Device:
 
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id1}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
-        if response.status_code != HTTPStatus.OK or 'Authorization failed' in response.text:
-            self.headers.pop('Authorization', None)  # Clear the authentication header on failure.
-            return False
-        return True
+        return self.__validate_response(response)
+
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
@@ -121,15 +143,8 @@ class Device:
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
-        if not self.authorized or response.status_code == HTTPStatus.FORBIDDEN or 'Authorization failed' in response.text:
-            if 'Authorization failed' in response.text:
-                logging.info("Authenticating, authorization failed found in payload.")
-                time.sleep(5)
-            elif response.status_code == HTTPStatus.FORBIDDEN:
-                logging.info("Authenticating, HTTP status forbidden.")
-            elif not self.authorized:
-                logging.info("Authenticating, authorization failed flag.")
-
+        self.authorized = self.__validate_response(response)
+        if not self.authorized:
             token = self.get_token()
             if token is not None:
                 self.headers['Authorization'] = f'Bearer {token}'  # Set authorization header on success.
@@ -151,7 +166,6 @@ class Device:
                 return None
 
         self.authorized = True
-
         try:
             data = json.loads(response.text).get('js', None)
             # We always expect either a list or a dictionary from the endpoints.
@@ -163,6 +177,7 @@ class Device:
             logging.warning("Unable to decode response data.")
             return None
         return data
+
 
     def get_list(self, urls):
         def fetch_url(url):
@@ -177,6 +192,7 @@ class Device:
 
         # Filter out failed responses.
         return [result for result in results if result is not None]
+
 
     def get_channel_playlist(self, stream_id):
         """Gets a generated channel playlist URL from stream ID."""
@@ -196,6 +212,7 @@ class Device:
                 return None
 
         return data.get('cmd')
+
 
     def get_genres(self):
         """Gets a list of genres from the portal."""
@@ -221,17 +238,20 @@ class Device:
 
         return genre_list
 
+
     def get_all_channels(self):
         conn = LazyPostgresConnection()
         channels = database.get_all_channels(conn, self.device_uid)
         conn.close()
         return channels
 
+
     def get_enabled_channels(self):
         conn = LazyPostgresConnection()
         channels = database.get_enabled_channels(conn, self.device_uid)
         conn.close()
         return channels
+
 
     def get_disabled_channels(self):
         conn = LazyPostgresConnection()
