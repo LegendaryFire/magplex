@@ -28,17 +28,6 @@ def get_device_timeout(conn, instance_id):
     return conn.exists(cache_key) == 0
 
 
-def get_channels(conn, device_uid):
-    cache_key = _get_channels_cache_key(device_uid)
-    channel_list = conn.get(cache_key)
-    if channel_list is not None:
-        channel_data = json.loads(channel_list)
-        return [Channel(**d) for d in channel_data]
-    channel_list = tasks.set_channels()
-    conn.set(cache_key, json.dumps(channel_list, cls=DataclassEncoder), ex=3600)
-    return channel_list
-
-
 def expire_channels(conn, device_uid):
     cache_key = _get_channels_cache_key(device_uid)
     conn.delete(cache_key)

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from enum import StrEnum
 from http import HTTPStatus
 
 from flask import Blueprint, Response, redirect, jsonify, g, request
@@ -12,17 +13,25 @@ from magplex.utilities.scheduler import TaskManager
 
 device = Blueprint("device", __name__)
 
+class ChannelState(StrEnum):
+    ENABLED = 'enabled'
+    DISABLED = 'disabled'
+
 
 @device.route('/channels')
 @login_required
 def get_channels():
-    filter_channels = request.args.get("filter", None)
-    filter_channels = filter_channels.lower() == 'true' if filter_channels is not None else None
     user_device = DeviceManager.get_device()
     if user_device is None:
         return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
-    channels_list = user_device.get_channels(enabled=filter_channels)
-    return jsonify(channels_list)
+
+    channel_state = request.args.get('state', '').lower()
+    if channel_state == ChannelState.ENABLED:
+        return jsonify(user_device.get_enabled_channels())
+    elif channel_state == ChannelState.DISABLED:
+        return jsonify(user_device.get_disabled_channels())
+    else:
+        return jsonify(user_device.get_all_channels())
 
 
 @device.get('/channels/guides')
@@ -48,6 +57,7 @@ def refresh_channel_guides():
     logging.info(f"Manually triggered EPG refresh for device {user_device.device_uid}.")
     return Response(status=HTTPStatus.ACCEPTED)
 
+
 @device.post('/channels/toggle')
 @login_required
 def toggle_channels():
@@ -59,6 +69,7 @@ def toggle_channels():
     cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
 
+
 @device.post('/channels/<int:channel_id>/toggle')
 @login_required
 def toggle_channel(channel_id):
@@ -66,6 +77,7 @@ def toggle_channel(channel_id):
     database.update_channel_status(g.db_conn, user_device.device_uid, channel_id)
     cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
+
 
 @device.get('/channels/<int:channel_id>/guide')
 @login_required

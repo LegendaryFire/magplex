@@ -5,7 +5,8 @@ from datetime import datetime
 from magplex.utilities.database import LazyPostgresConnection
 from magplex.device import database
 
-def set_channels():
+
+def save_channels():
     from magplex.device.device import DeviceManager
     device = DeviceManager.get_device()
     if device is None:
@@ -41,18 +42,18 @@ def set_channels():
     conn.commit()
 
     # Filter through the channels and make sure all of them exist. Remove the stale channels automatically.
-    channel_list = database.get_channels(conn, device.device_uid)
+    channel_list = database.get_all_channels(conn, device.device_uid)
     for channel in channel_list:
         if channel.channel_id not in inserted_channels:
             database.delete_channel(conn, device.device_uid, channel.channel_id)
 
     # Get the latest copy of the channel list.
-    channel_list = database.get_channels(conn, device.device_uid)
+    channel_list = database.get_all_channels(conn, device.device_uid)
     logging.warning(f'Channel list background task completed successfully for device {device.device_uid}.')
     conn.close()
     return channel_list
 
-def set_device_channel_guide():
+def save_device_channel_guide():
     """Background task ran at an interval to populate the cache with EPG information."""
     from magplex.device.device import DeviceManager
     device = DeviceManager.get_device()
@@ -61,7 +62,7 @@ def set_device_channel_guide():
         return
     logging.info(f"Setting channel guide for device {device.device_uid}.")
 
-    channel_list = device.get_channels(True)
+    channel_list = device.get_enabled_channels(True)
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
         return
@@ -84,8 +85,8 @@ def set_device_channel_guide():
             if not channel_guides or not isinstance(channel_guides, list):
                 continue
 
-            channel_id = channel_guides[0].get('ch_id')
             for guide in channel_guides:
+                channel_id = guide.get('ch_id')
                 start_timestamp = datetime.fromtimestamp(guide.get('start_timestamp'))
                 stop_timestamp = datetime.fromtimestamp(guide.get('stop_timestamp'))
                 title = guide.get('name')

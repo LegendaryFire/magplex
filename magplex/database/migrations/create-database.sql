@@ -1,6 +1,15 @@
 create extension if not exists pgcrypto;
 
 
+---------------------- Migrations ----------------------
+create table if not exists migrations (
+    migration_name          varchar(128)                not null primary key,
+    creation_timestamp      timestamp with time zone    not null default current_timestamp
+);
+
+
+
+-------------------- Users & Session -------------------
 create table if not exists users (
     user_uid                uuid                        not null primary key default gen_random_uuid(),
     username                varchar(128)                not null,
@@ -26,6 +35,8 @@ create table if not exists user_sessions (
 create index if not exists user_sessions_user_idx on user_sessions (session_uid);
 
 
+
+----------------------- Devices -----------------------
 create table if not exists devices (
     device_uid              uuid                        not null primary key default gen_random_uuid(),
     user_uid                uuid                        not null references users (user_uid) on delete cascade,
@@ -43,6 +54,8 @@ create unique index if not exists devices_user_uid_idx on devices (user_uid);
 create unique index if not exists devices_mac_address on devices (mac_address);
 
 
+
+------------------- Device Operations -----------------
 create table if not exists genres (
     device_uid              uuid                        not null references devices (device_uid),
     genre_id                int                         not null,
@@ -70,7 +83,15 @@ create index if not exists channels_device_uid_genre_id_idx on channels (device_
 create index if not exists channels_channel_idx on channels (channel_id);
 
 
-create table if not exists migrations (
-    migration_name          varchar(128)                not null primary key,
-    creation_timestamp      timestamp with time zone    not null default current_timestamp
+create table if not exists channel_guides (
+    device_uid              uuid                        not null references devices (device_uid),
+    channel_id              int                         not null,
+    title                   varchar(255)                not null,
+    categories              varchar(128)[]              not null default '{}',
+    description             varchar(512)                ,
+    timestamp_range         tsrange                     not null,
+    modified_timestamp      timestamp with time zone    not null default current_timestamp,
+    creation_timestamp      timestamp with time zone    not null default current_timestamp,
+    primary key (device_uid, channel_id, timestamp_range),
+    exclude using gist (timestamp_range with &&)
 );

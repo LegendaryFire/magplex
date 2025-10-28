@@ -57,14 +57,39 @@ def get_channel(conn, device_uid, channel_id):
         return [Channel(*row) for row in cursor]
 
 
-def get_channels(conn, device_uid, channel_enabled=None):
+def get_all_channels(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
             select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, g.genre_id,
                    g.genre_name, stream_id, c.creation_timestamp
             from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
             where c.device_uid = %(device_uid)s
-            and (%(channel_enabled)s::boolean is null or channel_enabled = %(channel_enabled)s)
+        """
+        cursor.execute(query, locals())
+        return [Channel(*row) for row in cursor]
+
+
+def get_enabled_channels(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, g.genre_id,
+                   g.genre_name, stream_id, c.creation_timestamp
+            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
+            where c.device_uid = %(device_uid)s
+            and channel_enabled = true
+        """
+        cursor.execute(query, locals())
+        return [Channel(*row) for row in cursor]
+
+
+def get_disabled_channels(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, g.genre_id,
+                   g.genre_name, stream_id, c.creation_timestamp
+            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
+            where c.device_uid = %(device_uid)s
+            and channel_enabled = false
         """
         cursor.execute(query, locals())
         return [Channel(*row) for row in cursor]
@@ -111,6 +136,7 @@ def get_channel_guides(conn, device_uid):
         """
     cursor.execute(query, locals())
     return cursor.fetchall()
+
 
 def insert_channel_guide(conn, device_uid, channel_id, title, categories, description, start_timestamp, end_timestamp):
     with conn.cursor() as cursor:

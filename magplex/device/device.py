@@ -42,7 +42,6 @@ class Device:
     def __init__(self, profile):
         self.device_uid = str(profile.device_uid)
         self.cache_conn = RedisPool.get_connection()
-        self.scheduler = TaskManager.get_scheduler()
         self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
@@ -60,26 +59,20 @@ class Device:
             'stb_lang': f'{profile.language}',
             'timezone': f'{profile.timezone}',
         }
+        self._schedule_tasks()
 
-        if self.scheduler.get_job(self.device_uid) is None:
+    def _schedule_tasks(self):
+        job_list = {tasks.save_channels, tasks.save_device_channel_guide}
+        scheduler = TaskManager.get_scheduler()
+        for job in job_list:
             try:
-                self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1,
-                                       id=self.device_uid, next_run_time=datetime.now(timezone.utc))
-                logging.info(f"Channel guide background task added for device {self.device_uid}")
+                if scheduler.get_job(job) is None:
+                    scheduler.add_job(job, 'interval', hours=1, id=self.device_uid, next_run_time=datetime.now(timezone.utc))
+                else:
+                    logging.warning('Scheduler background task already exists, skipping.')
             except ConflictingIdError:
-                pass
-        else:
-            logging.info(f"Channel guide background task already exists for device {self.device_uid}")
+                logging.warning('Scheduler conflicting ID error ignored')
 
-        if self.scheduler.get_job(self.device_uid) is None:
-            try:
-                self.scheduler.add_job(tasks.set_device_channel_guide, 'interval', hours=1,
-                                       id=self.device_uid, next_run_time=datetime.now(timezone.utc))
-                logging.info(f"Channel guide background task added for device {self.device_uid}")
-            except ConflictingIdError:
-                pass
-        else:
-            logging.info(f"Channel guide background task already exists for device {self.device_uid}")
 
     def get_token(self):
         """Gets the authentication token for the session."""
@@ -228,10 +221,20 @@ class Device:
 
         return genre_list
 
-    def get_channels(self, enabled=None):
-        conn = RedisPool.get_connection()
-        channels = cache.get_channels(conn, self.device_uid)
-        if enabled is not None:
-            channels = [c for c in channels if c.channel_enabled == enabled]
+    def get_all_channels(self):
+        conn = LazyPostgresConnection()
+        channels = database.get_all_channels(conn, self.device_uid)
+        conn.close()
         return channels
 
+    def get_enabled_channels(self):
+        conn = LazyPostgresConnection()
+        channels = database.get_enabled_channels(conn, self.device_uid)
+        conn.close()
+        return channels
+
+    def get_disabled_channels(self):
+        conn = LazyPostgresConnection()
+        channels = database.get_disabled_channels(conn, self.device_uid)
+        conn.close()
+        return channels
