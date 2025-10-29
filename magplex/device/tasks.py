@@ -53,30 +53,33 @@ def save_channels():
     conn.close()
     return channel_list
 
+
 def save_device_channel_guide():
     """Background task ran at an interval to populate the cache with EPG information."""
     from magplex.device.device import DeviceManager
-    device = DeviceManager.get_device()
-    if device is None:
+    user_device = DeviceManager.get_device()
+    if user_device is None:
         logging.error(f"Unable to get device. Please check configuration.")
         return
-    logging.info(f"Setting channel guide for device {device.device_uid}.")
+    logging.info(f"Setting channel guide for device {user_device.device_uid}.")
 
-    channel_list = device.get_enabled_channels()
+    db_conn = LazyPostgresConnection()
+    channel_list = database.get_enabled_channels(db_conn, user_device.device_uid)
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
         return
+    db_conn.close()
 
     # Build a list of EPG links to get the program guide for each channel.
     guide_urls = []
     for channel in channel_list:
-        link = f'http://{device.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel.channel_id}&JsHttpRequest=1-xml'
+        link = f'http://{user_device.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel.channel_id}&JsHttpRequest=1-xml'
         guide_urls.append(link)
 
     # Process the channel guide URLs in batches to prevent rate limiting.
-    logging.info(f"Fetching channel guide data for device {device.device_uid}.")
+    logging.info(f"Fetching channel guide data for device {user_device.device_uid}.")
     for link_batch in batched(guide_urls, 3):
-        responses = device.get_batch(link_batch)
+        responses = user_device.get_batch(link_batch)
         conn = LazyPostgresConnection()
         for response in responses:
             if not response or not isinstance(response, list):
@@ -91,7 +94,7 @@ def save_device_channel_guide():
                 categories = [c.strip() for c in channel_guide.get('category', str()).split(',') if c.strip()]
                 if not start_timestamp or not stop_timestamp:
                     continue
-                database.insert_channel_guide(conn, device.device_uid, channel_id, title, categories, description,
+                database.insert_channel_guide(conn, user_device.device_uid, channel_id, title, categories, description,
                                               start_timestamp, stop_timestamp)
         conn.commit()
         conn.close()

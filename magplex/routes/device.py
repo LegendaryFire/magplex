@@ -27,11 +27,14 @@ def get_channels():
 
     channel_state = request.args.get('state', '').lower()
     if channel_state == ChannelState.ENABLED:
-        return jsonify(user_device.get_enabled_channels())
+        enabled_channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
+        return jsonify(enabled_channels)
     elif channel_state == ChannelState.DISABLED:
-        return jsonify(user_device.get_disabled_channels())
+        disabled_channels = database.get_disabled_channels(g.db_conn, user_device.device_uid)
+        return jsonify(disabled_channels)
     else:
-        return jsonify(user_device.get_all_channels())
+        all_channels = database.get_all_channels(g.db_conn, user_device.device_uid)
+        return jsonify(all_channels)
 
 
 @device.get('/channels/guides')

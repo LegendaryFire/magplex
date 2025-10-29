@@ -83,12 +83,9 @@ class Device:
         return awaiting_timeout
 
 
-    def __validate_response(self, response):
+    def __validate_response_text(self, response):
         invalid_responses = {'Authorization failed', 'Access denied'}
         valid_response = True
-        if 'Authorization' not in self.headers:
-            logging.warning('Device not authorized')
-            valid_response = False
         if response.status_code is not HTTPStatus.OK:
             logging.warning('Invalid response code received')
             valid_response = False
@@ -99,6 +96,18 @@ class Device:
         if not valid_response:
             self.headers.pop('Authorization', None)
         return valid_response
+
+
+    def __validate_response_json(self, response):
+        try:
+            data = json.loads(response.text)
+            if data is None or not isinstance(data, (list, dict)):
+                logging.warning(ErrorMessage.DEVICE_RESPONSE_UNEXPECTED_JSON)
+                return False
+        except json.JSONDecodeError:
+            logging.warning(ErrorMessage.DEVICE_RESPONSE_NOT_JSON)
+            return False
+        return True
 
 
     def refresh_access_token(self):
@@ -112,22 +121,30 @@ class Device:
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # Check for a valid response.
-        valid_response = self.__validate_response(response)
+        valid_response = self.__validate_response_text(response)
         if not valid_response:
             logging.warning(ErrorMessage.DEVICE_INVALID_RESPONSE_TEXT)
             return None
 
         try:
-            token = json.loads(response.text).get('js', {}).get('token')
+            access_token = json.loads(response.text).get('js', {}).get('token')
         except json.JSONDecodeError:
             return None
 
-        if token:
-            cache_conn = RedisPool.get_connection()
-            cache.set_access_token(cache_conn, self.device_uid, token)
-            self.headers['Authorization'] = f'Bearer {token}'
-            return token
-        return None
+        if not access_token:
+            return None
+
+        cache_conn = RedisPool.get_connection()
+        cache.set_access_token(cache_conn, self.device_uid, access_token)
+        self.headers['Authorization'] = f'Bearer {access_token}'
+        return access_token
+
+
+    def update_access_token(self):
+        cache_conn = RedisPool.get_connection()
+        access_token = cache.get_access_token(cache_conn, self.device_uid)
+        if access_token is not None:
+            self.headers.update({'Authorization': f'Bearer {access_token}'})
 
 
     def is_authorized(self):
@@ -148,7 +165,14 @@ class Device:
 
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id1}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
-        return self.__validate_response(response)
+        valid_response = self.__validate_response_text(response)
+        if not valid_response:
+            return None
+
+        valid_json = self.__validate_response_json(response)
+        if not valid_json:
+            return None
+        return json.loads(response.text).get('js', None)
 
 
     def get(self, url):
@@ -157,10 +181,11 @@ class Device:
         if awaiting_timeout:
             return None
 
+        self.update_access_token()
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
-        valid_response = self.__validate_response(response)
+        valid_response = self.__validate_response_text(response)
         if not valid_response:
             cache_conn = RedisPool.get_connection()
             # Attempt to refresh the access token.
@@ -170,28 +195,13 @@ class Device:
                 cache.set_device_timeout(cache_conn, self.device_uid)
                 self.invalidate_authorization()
                 return None
-
-            # Attempt to confirm authorization.
-            authorized = self.get_authorization()
-            if not authorized:
-                logging.warning(ErrorMessage.DEVICE_AUTHORIZATION_FAILED)
-                cache.set_device_timeout(cache_conn, self.device_uid)
-                self.invalidate_authorization()
-                return None
-
             # Recursively retry the get command.
             return self.get(url)
 
-        try:
-            data = json.loads(response.text).get('js', None)
-            # We always expect either a list or a dictionary from the endpoints.
-            if data is None or not isinstance(data, (list, dict)):
-                logging.warning(ErrorMessage.DEVICE_RESPONSE_UNEXPECTED_JSON)
-                return None
-        except json.JSONDecodeError:
-            logging.warning(ErrorMessage.DEVICE_RESPONSE_NOT_JSON)
+        valid_json = self.__validate_response_json(response)
+        if not valid_json:
             return None
-        return data
+        return json.loads(response.text).get('js', None)
 
 
     def get_batch(self, urls):
@@ -210,7 +220,6 @@ class Device:
         for response in response_list:
             if response:
                 filtered_responses.append(response)
-
         return filtered_responses
 
 
@@ -256,26 +265,14 @@ class Device:
             if any(v is None for v in genre_list[index].values()):
                 genre_list.pop(index)
                 continue
-
         return genre_list
 
 
     def get_all_channels(self):
-        conn = LazyPostgresConnection()
-        channels = database.get_all_channels(conn, self.device_uid)
-        conn.close()
-        return channels
+        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
+        data = self.get(url)
+        if data is None:
+            logging.warning('Unable to get channel list.')
 
-
-    def get_enabled_channels(self):
-        conn = LazyPostgresConnection()
-        channels = database.get_enabled_channels(conn, self.device_uid)
-        conn.close()
-        return channels
-
-
-    def get_disabled_channels(self):
-        conn = LazyPostgresConnection()
-        channels = database.get_disabled_channels(conn, self.device_uid)
-        conn.close()
+        channels = data.get('data') if data else None
         return channels

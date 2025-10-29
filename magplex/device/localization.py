@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 class ErrorMessage(StrEnum):
+    DEVICE_UNAVAILABLE = 'Unable to retrieve device, check device settings and try again'
     DEVICE_ACCESS_TOKEN_UNAVAILABLE = 'Unable to retrieve device access token'
     DEVICE_AUTHORIZATION_FAILED = 'Device authorization check failed'
     DEVICE_AWAITING_TIMEOUT = 'Awaiting device timeout, request has been skipped'
