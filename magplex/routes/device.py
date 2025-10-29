@@ -68,7 +68,7 @@ def toggle_channels():
     if channels_enabled is None:
         return ErrorResponse("Missing mandatory data.")
     user_device = DeviceManager.get_device()
-    database.update_channels_status(g.db_conn, user_device.device_uid, channels_enabled)
+    database.update_channels_enabled(g.db_conn, user_device.device_uid, channels_enabled)
     cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
 
@@ -77,7 +77,7 @@ def toggle_channels():
 @login_required
 def toggle_channel(channel_id):
     user_device = DeviceManager.get_device()
-    database.update_channel_status(g.db_conn, user_device.device_uid, channel_id)
+    database.toggle_channel_enabled(g.db_conn, user_device.device_uid, channel_id)
     cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
 

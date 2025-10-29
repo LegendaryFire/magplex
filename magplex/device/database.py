@@ -76,6 +76,7 @@ def get_enabled_channels(conn, device_uid):
                    g.genre_name, stream_id, c.creation_timestamp
             from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
             where c.device_uid = %(device_uid)s
+            and channel_stale = false
             and channel_enabled = true
         """
         cursor.execute(query, locals())
@@ -89,13 +90,27 @@ def get_disabled_channels(conn, device_uid):
                    g.genre_name, stream_id, c.creation_timestamp
             from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
             where c.device_uid = %(device_uid)s
+            and channel_stale = false
             and channel_enabled = false
         """
         cursor.execute(query, locals())
         return [Channel(*row) for row in cursor]
 
 
-def update_channel_status(conn, device_uid, channel_id):
+def get_stale_channels(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, g.genre_id,
+                   g.genre_name, stream_id, c.creation_timestamp
+            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
+            where c.device_uid = %(device_uid)s
+            and channel_stale = true
+        """
+        cursor.execute(query, locals())
+        return [Channel(*row) for row in cursor]
+
+
+def toggle_channel_enabled(conn, device_uid, channel_id):
     with conn.cursor() as cursor:
         query = """
             update channels set channel_enabled = not channel_enabled
@@ -105,11 +120,21 @@ def update_channel_status(conn, device_uid, channel_id):
         cursor.execute(query, locals())
 
 
-def update_channels_status(conn, device_uid, channels_enabled):
+def update_channels_enabled(conn, device_uid, channels_enabled):
     with conn.cursor() as cursor:
         query = """
             update channels set channel_enabled = %(channels_enabled)s
             where device_uid = %(device_uid)s
+        """
+        cursor.execute(query, locals())
+
+
+def update_channel_stale(conn, device_uid, channel_id, channel_stale):
+    with conn.cursor() as cursor:
+        query = """
+            update channels set channel_stale = %(channel_stale)s
+            where device_uid = %(device_uid)s
+            and channel_id = %(channel_id)s
         """
         cursor.execute(query, locals())
 

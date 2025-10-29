@@ -12,15 +12,10 @@ def save_channels():
     if device is None:
         logging.warning(f"Unable to get device. Please check configuration.")
         return None
-    logging.info(f"Setting channel guide for device {device.device_uid}.")
-    url = f'http://{device.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
-    data = device.get(url)
-    if data is None:
-        logging.warning('Unable to get channel list.')
 
-    channel_list = data.get('data') if data else None
-    if not channel_list or not isinstance(channel_list, list):
-        return None
+    channel_list = device.get_all_channels()
+    if channel_list is None:
+        logging.warning('Unable to get channel list.')
 
     conn = LazyPostgresConnection()
     inserted_channels = set()

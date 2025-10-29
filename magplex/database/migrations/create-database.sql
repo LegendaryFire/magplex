@@ -71,6 +71,7 @@ create table if not exists channels (
     channel_name            varchar(128)                not null,
     channel_hd              boolean                     not null default false,
     channel_enabled         boolean                     not null default true,
+    channel_stale           boolean                     not null default false,
     genre_id                int                         not null references genres (genre_id),
     stream_id               int                         not null,
     device_uid              uuid                        not null references devices (device_uid) on delete cascade,
