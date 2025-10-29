@@ -9,8 +9,8 @@ def _get_device_timeout_key(instance_id):
     return f'magplex:device:{instance_id}:timeout'
 
 
-def _get_bearer_token_key(instance_id):
-    return f'magplex:device:{instance_id}:token'
+def _get_access_token_key(device_uid):
+    return f'magplex:device:{device_uid}:token'
 
 
 def _get_channels_cache_key(device_uid):
@@ -25,7 +25,7 @@ def set_device_timeout(conn, instance_id):
 
 def get_device_timeout(conn, instance_id):
     cache_key = _get_device_timeout_key(instance_id)
-    return conn.exists(cache_key) == 0
+    return conn.exists(cache_key)
 
 
 def expire_channels(conn, device_uid):
@@ -33,15 +33,20 @@ def expire_channels(conn, device_uid):
     conn.delete(cache_key)
 
 
-def get_bearer_token(conn, instance_id):
-    cache_key = _get_bearer_token_key(instance_id)
+def get_access_token(conn, instance_id):
+    cache_key = _get_access_token_key(instance_id)
     token = conn.get(cache_key)
     return token
 
 
-def set_bearer_token(conn, instance_id, token):
-    cache_key = _get_bearer_token_key(instance_id)
-    conn.set(cache_key, token)
+def set_access_token(conn, device_uid, token):
+    cache_key = _get_access_token_key(device_uid)
+    conn.set(cache_key, token, ex=3600)  # Auto-expire every hour.
+
+
+def expire_access_token(conn, instance_id):
+    cache_key = _get_access_token_key(instance_id)
+    conn.delete(cache_key)
 
 
 # TODO: Rewrite everything below this.

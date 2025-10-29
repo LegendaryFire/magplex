@@ -1,9 +1,7 @@
 import json
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from enum import StrEnum
 from http import HTTPStatus
 
 import requests
@@ -12,6 +10,7 @@ from requests.adapters import HTTPAdapter
 
 from magplex.device import cache, database, tasks
 from magplex import users
+from magplex.device.localization import ErrorMessage
 from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.scheduler import TaskManager
 
@@ -42,7 +41,6 @@ class DeviceManager:
 class Device:
     def __init__(self, profile):
         self.device_uid = str(profile.device_uid)
-        self.cache_conn = RedisPool.get_connection()
         self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
@@ -64,23 +62,31 @@ class Device:
 
 
     def _schedule_tasks(self):
-        job_list = {tasks.save_channels, tasks.save_device_channel_guide}
+        job_interval_map = {tasks.save_channels: 1, tasks.save_device_channel_guide: 1}
         scheduler = TaskManager.get_scheduler()
-        for job in job_list:
+        for job, hours in job_interval_map.items():
             job_name = f'{self.device_uid}:{job.__name__}'
             try:
                 if scheduler.get_job(job_name) is None:
-                    scheduler.add_job(job, 'interval', hours=1, id=job_name, next_run_time=datetime.now(timezone.utc))
-                else:
                     logging.warning('Scheduler background task already exists, skipping.')
+                    continue
+                scheduler.add_job(job, 'interval', hours=hours, id=job_name, next_run_time=datetime.now(timezone.utc))
             except ConflictingIdError:
                 logging.warning('Scheduler conflicting ID error ignored')
+
+
+    def _awaiting_timeout(self):
+        cache_conn = RedisPool.get_connection()
+        awaiting_timeout = cache.get_device_timeout(cache_conn, self.device_uid)
+        if awaiting_timeout:
+            logging.warning(ErrorMessage.DEVICE_AWAITING_TIMEOUT)
+        return awaiting_timeout
 
 
     def __validate_response(self, response):
         invalid_responses = {'Authorization failed', 'Access denied'}
         valid_response = True
-        if not self.authorized:
+        if 'Authorization' not in self.headers:
             logging.warning('Device not authorized')
             valid_response = False
         if response.status_code is not HTTPStatus.OK:
@@ -95,11 +101,10 @@ class Device:
         return valid_response
 
 
-    def get_token(self):
+    def refresh_access_token(self):
         """Gets the authentication token for the session."""
-        available = cache.get_device_timeout(self.cache_conn, self.device_uid)
-        if not available:
-            logging.warning(f"Device is not available. Awaiting timeout.")
+        awaiting_timeout = self._awaiting_timeout()
+        if awaiting_timeout:
             return None
 
         self.headers.pop('Authorization', None)  # Remove the old authentication header.
@@ -109,7 +114,7 @@ class Device:
         # Check for a valid response.
         valid_response = self.__validate_response(response)
         if not valid_response:
-            logging.warning(f'Invalid response while getting access token')
+            logging.warning(ErrorMessage.DEVICE_INVALID_RESPONSE_TEXT)
             return None
 
         try:
@@ -117,14 +122,28 @@ class Device:
         except json.JSONDecodeError:
             return None
 
-        return token if token else None
+        if token:
+            cache_conn = RedisPool.get_connection()
+            cache.set_access_token(cache_conn, self.device_uid, token)
+            self.headers['Authorization'] = f'Bearer {token}'
+            return token
+        return None
+
+
+    def is_authorized(self):
+        return 'Authorization' in self.headers
+
+
+    def invalidate_authorization(self):
+        cache_conn = RedisPool.get_connection()
+        cache.expire_access_token(cache_conn, self.device_uid)
+        self.headers.pop('Authorization', None)
 
 
     def get_authorization(self):
         """Gets authentication for the set-top box device."""
-        available = cache.get_device_timeout(self.cache_conn, self.device_uid)
-        if not available:
-            logging.warning(f"Device is not available. Awaiting timeout.")
+        awaiting_timeout = self._awaiting_timeout()
+        if awaiting_timeout:
             return None
 
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id1}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
@@ -134,73 +153,76 @@ class Device:
 
     def get(self, url):
         """Authenticated get method for portal endpoints."""
-        available = cache.get_device_timeout(self.cache_conn, self.device_uid)
-        if not available:
-            logging.warning(f"Device is not available. Awaiting timeout.")
+        awaiting_timeout = self._awaiting_timeout()
+        if awaiting_timeout:
             return None
 
-        self.headers['Authorization'] = f'Bearer {cache.get_bearer_token(self.cache_conn, self.device_uid)}'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
-        self.authorized = self.__validate_response(response)
-        if not self.authorized:
-            token = self.get_token()
-            if token is not None:
-                self.headers['Authorization'] = f'Bearer {token}'  # Set authorization header on success.
-                authorized = self.get_authorization()
-                if not authorized:
-                    logging.warning("Unable to authorize.")
-                    cache.set_device_timeout(self.cache_conn, self.device_uid)
-                    self.authorized = False
-                    return None
-
-                self.authorized = True
-                cache.set_bearer_token(self.cache_conn, self.device_uid, token)
-                time.sleep(1)  # Sleep for 1s to avoid rate limiting.
-                return self.get(url)
-            else:
-                logging.warning('Unable to retrieve token.')
-                cache.set_device_timeout(self.cache_conn, self.device_uid)
-                self.authorized = False
+        valid_response = self.__validate_response(response)
+        if not valid_response:
+            cache_conn = RedisPool.get_connection()
+            # Attempt to refresh the access token.
+            access_token = self.refresh_access_token()
+            if access_token is None:
+                logging.warning(ErrorMessage.DEVICE_ACCESS_TOKEN_UNAVAILABLE)
+                cache.set_device_timeout(cache_conn, self.device_uid)
+                self.invalidate_authorization()
                 return None
 
-        self.authorized = True
+            # Attempt to confirm authorization.
+            authorized = self.get_authorization()
+            if not authorized:
+                logging.warning(ErrorMessage.DEVICE_AUTHORIZATION_FAILED)
+                cache.set_device_timeout(cache_conn, self.device_uid)
+                self.invalidate_authorization()
+                return None
+
+            # Recursively retry the get command.
+            return self.get(url)
+
         try:
             data = json.loads(response.text).get('js', None)
             # We always expect either a list or a dictionary from the endpoints.
             if data is None or not isinstance(data, (list, dict)):
-                logging.warning(f"Unknown response data received. Status code {response.status_code}.")
+                logging.warning(ErrorMessage.DEVICE_RESPONSE_UNEXPECTED_JSON)
                 return None
         except json.JSONDecodeError:
-            self.authorized = False
-            logging.warning("Unable to decode response data.")
+            logging.warning(ErrorMessage.DEVICE_RESPONSE_NOT_JSON)
             return None
         return data
 
 
-    def get_list(self, urls):
-        def fetch_url(url):
+    def get_batch(self, urls):
+        def get(url):
             try:
-                response = self.get(url)
-                return response
+                get_response = self.get(url)
+                return get_response
             except requests.exceptions.RequestException:
                 return None
 
         with ThreadPoolExecutor(max_workers=3) as executor:
-            results = list(executor.map(fetch_url, urls))
+            response_list = list(executor.map(get, urls))
 
         # Filter out failed responses.
-        return [result for result in results if result is not None]
+        filtered_responses = []
+        for response in response_list:
+            if response:
+                filtered_responses.append(response)
+
+        return filtered_responses
 
 
     def get_channel_playlist(self, stream_id):
         """Gets a generated channel playlist URL from stream ID."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
-        if data is None or not isinstance(data, dict):
+        if data is None:
             logging.warning("Unable to retrieve channel playlist.")
             return None
+
+        # Attempt to get the stream ID from the channel playlist command.
         stream_link = data.get('cmd')
         if not stream_link:
             error = data.get('error')
@@ -210,8 +232,7 @@ class Device:
             else:
                 logging.warning("Unable to get playlist link. Unknown error.")
                 return None
-
-        return data.get('cmd')
+        return stream_link
 
 
     def get_genres(self):
