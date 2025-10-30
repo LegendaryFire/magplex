@@ -41,6 +41,7 @@ def build_channel_guide(channels, guides):
             etree.SubElement(guide_elem, "category").text = escape(category)
 
     xml_str = etree.tostring(tv, pretty_print=True, encoding="UTF-8", xml_declaration=False).decode("UTF-8")
+
     # Combine XML declaration, DOCTYPE, and XML content in the correct order
     doctype = '<!DOCTYPE tv SYSTEM "xmltv.dtd">'
     xml_declaration = '<?xml version="1.0" encoding="UTF-8"?>'

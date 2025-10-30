@@ -9,38 +9,52 @@ from magplex.device import database, parser
 
 def save_channels():
     from magplex.device.device import DeviceManager
-    device = DeviceManager.get_device()
-    if device is None:
+    user_device = DeviceManager.get_device()
+    if user_device is None:
         logging.warning(ErrorMessage.DEVICE_UNAVAILABLE)
         return None
 
-    fetched_channels = device.get_all_channels()
+    fetched_genres = user_device.get_genres()
+    if fetched_genres is None:
+        logging.warning(ErrorMessage.DEVICE_GENRE_LIST_UNAVAILABLE)
+        return None
+
+    conn = LazyPostgresConnection()
+    for g in fetched_genres:
+        g = parser.parse_genre(g)
+        if g is None:
+            continue
+        database.insert_genre(conn, user_device.device_uid, g.genre_id, g.genre_number, g.genre_name)
+    conn.commit()
+
+    genres = database.get_genres(conn, user_device.device_uid)
+    fetched_channels = user_device.get_all_channels()
     if fetched_channels is None:
         logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_UNAVAILABLE)
         return None
 
-    conn = LazyPostgresConnection()
     index = 0
     while index < len(fetched_channels):
-        c = parser.parse_channel(fetched_channels[index])
+        c = parser.parse_channel(fetched_channels[index], genres)
         if c is None:
             fetched_channels.pop(index)
             continue
-        database.insert_channel(conn, device.device_uid, c.channel_id, c.channel_number,
-                                c.channel_name, c.channel_hd, c.genre_number, c.stream_id)
+        fetched_channels[index] = c
+        database.insert_channel(conn, user_device.device_uid, c.channel_id, c.channel_number,
+                                c.channel_name, c.channel_hd, c.genre_id, c.stream_id)
         index += 1
     conn.commit()
 
     # Mark missing channels as stale.
-    existing_channels = database.get_all_channels(conn, device.device_uid)
+    existing_channels = database.get_all_channels(conn, user_device.device_uid)
     fetched_channel_ids = [c.channel_id for c in fetched_channels]
     for existing_channel in existing_channels:
         if existing_channel.channel_id not in fetched_channel_ids:
-            database.update_channel_stale(conn, device.device_uid, existing_channel.channel_id, True)
+            database.update_channel_stale(conn, user_device.device_uid, existing_channel.channel_id, True)
     conn.commit()
 
     # Get the latest copy of the channel list.
-    channel_list = database.get_all_channels(conn, device.device_uid)
+    channel_list = database.get_all_channels(conn, user_device.device_uid)
     logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_SUCCESSFUL)
     conn.close()
     return channel_list

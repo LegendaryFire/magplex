@@ -4,6 +4,16 @@ from datetime import datetime
 
 
 @dataclass
+class Genre:
+    device_uid: UUID | None
+    genre_id: int
+    genre_number: int
+    genre_name: str
+    modified_timestamp: datetime | None
+    creation_timestamp: datetime | None
+
+
+@dataclass
 class Channel:
     device_uid: UUID | None
     channel_id: int
@@ -12,8 +22,7 @@ class Channel:
     channel_hd: bool
     channel_enabled: bool | None
     channel_stale: bool | None
-    genre_number: int
-    genre_name: str
+    genre_id: int
     stream_id: int
     modified_timestamp: datetime | None
     creation_timestamp: datetime | None
@@ -32,17 +41,40 @@ class ChannelGuide:
     creation_timestamp: datetime
 
 
-def insert_channel(conn, device_uid, channel_id, channel_number, channel_name, channel_hd, genre_number, stream_id):
+
+def insert_genre(conn, device_uid, genre_id, genre_number, genre_name):
+    with conn.cursor() as cursor:
+        query = """
+            insert into genres (device_uid, genre_id, genre_number, genre_name)
+            values (%(device_uid)s, %(genre_id)s, %(genre_number)s, %(genre_name)s)
+            on conflict (device_uid, genre_id)
+            do update set genre_number = excluded.genre_number, genre_name = excluded.genre_name, 
+                modified_timestamp = current_timestamp
+        """
+        cursor.execute(query, locals())
+
+
+def get_genres(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select device_uid, genre_id, genre_number, genre_name, modified_timestamp, creation_timestamp
+            from genres
+            where device_uid = %(device_uid)s
+        """
+        cursor.execute(query, locals())
+        return [Genre(*row) for row in cursor]
+
+
+def insert_channel(conn, device_uid, channel_id, channel_number, channel_name, channel_hd, genre_id, stream_id):
     with conn.cursor() as cursor:
         query = """
             insert into channels (device_uid, channel_id, channel_number, channel_name, channel_hd, genre_id, stream_id)
             values (%(device_uid)s, %(channel_id)s, %(channel_number)s, %(channel_name)s, %(channel_hd)s,
-                (select genre_id from genres where device_uid = %(device_uid)s and genre_number = %(genre_number)s),
-                %(stream_id)s)
+                %(genre_id)s, %(stream_id)s)
             on conflict (device_uid, channel_id)
             do update set channel_number = excluded.channel_number, channel_name = excluded.channel_name,
                 channel_hd = excluded.channel_hd, genre_id = excluded.genre_id, stream_id = excluded.stream_id,
-                channel_stale = false
+                channel_stale = false, modified_timestamp = current_timestamp
         """
         cursor.execute(query, locals())
 
@@ -50,8 +82,8 @@ def insert_channel(conn, device_uid, channel_id, channel_number, channel_name, c
 def get_channel(conn, device_uid, channel_id):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled,
-                genre_id, stream_id
+            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
+                genre_number, genre_name, stream_id, modified_timestamp, creation_timestamp
             from channels
             where device_uid = %(device_uid)s
             and channel_id = %(channel_id)s
@@ -63,11 +95,10 @@ def get_channel(conn, device_uid, channel_id):
 def get_all_channels(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   g.genre_id, g.genre_name, stream_id, c.creation_timestamp
-            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
-            where c.device_uid = %(device_uid)s
-            and channel_stale = false
+            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
+                   genre_id, stream_id, modified_timestamp, creation_timestamp
+            from channels
+            where device_uid = %(device_uid)s
         """
         cursor.execute(query, locals())
         return [Channel(*row) for row in cursor]
@@ -187,6 +218,6 @@ def insert_channel_guide(conn, device_uid, channel_id, title, categories, descri
                    tsrange(%(start_timestamp)s, %(end_timestamp)s, '['))
             on conflict (device_uid, channel_id, timestamp_range)
             do update set title = excluded.title, categories = excluded.categories, description = excluded.description,
-                modified_timestamp = excluded.modified_timestamp
+                modified_timestamp = current_timestamp
         """
         cursor.execute(query, locals())

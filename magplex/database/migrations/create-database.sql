@@ -56,15 +56,20 @@ create unique index if not exists devices_mac_address on devices (mac_address);
 
 ------------------- Device Operations -----------------
 create table if not exists genres (
-    device_uid              uuid                        not null references devices (device_uid),
+    device_uid              uuid                        not null references devices (device_uid) on delete cascade,
     genre_id                int                         not null,
+    genre_number            int                         not null,
     genre_name              varchar(128)                not null,
+    modified_timestamp      timestamp with time zone    not null default current_timestamp,
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
     primary key (device_uid, genre_id)
 );
+alter table genres add constraint genres_device_uid_genre_number_chk unique (device_uid, genre_number)
+    deferrable initially deferred;
 
 
 create table if not exists channels (
+    device_uid              uuid                        not null references devices (device_uid) on delete cascade,
     channel_id              int                         not null,
     channel_number          int                         not null,
     channel_name            varchar(128)                not null,
@@ -73,7 +78,7 @@ create table if not exists channels (
     channel_stale           boolean                     not null default false,
     genre_id                int                         not null,
     stream_id               int                         not null,
-    device_uid              uuid                        not null references devices (device_uid) on delete cascade,
+    modified_timestamp      timestamp with time zone    not null default current_timestamp,
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
     primary key (device_uid, channel_id),
     foreign key (device_uid, genre_id) references genres (device_uid, genre_id)
@@ -84,7 +89,7 @@ create index if not exists channels_channel_idx on channels (channel_id);
 
 
 create table if not exists channel_guides (
-    device_uid              uuid                        not null references devices (device_uid),
+    device_uid              uuid                        not null references devices (device_uid) on delete cascade,
     channel_id              int                         not null,
     title                   varchar(255)                not null,
     categories              varchar(128)[]              not null default '{}',

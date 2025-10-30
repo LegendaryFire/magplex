@@ -80,6 +80,7 @@ class Device:
         awaiting_timeout = cache.get_device_timeout(cache_conn, self.device_uid)
         if awaiting_timeout:
             logging.warning(ErrorMessage.DEVICE_AWAITING_TIMEOUT)
+
         return awaiting_timeout
 
 
@@ -95,6 +96,7 @@ class Device:
                 valid_response = False
         if not valid_response:
             self.headers.pop('Authorization', None)
+
         return valid_response
 
 
@@ -107,6 +109,7 @@ class Device:
         except json.JSONDecodeError:
             logging.warning(ErrorMessage.DEVICE_RESPONSE_NOT_JSON)
             return False
+
         return True
 
 
@@ -143,6 +146,7 @@ class Device:
         if random_token is not None:
             self.headers['X-Random'] = random_token
             self.headers['Random'] = random_token
+
         return access_token
 
 
@@ -189,6 +193,7 @@ class Device:
         valid_json = self.__validate_response_json(response)
         if not valid_json:
             return None
+
         return json.loads(response.text).get('js', None)
 
 
@@ -226,6 +231,7 @@ class Device:
         valid_json = self.__validate_response_json(response)
         if not valid_json:
             return None
+
         return json.loads(response.text).get('js', None)
 
 
@@ -245,6 +251,7 @@ class Device:
         for response in response_list:
             if response:
                 filtered_responses.append(response)
+
         return filtered_responses
 
 
@@ -266,6 +273,7 @@ class Device:
             else:
                 logging.warning("Unable to get playlist link. Unknown error.")
                 return None
+
         return stream_link
 
 
@@ -273,23 +281,10 @@ class Device:
         """Gets a list of genres from the portal."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'
         genre_list = self.get(url)
-        if genre_list is None or not isinstance(genre_list, list):
+        if genre_list is None:
             logging.warning("Unable to retrieve genres.")
             return None
 
-        # Iterate in reverse to make sure pop doesn't affect the enumeration.
-        for index in reversed(range(len(genre_list))):
-            genre = genre_list[index]
-            genre_list[index] = {
-                'genre_id': genre.get('id'),
-                'genre_number': genre.get('number'),
-                'genre_name': genre.get('title')
-            }
-
-            # Skip the genre if invalid data was found.
-            if any(v is None for v in genre_list[index].values()):
-                genre_list.pop(index)
-                continue
         return genre_list
 
 
@@ -298,6 +293,7 @@ class Device:
         data = self.get(url)
         if data is None:
             logging.warning('Unable to get channel list.')
+            return None
 
         channels = data.get('data') if data else None
         return channels
