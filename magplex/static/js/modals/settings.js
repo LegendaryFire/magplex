@@ -28,6 +28,7 @@ class SettingsModal extends Modal {
                 <div class="content-group">
                     <h2 class="content-title">Background Tasks</h2>
                     <div class="content-container">
+                        <button id="refresh-channels-btn">Refresh Channels</button>
                         <button id="refresh-epg-btn">Refresh EPG</button>
                     </div>
                 </div>
@@ -75,11 +76,15 @@ class SettingsModal extends Modal {
             document.querySelector('body').appendChild(passwordModal);
         });
 
+        const refreshChannelsBtn = document.querySelector('#refresh-channels-btn');
+        refreshChannelsBtn.addEventListener('click', () => {
+            this.refreshChannels();
+        });
+
         const refreshEpgBtn = document.querySelector('#refresh-epg-btn');
         refreshEpgBtn.addEventListener('click', (event) => {
             this.refreshEpg();
         });
-
     }
 
     async getInfo() {
@@ -101,6 +106,19 @@ class SettingsModal extends Modal {
             showToast(message, ToastType.ERROR);
         } else {
             showToast("Manual channel guide refresh has been triggered!", ToastType.SUCCESS);
+        }
+    }
+
+    async refreshChannels() {
+        const response = await fetch('/api/device/channels', {
+            method: 'POST'
+        });
+        if (!response.ok) {
+            const data = await response.json()
+            const message = parseError(data);
+            showToast(message, ToastType.ERROR);
+        } else {
+            showToast("Manual channel list refresh has been triggered!", ToastType.SUCCESS);
         }
     }
 }

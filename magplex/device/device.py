@@ -8,7 +8,7 @@ import requests
 from apscheduler.jobstores.base import ConflictingIdError
 from requests.adapters import HTTPAdapter
 
-from magplex.device import cache, database, tasks
+from magplex.device import cache, tasks
 from magplex import users
 from magplex.device.localization import ErrorMessage
 from magplex.utilities.database import RedisPool, LazyPostgresConnection
@@ -67,7 +67,7 @@ class Device:
         for job, hours in job_interval_map.items():
             job_name = f'{self.device_uid}:{job.__name__}'
             try:
-                if scheduler.get_job(job_name) is None:
+                if scheduler.get_job(job_name) is not None:
                     logging.warning('Scheduler background task already exists, skipping.')
                     continue
                 scheduler.add_job(job, 'interval', hours=hours, id=job_name, next_run_time=datetime.now(timezone.utc))
@@ -86,11 +86,11 @@ class Device:
     def __validate_response_text(self, response):
         invalid_responses = {'Authorization failed', 'Access denied'}
         valid_response = True
-        if response.status_code is not HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             logging.warning('Invalid response code received')
             valid_response = False
-        for response in invalid_responses:
-            if response in response.text:
+        for response_text in invalid_responses:
+            if response_text in response.text:
                 logging.warning('Invalid text found in response')
                 valid_response = False
         if not valid_response:
@@ -127,7 +127,9 @@ class Device:
             return None
 
         try:
-            access_token = json.loads(response.text).get('js', {}).get('token')
+            response_data = json.loads(response.text).get('js', {})
+            access_token = response_data.get('token')
+            random_token = response_data.get('random')
         except json.JSONDecodeError:
             return None
 
@@ -136,8 +138,16 @@ class Device:
 
         cache_conn = RedisPool.get_connection()
         cache.set_access_token(cache_conn, self.device_uid, access_token)
+        cache.set_access_random(cache_conn, self.device_uid, random_token)
         self.headers['Authorization'] = f'Bearer {access_token}'
+        if random_token is not None:
+            self.headers['X-Random'] = random_token
+            self.headers['Random'] = random_token
         return access_token
+
+
+    def refresh_authorization(self):
+        pass
 
 
     def update_access_token(self):
@@ -145,6 +155,10 @@ class Device:
         access_token = cache.get_access_token(cache_conn, self.device_uid)
         if access_token is not None:
             self.headers.update({'Authorization': f'Bearer {access_token}'})
+        random_token = cache.get_access_random(cache_conn, self.device_uid)
+        if random_token is not None:
+            self.headers.update({'X-Random': f'{random_token}'})
+            self.headers.update({'Random': f'{random_token}'})
 
 
     def is_authorized(self):
@@ -153,16 +167,19 @@ class Device:
 
     def invalidate_authorization(self):
         cache_conn = RedisPool.get_connection()
-        cache.expire_access_token(cache_conn, self.device_uid)
+        cache.expire_access(cache_conn, self.device_uid)
         self.headers.pop('Authorization', None)
+        self.headers.pop('X-Random', None)
+        self.headers.pop('Random', None)
 
 
-    def get_authorization(self):
+    def update_authorization(self):
         """Gets authentication for the set-top box device."""
         awaiting_timeout = self._awaiting_timeout()
         if awaiting_timeout:
             return None
 
+        self.update_access_token()
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id1}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
         valid_response = self.__validate_response_text(response)
@@ -195,6 +212,14 @@ class Device:
                 cache.set_device_timeout(cache_conn, self.device_uid)
                 self.invalidate_authorization()
                 return None
+
+            is_authorized = self.update_authorization()
+            if is_authorized is None:
+                logging.warning(ErrorMessage.DEVICE_AUTHORIZATION_FAILED)
+                cache.set_device_timeout(cache_conn, self.device_uid)
+                self.invalidate_authorization()
+                return None
+
             # Recursively retry the get command.
             return self.get(url)
 

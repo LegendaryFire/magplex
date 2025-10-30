@@ -17,6 +17,9 @@ instance/
 # Logs
 logs/
 
+# Ignore credentials for testing
+magplex/database/migrations/credentials.sql
+
 # Docker image
 magplex.tar
 

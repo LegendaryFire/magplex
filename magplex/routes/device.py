@@ -18,7 +18,7 @@ class ChannelState(StrEnum):
     DISABLED = 'disabled'
 
 
-@device.route('/channels')
+@device.get('/channels')
 @login_required
 def get_channels():
     user_device = DeviceManager.get_device()
@@ -35,6 +35,22 @@ def get_channels():
     else:
         all_channels = database.get_all_channels(g.db_conn, user_device.device_uid)
         return jsonify(all_channels)
+
+
+@device.post('/channels')
+@login_required
+def update_channels():
+    scheduler = TaskManager.get_scheduler()
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return ErrorResponse("Unable to refresh channels, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+    job = scheduler.get_job(f'{user_device.device_uid}:save_channels')
+    if not job:
+        return ErrorResponse("Unable to refresh channels, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    job.modify(next_run_time=datetime.now(timezone.utc))
+    logging.info(f"Manually triggered EPG refresh for device {user_device.device_uid}.")
+    return Response(status=HTTPStatus.ACCEPTED)
 
 
 @device.get('/channels/guides')

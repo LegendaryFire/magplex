@@ -13,6 +13,10 @@ def _get_access_token_key(device_uid):
     return f'magplex:device:{device_uid}:token'
 
 
+def _get_access_random_key(device_uid):
+    return f'magplex:device:{device_uid}:random'
+
+
 def _get_channels_cache_key(device_uid):
     return f'magplex:device:{device_uid}:channels'
 
@@ -33,8 +37,8 @@ def expire_channels(conn, device_uid):
     conn.delete(cache_key)
 
 
-def get_access_token(conn, instance_id):
-    cache_key = _get_access_token_key(instance_id)
+def get_access_token(conn, device_uid):
+    cache_key = _get_access_token_key(device_uid)
     token = conn.get(cache_key)
     return token
 
@@ -44,9 +48,21 @@ def set_access_token(conn, device_uid, token):
     conn.set(cache_key, token, ex=3600)  # Auto-expire every hour.
 
 
-def expire_access_token(conn, instance_id):
-    cache_key = _get_access_token_key(instance_id)
-    conn.delete(cache_key)
+def get_access_random(conn, device_uid):
+    cache_key = _get_access_random_key(device_uid)
+    token = conn.get(cache_key)
+    return token
+
+
+def set_access_random(conn, device_uid, random):
+    cache_key = _get_access_random_key(device_uid)
+    conn.set(cache_key, random, ex=3600)
+
+
+def expire_access(conn, device_uid):
+    access_cache_key = _get_access_token_key(device_uid)
+    random_cache_key = _get_access_random_key(device_uid)
+    conn.delete([access_cache_key, random_cache_key])
 
 
 # TODO: Rewrite everything below this.

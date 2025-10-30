@@ -2,49 +2,46 @@ import logging
 from datetime import datetime
 from itertools import batched
 
+from magplex.device.localization import ErrorMessage
 from magplex.utilities.database import LazyPostgresConnection
-from magplex.device import database
+from magplex.device import database, parser
 
 
 def save_channels():
     from magplex.device.device import DeviceManager
     device = DeviceManager.get_device()
     if device is None:
-        logging.warning(f"Unable to get device. Please check configuration.")
+        logging.warning(ErrorMessage.DEVICE_UNAVAILABLE)
         return None
 
-    channel_list = device.get_all_channels()
-    if channel_list is None:
-        logging.warning('Unable to get channel list.')
+    fetched_channels = device.get_all_channels()
+    if fetched_channels is None:
+        logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_UNAVAILABLE)
+        return None
 
     conn = LazyPostgresConnection()
-    inserted_channels = set()
-    for channel in channel_list:
-        channel_id = channel.get('id')
-        channel_number = channel.get('number')
-        channel_name = channel.get('name')
-        channel_hd = channel.get('hd', '0') == '1'
-        genre_number = channel.get('tv_genre_id')
-        streams = channel.get('cmds')
-        stream_id = streams[0].get('id') if streams and isinstance(streams[0], dict) else None
-        fields = [channel_id, channel_number, channel_name, channel_hd, genre_number, stream_id]
-        if any([field is None for field in fields]):
-            logging.warning(f"Missing fields for channel {channel_id}.")
+    index = 0
+    while index < len(fetched_channels):
+        c = parser.parse_channel(fetched_channels[index])
+        if c is None:
+            fetched_channels.pop(index)
             continue
-        database.insert_channel(conn, device.device_uid, channel_id, channel_number, channel_name, channel_hd,
-                                   genre_number, stream_id)
-        inserted_channels.add(int(channel_id))
+        database.insert_channel(conn, device.device_uid, c.channel_id, c.channel_number,
+                                c.channel_name, c.channel_hd, c.genre_number, c.stream_id)
+        index += 1
     conn.commit()
 
-    # Filter through the channels and make sure all of them exist. Remove the stale channels automatically.
-    channel_list = database.get_all_channels(conn, device.device_uid)
-    for channel in channel_list:
-        if channel.channel_id not in inserted_channels:
-            database.delete_channel(conn, device.device_uid, channel.channel_id)
+    # Mark missing channels as stale.
+    existing_channels = database.get_all_channels(conn, device.device_uid)
+    fetched_channel_ids = [c.channel_id for c in fetched_channels]
+    for existing_channel in existing_channels:
+        if existing_channel.channel_id not in fetched_channel_ids:
+            database.update_channel_stale(conn, device.device_uid, existing_channel.channel_id, True)
+    conn.commit()
 
     # Get the latest copy of the channel list.
     channel_list = database.get_all_channels(conn, device.device_uid)
-    logging.warning(f'Channel list background task completed successfully for device {device.device_uid}.')
+    logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_SUCCESSFUL)
     conn.close()
     return channel_list
 
@@ -54,7 +51,7 @@ def save_device_channel_guide():
     from magplex.device.device import DeviceManager
     user_device = DeviceManager.get_device()
     if user_device is None:
-        logging.error(f"Unable to get device. Please check configuration.")
+        logging.error(ErrorMessage.DEVICE_UNAVAILABLE)
         return
     logging.info(f"Setting channel guide for device {user_device.device_uid}.")
 

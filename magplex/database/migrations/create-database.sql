@@ -54,7 +54,6 @@ create unique index if not exists devices_user_uid_idx on devices (user_uid);
 create unique index if not exists devices_mac_address on devices (mac_address);
 
 
-
 ------------------- Device Operations -----------------
 create table if not exists genres (
     device_uid              uuid                        not null references devices (device_uid),
@@ -72,7 +71,7 @@ create table if not exists channels (
     channel_hd              boolean                     not null default false,
     channel_enabled         boolean                     not null default true,
     channel_stale           boolean                     not null default false,
-    genre_id                int                         not null references genres (genre_id),
+    genre_id                int                         not null,
     stream_id               int                         not null,
     device_uid              uuid                        not null references devices (device_uid) on delete cascade,
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
