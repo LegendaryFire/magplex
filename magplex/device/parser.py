@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from magplex.device.database import Channel, Genre, ChannelGuide
+from magplex.device.database import Channel, ChannelGuide, Genre
 
 
 def parse_genre(genre):
@@ -66,9 +66,16 @@ def parse_channel_guide(guide, timezone):
 
     start_timestamp = datetime.fromtimestamp(int(guide.get('start_timestamp')), tz=ZoneInfo(timezone))
     end_timestamp = datetime.fromtimestamp(int(guide.get('stop_timestamp')), tz=ZoneInfo(timezone))
+    if start_timestamp <= end_timestamp:
+        return None
+
+    title = guide.get('name') if guide.get('name') != 'No details available' else None
+    if title is None:
+        return None
+
     guide = {
         'channel_id': guide.get('ch_id'),
-        'title': guide.get('name') if guide.get('name') != 'No details available' else None,
+        'title': sanitize_guide_title(title),
         'description': guide.get('descr'),
         'categories':  [c.strip() for c in guide.get('category', str()).split(',') if c.strip()],
         'start_timestamp': round_guide_timestamp(start_timestamp),
@@ -95,3 +102,10 @@ def round_guide_timestamp(timestamp: datetime) -> datetime:
     if difference >= timedelta(minutes=15):
         timestamp += timedelta(minutes=30)
     return timestamp
+
+
+def sanitize_guide_title(title: str):
+    if title is None:
+        return None
+    title = title.replace('\r', ' ').replace('\n', ' ')
+    return ' '.join(title.split())

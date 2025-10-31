@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from flask import Blueprint, Response,jsonify, render_template, send_file
+from flask import Blueprint, Response, jsonify, render_template, send_file
 
 import version
 from magplex.decorators import login_required

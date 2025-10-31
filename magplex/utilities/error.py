@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from flask import jsonify, Response
+
+from flask import Response, jsonify
 
 
 class ErrorResponse(Response):

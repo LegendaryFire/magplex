@@ -4,11 +4,12 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from http import HTTPStatus
 
-from flask import Blueprint, Response, redirect, jsonify, g, request
+from flask import Blueprint, Response, g, jsonify, redirect, request
 
-from magplex.device import database, cache
 from magplex.decorators import login_required
+from magplex.device import database
 from magplex.device.device import DeviceManager
+from magplex.device.localization import ErrorMessage
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.scheduler import TaskManager
 
@@ -24,7 +25,7 @@ class ChannelState(StrEnum):
 def get_channels():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
     channel_state = request.args.get('state', '').lower()
     if channel_state == ChannelState.ENABLED:
@@ -44,10 +45,10 @@ def update_channels():
     scheduler = TaskManager.get_scheduler()
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse("Unable to refresh channels, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     job = scheduler.get_job(f'{user_device.device_uid}:save_channels')
     if not job:
-        return ErrorResponse("Unable to refresh channels, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
     logging.info(f"Manually triggered channel list refresh for device {user_device.device_uid}.")
@@ -56,13 +57,25 @@ def update_channels():
 
 @device.get('/channels/guides')
 @login_required
-def get_all_channel_guides():
+def get_channel_guides():
     user_device = DeviceManager.get_device()
-    epg = database.get_channel_guides(g.db_conn, user_device.device_uid)
+    if user_device is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+    epg = database.get_all_channel_guides(g.db_conn, user_device.device_uid)
     guide_map = defaultdict(list)
     for guide in epg:
         guide_map[guide.channel_id].append(guide)
     return jsonify(guide_map)
+
+
+@device.get('/channels/<int:channel_id>/guide')
+@login_required
+def get_channel_guide(channel_id):
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+    channel_guide = database.get_channel_guide(g.db_conn, user_device.device_uid, channel_id)
+    return jsonify(channel_guide)
 
 
 @device.post('/channels/guides')
@@ -71,10 +84,10 @@ def refresh_channel_guides():
     scheduler = TaskManager.get_scheduler()
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse("Unable to refresh channel guides, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     job = scheduler.get_job(f'{user_device.device_uid}:save_channel_guides')
     if not job:
-        return ErrorResponse("Unable to refresh channel_guides, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
     logging.info(f"Manually triggered channel guide refresh for device {user_device.device_uid}.")
@@ -86,10 +99,11 @@ def refresh_channel_guides():
 def toggle_channels():
     channels_enabled = request.json.get('channels_enabled')
     if channels_enabled is None:
-        return ErrorResponse("Missing mandatory data.")
+        return ErrorResponse(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS)
     user_device = DeviceManager.get_device()
+    if user_device is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     database.update_channels_enabled(g.db_conn, user_device.device_uid, channels_enabled)
-    cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
 
 
@@ -97,17 +111,10 @@ def toggle_channels():
 @login_required
 def toggle_channel(channel_id):
     user_device = DeviceManager.get_device()
+    if user_device is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     database.toggle_channel_enabled(g.db_conn, user_device.device_uid, channel_id)
-    cache.expire_channels(g.cache_conn, user_device.device_uid)
     return Response(status=HTTPStatus.OK)
-
-
-@device.get('/channels/<int:channel_id>/guide')
-@login_required
-def get_channel_guide(channel_id):
-    user_device = DeviceManager.get_device()
-    channel_guide = cache.get_channel_guide(g.cache_conn, user_device.device_uid, channel_id)
-    return jsonify(channel_guide)
 
 
 @device.route('/playlists/<int:stream_id>')
@@ -115,9 +122,9 @@ def get_channel_guide(channel_id):
 def get_channel_playlist(stream_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse('Unable to get device. Please check configuration', HTTPStatus.FORBIDDEN)
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     channel_url = user_device.get_channel_playlist(stream_id)
     if channel_url is None:
-        return ErrorResponse('Unable to retrieve channel.', HTTPStatus.NOT_FOUND)
+        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
 
     return redirect(channel_url, code=HTTPStatus.FOUND)

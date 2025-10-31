@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from http import HTTPStatus
 
-from flask import Blueprint, request, Response, g, jsonify, redirect
+from flask import Blueprint, Response, g, jsonify, redirect, request
 
-from magplex.users import database
 from magplex.decorators import login_required
 from magplex.device.device import DeviceManager
+from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 
 user = Blueprint("user", __name__)

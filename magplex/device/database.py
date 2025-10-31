@@ -1,9 +1,6 @@
-import logging
 from dataclasses import dataclass
-from uuid import UUID
 from datetime import datetime
-
-from psycopg.errors import ExclusionViolation
+from uuid import UUID
 
 
 @dataclass
@@ -110,10 +107,10 @@ def get_all_channels(conn, device_uid):
 def get_enabled_channels(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   g.genre_id, g.genre_name, stream_id, c.creation_timestamp
-            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
-            where c.device_uid = %(device_uid)s
+            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
+                   genre_id, stream_id, modified_timestamp, creation_timestamp
+            from channels
+            where device_uid = %(device_uid)s
             and channel_stale = false
             and channel_enabled = true
         """
@@ -124,10 +121,10 @@ def get_enabled_channels(conn, device_uid):
 def get_disabled_channels(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   g.genre_id, g.genre_name, stream_id, c.creation_timestamp
-            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
-            where c.device_uid = %(device_uid)s
+            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
+                   genre_id, stream_id, modified_timestamp, creation_timestamp
+            from channels
+            where device_uid = %(device_uid)s
             and channel_stale = false
             and channel_enabled = false
         """
@@ -138,10 +135,10 @@ def get_disabled_channels(conn, device_uid):
 def get_stale_channels(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select c.device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   g.genre_id, g.genre_name, stream_id, c.creation_timestamp
-            from channels c join genres g on c.genre_id = g.genre_id and c.device_uid = g.device_uid
-            where c.device_uid = %(device_uid)s
+            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
+                   genre_id, genre_name, stream_id, creation_timestamp
+            from channels
+            where device_uid = %(device_uid)s
             and channel_stale = true
         """
         cursor.execute(query, locals())
@@ -199,18 +196,33 @@ def delete_channel(conn, device_uid, channel_id):
         cursor.execute(query, locals())
 
 
-def get_channel_guides(conn, device_uid):
+def get_all_channel_guides(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, channel_id, title, categories, description lower(timestamp_range) as start_timestamp,
-                   upper(timestamp_range) as end_timestamp, modified_timestamp, creation_timestamp
+            select g.device_uid, g.channel_id, title, categories, description, lower(timestamp_range) as start_timestamp,
+                   upper(timestamp_range) as end_timestamp, g.modified_timestamp, g.creation_timestamp
             from channel_guides g
             join channels c on g.device_uid = c.device_uid and g.channel_id = c.channel_id
             where c.channel_enabled = true
+            and c.channel_stale = false
             and g.device_uid = %(device_uid)s
         """
-    cursor.execute(query, locals())
-    return [ChannelGuide(*row) for row in cursor]
+        cursor.execute(query, locals())
+        return [ChannelGuide(*row) for row in cursor]
+
+
+def get_channel_guide(conn, device_uid, channel_id):
+    with conn.cursor() as cursor:
+        query = """
+            select g.device_uid, g.channel_id, title, categories, description, lower(timestamp_range) as start_timestamp,
+                   upper(timestamp_range) as end_timestamp, g.modified_timestamp, g.creation_timestamp
+            from channel_guides g
+            join channels c on g.device_uid = c.device_uid and g.channel_id = c.channel_id
+            where g.device_uid = %(device_uid)s
+            and g.channel_id = %(channel_id)s
+        """
+        cursor.execute(query, locals())
+        return [ChannelGuide(*row) for row in cursor]
 
 
 def insert_channel_guide(conn, device_uid, channel_id, title, categories, description, start_timestamp, end_timestamp):
@@ -223,7 +235,4 @@ def insert_channel_guide(conn, device_uid, channel_id, title, categories, descri
             do update set title = excluded.title, categories = excluded.categories, description = excluded.description,
                 timestamp_range = excluded.timestamp_range, modified_timestamp = current_timestamp
         """
-        try:
-            cursor.execute(query, locals())
-        except ExclusionViolation as e:
-            logging.error("Overlapping channel guide time ranges.")
+        cursor.execute(query, locals())

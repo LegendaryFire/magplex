@@ -1,11 +1,9 @@
 import logging
-from datetime import datetime
 from itertools import batched
-from zoneinfo import ZoneInfo
 
-from magplex.device.localization import ErrorMessage
-from magplex.utilities.database import LazyPostgresConnection
+from magplex.database.database import LazyPostgresConnection
 from magplex.device import database, parser
+from magplex.device.localization import ErrorMessage
 
 
 def save_channels():

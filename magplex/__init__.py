@@ -1,14 +1,14 @@
-from flask import Flask, g, request, jsonify
+from flask import Flask, g, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import magplex.database as database
 from magplex import users
+from magplex.database.database import LazyPostgresConnection, RedisPool
 from magplex.routes.device import device
 from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
 from magplex.routes.ui import ui
 from magplex.routes.user import user
-from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.error import ErrorResponse
 
 

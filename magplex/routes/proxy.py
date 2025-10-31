@@ -6,17 +6,19 @@ import requests
 from flask import Blueprint, Response, request
 
 from magplex.device.device import DeviceManager
+from magplex.device.localization import ErrorMessage
 
 proxy = Blueprint("proxy", __name__)
+
 
 @proxy.route('/channels/<int:stream_id>')
 def proxy_playlist(stream_id):
     device = DeviceManager.get_device()
     if device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     channel_url = device.get_channel_playlist(stream_id)
     if channel_url is None:
-        return Response("Unable to proxy stream, no channel URL.", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        return Response(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
     response = requests.get(channel_url)
     session_uid = response.headers.get('X-Sid', None)
     playlist_content = response.text
@@ -47,7 +49,7 @@ def proxy_playlist(stream_id):
 def proxy_stream():
     url = request.args.get("url")
     if not url:
-        return Response("Missing mandatory URL parameter.", HTTPStatus.BAD_REQUEST)
+        return Response(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
     url = unquote(url)
 
     session_uid = request.args.get("session")
@@ -55,7 +57,7 @@ def proxy_stream():
     r = requests.get(url, headers=headers, stream=True, allow_redirects=True)
 
     if r.status_code != HTTPStatus.OK:
-        return Response("Failed to fetch stream segment.", r.status_code)
+        return Response(ErrorMessage.DEVICE_STREAM_SEGMENT_FAILED, r.status_code)
 
     chunk_size = 32 * 1024  # 32KB
     return Response(r.iter_content(chunk_size=chunk_size), headers=r.headers)

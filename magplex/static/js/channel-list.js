@@ -28,7 +28,7 @@ class ChannelList extends HTMLElement {
 
     async getChannelList() {
         try {
-            const response = await fetch(`/api/device/channels${!this.editMode ? '?filter=true' : ''}`, {
+            const response = await fetch(`/api/device/channels${!this.editMode ? '?state=enabled' : ''}`, {
                 headers: {
                     'Accept': 'application/json'
                 }

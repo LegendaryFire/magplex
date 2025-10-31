@@ -8,10 +8,10 @@ import requests
 from apscheduler.jobstores.base import ConflictingIdError
 from requests.adapters import HTTPAdapter
 
-from magplex.device import cache, tasks
 from magplex import users
+from magplex.database.database import LazyPostgresConnection, RedisPool
+from magplex.device import cache, tasks
 from magplex.device.localization import ErrorMessage
-from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.utilities.scheduler import TaskManager
 
 
@@ -49,13 +49,13 @@ class Device:
         self.profile = profile
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Unknown; Linux) AppleWebKit/538.1 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 734 Mobile Safari/538.1',
-            'Accept-Language': f'{profile.language},*',
+            'Accept-Language': f'en,*',
             'Host': f'{profile.portal}',
             'Referrer': f'http://{profile.portal}/stalker_portal/c/',
         }
         self.cookies = {
             'mac': f'{profile.mac_address.replace('-', ':')}',
-            'stb_lang': f'{profile.language}',
+            'stb_lang': f'en',
             'timezone': f'{profile.timezone}',
         }
         self._schedule_tasks()

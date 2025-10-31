@@ -1,7 +1,8 @@
 import datetime
 import json
 import uuid
-from dataclasses import is_dataclass, asdict
+from dataclasses import asdict, is_dataclass
+
 
 class DataclassEncoder(json.JSONEncoder):
     def default(self, obj):

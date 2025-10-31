@@ -1,7 +1,7 @@
 import logging
 import os
 
-from magplex.utilities.database import LazyPostgresConnection
+from magplex.database.database import LazyPostgresConnection
 
 migrations_folder = os.path.dirname(__file__)
 

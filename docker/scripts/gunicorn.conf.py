@@ -1,8 +1,7 @@
-import logging
 import multiprocessing
 
 from app_setup import initialize
-from magplex.utilities.database import PostgresPool
+from magplex.database.database import PostgresPool
 
 # Configuration
 MAX_PG_CONNECTIONS = 100

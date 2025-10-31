@@ -5,12 +5,12 @@ import time
 import psycopg
 import redis
 
+from magplex.database.database import LazyPostgresConnection, RedisPool
 from magplex.database.migrations import migrations
-from magplex.utilities import logs
-from magplex.utilities.database import RedisPool, LazyPostgresConnection
 from magplex.device.device import DeviceManager
-from magplex.utilities.variables import Environment
+from magplex.utilities import logs
 from magplex.utilities.scheduler import TaskManager
+from magplex.utilities.variables import Environment
 from version import version
 
 

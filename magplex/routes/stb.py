@@ -3,10 +3,13 @@ from http import HTTPStatus
 
 import ffmpeg
 import requests
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 
-from magplex.utilities import media, parser
+from magplex.device import database
 from magplex.device.device import DeviceManager
+from magplex.device.localization import ErrorMessage
+from magplex.stb import parser
+from magplex.utilities import media
 from magplex.utilities.variables import Environment
 
 stb = Blueprint("stb", __name__)
@@ -14,8 +17,8 @@ stb = Blueprint("stb", __name__)
 
 @stb.route('/')
 def root():
-    device = DeviceManager.get_device()
-    if device is None:
+    user_device = DeviceManager.get_device()
+    if user_device is None:
         return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
     return Response(f"""
@@ -31,7 +34,7 @@ def root():
             <manufacturer>Silicondust</manufacturer>
             <modelName>HDTC-2US</modelName>
             <modelNumber>HDTC-2US</modelNumber>
-            <serialNumber>{device.device_uid}</serialNumber>
+            <serialNumber>{user_device.device_uid}</serialNumber>
             <UDN>uuid:2025-10-FBE0-RLST64</UDN>
         </device>
     </root>
@@ -67,20 +70,19 @@ def lineup_status():
 
 @stb.route('/lineup.json')
 def lineup():
-    device = DeviceManager.get_device()
-    if device is None:
+    user_device = DeviceManager.get_device()
+    if user_device is None:
         return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
-    channel_list = device.get_channel_list()
-    channel_lineup = []
-    for channel in channel_list:
-        channel_lineup.append({
-            "GuideName": channel.get('channel_name'),
-            "GuideNumber": channel.get('channel_id'),
-            "URL": f"{domain}/stb/playlist.m3u8?stream_id={channel.get('stream_id')}"
-        })
+    channel_list = database.get_enabled_channels(g.db_conn, user_device.device_uid)
+    for i, channel in enumerate(channel_list):
+        channel_list[i] = {
+            "GuideName": channel.channel_name,
+            "GuideNumber": channel.channel_id,
+            "URL": f"{domain}/stb/playlist.m3u8?stream_id={channel.stream_id}"
+        }
 
-    return jsonify(channel_lineup)
+    return jsonify(channel_list)
 
 
 @stb.route('/playlist.m3u8')
@@ -89,11 +91,11 @@ def get_channel_playlist():
     if stream_id is None:
         return Response("Missing required parameter 'stream_id'.", status=HTTPStatus.BAD_REQUEST)
 
-    device = DeviceManager.get_device()
-    if device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.BAD_REQUEST)
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.BAD_REQUEST)
 
-    channel_url = device.get_channel_playlist(stream_id)
+    channel_url = user_device.get_channel_playlist(stream_id)
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
 
@@ -142,10 +144,12 @@ def get_channel_playlist():
 
 @stb.get('/guide.xml')
 def get_channel_guide():
-    device = DeviceManager.get_device()
-    if device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
-    data = device.get_channel_guide()
-    guide = parser.build_channel_guide(data.get('channels'), data.get('channel_guides'))
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+    channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
+    guides = database.get_all_channel_guides(g.db_conn, user_device.device_uid)
+    genres = database.get_genres(g.db_conn, user_device.device_uid)
+    guide = parser.build_channel_guide(channels, guides)
     return Response(guide, mimetype='text/xml')
 
