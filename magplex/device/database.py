@@ -1,6 +1,9 @@
+import logging
 from dataclasses import dataclass
 from uuid import UUID
 from datetime import datetime
+
+from psycopg.errors import ExclusionViolation
 
 
 @dataclass
@@ -207,7 +210,7 @@ def get_channel_guides(conn, device_uid):
             and g.device_uid = %(device_uid)s
         """
     cursor.execute(query, locals())
-    return cursor.fetchall()
+    return [ChannelGuide(*row) for row in cursor]
 
 
 def insert_channel_guide(conn, device_uid, channel_id, title, categories, description, start_timestamp, end_timestamp):
@@ -215,9 +218,12 @@ def insert_channel_guide(conn, device_uid, channel_id, title, categories, descri
         query = """
             insert into channel_guides (device_uid, channel_id, title, categories, description, timestamp_range)
             values (%(device_uid)s, %(channel_id)s, %(title)s, %(categories)s, %(description)s,
-                   tsrange(%(start_timestamp)s, %(end_timestamp)s, '['))
+                tstzrange(%(start_timestamp)s, %(end_timestamp)s, '[)'))
             on conflict (device_uid, channel_id, timestamp_range)
             do update set title = excluded.title, categories = excluded.categories, description = excluded.description,
-                modified_timestamp = current_timestamp
+                timestamp_range = excluded.timestamp_range, modified_timestamp = current_timestamp
         """
-        cursor.execute(query, locals())
+        try:
+            cursor.execute(query, locals())
+        except ExclusionViolation as e:
+            logging.error("Overlapping channel guide time ranges.")

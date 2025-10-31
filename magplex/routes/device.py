@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timezone
 from enum import StrEnum
 from http import HTTPStatus
@@ -49,7 +50,7 @@ def update_channels():
         return ErrorResponse("Unable to refresh channels, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    logging.info(f"Manually triggered EPG refresh for device {user_device.device_uid}.")
+    logging.info(f"Manually triggered channel list refresh for device {user_device.device_uid}.")
     return Response(status=HTTPStatus.ACCEPTED)
 
 
@@ -57,8 +58,11 @@ def update_channels():
 @login_required
 def get_all_channel_guides():
     user_device = DeviceManager.get_device()
-    channel_guide = cache.get_all_channel_guides(g.cache_conn, user_device.device_uid)
-    return jsonify(channel_guide)
+    epg = database.get_channel_guides(g.db_conn, user_device.device_uid)
+    guide_map = defaultdict(list)
+    for guide in epg:
+        guide_map[guide.channel_id].append(guide)
+    return jsonify(guide_map)
 
 
 @device.post('/channels/guides')
@@ -67,13 +71,13 @@ def refresh_channel_guides():
     scheduler = TaskManager.get_scheduler()
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse("Unable to refresh EPG, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
-    job = scheduler.get_job(user_device.device_uid)
+        return ErrorResponse("Unable to refresh channel guides, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+    job = scheduler.get_job(f'{user_device.device_uid}:save_channel_guides')
     if not job:
-        return ErrorResponse("Unable to refresh EPG, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
+        return ErrorResponse("Unable to refresh channel_guides, ensure a device has been added first.", HTTPStatus.INTERNAL_SERVER_ERROR)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    logging.info(f"Manually triggered EPG refresh for device {user_device.device_uid}.")
+    logging.info(f"Manually triggered channel guide refresh for device {user_device.device_uid}.")
     return Response(status=HTTPStatus.ACCEPTED)
 
 

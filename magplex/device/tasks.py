@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from itertools import batched
+from zoneinfo import ZoneInfo
 
 from magplex.device.localization import ErrorMessage
 from magplex.utilities.database import LazyPostgresConnection
@@ -60,7 +61,7 @@ def save_channels():
     return channel_list
 
 
-def save_device_channel_guide():
+def save_channel_guides():
     """Background task ran at an interval to populate the cache with EPG information."""
     from magplex.device.device import DeviceManager
     user_device = DeviceManager.get_device()
@@ -85,22 +86,17 @@ def save_device_channel_guide():
     # Process the channel guide URLs in batches to prevent rate limiting.
     logging.info(f"Fetching channel guide data for device {user_device.device_uid}.")
     for link_batch in batched(guide_urls, 3):
-        responses = user_device.get_batch(link_batch)
+        guide_batch = user_device.get_batch(link_batch)
         conn = LazyPostgresConnection()
-        for response in responses:
-            if not response or not isinstance(response, list):
+        for guides in guide_batch:
+            if not guides or not isinstance(guides, list):
                 continue
 
-            for channel_guide in response:
-                channel_id = channel_guide.get('ch_id')
-                start_timestamp = datetime.fromtimestamp(channel_guide.get('start_timestamp'))
-                stop_timestamp = datetime.fromtimestamp(channel_guide.get('stop_timestamp'))
-                title = channel_guide.get('name')
-                description = channel_guide.get('descr')
-                categories = [c.strip() for c in channel_guide.get('category', str()).split(',') if c.strip()]
-                if not start_timestamp or not stop_timestamp:
+            for g in guides:
+                g = parser.parse_channel_guide(g, user_device.profile.timezone)
+                if g is None:
                     continue
-                database.insert_channel_guide(conn, user_device.device_uid, channel_id, title, categories, description,
-                                              start_timestamp, stop_timestamp)
+                database.insert_channel_guide(conn, user_device.device_uid, g.channel_id, g.title, g.categories,
+                                              g.description, g.start_timestamp, g.end_timestamp)
         conn.commit()
         conn.close()

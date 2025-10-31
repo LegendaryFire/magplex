@@ -62,15 +62,15 @@ class Device:
 
 
     def _schedule_tasks(self):
-        job_interval_map = {tasks.save_channels: 1, tasks.save_device_channel_guide: 1}
+        jobs = {tasks.save_channels: {'hours': 1}, tasks.save_channel_guides: {'hours': 1}}
         scheduler = TaskManager.get_scheduler()
-        for job, hours in job_interval_map.items():
+        for job, kwargs in jobs.items():
             job_name = f'{self.device_uid}:{job.__name__}'
             try:
                 if scheduler.get_job(job_name) is not None:
                     logging.warning('Scheduler background task already exists, skipping.')
                     continue
-                scheduler.add_job(job, 'interval', hours=hours, id=job_name, next_run_time=datetime.now(timezone.utc))
+                scheduler.add_job(job, 'interval', id=job_name, next_run_time=datetime.now(timezone.utc), **kwargs)
             except ConflictingIdError:
                 logging.warning('Scheduler conflicting ID error ignored')
 

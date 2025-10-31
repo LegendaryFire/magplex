@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+create extension if not exists btree_gist;
 
 
 ---------------------- Migrations ----------------------
@@ -93,10 +94,9 @@ create table if not exists channel_guides (
     channel_id              int                         not null,
     title                   varchar(255)                not null,
     categories              varchar(128)[]              not null default '{}',
-    description             varchar(512)                ,
-    timestamp_range         tsrange                     not null,
+    description             text                        ,
+    timestamp_range         tstzrange                   not null,
     modified_timestamp      timestamp with time zone    not null default current_timestamp,
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
-    primary key (device_uid, channel_id, timestamp_range),
-    exclude using gist (timestamp_range with &&)
+    primary key (device_uid, channel_id, timestamp_range)
 );
