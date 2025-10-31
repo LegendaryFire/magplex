@@ -20,6 +20,22 @@ class ChannelState(StrEnum):
     DISABLED = 'disabled'
 
 
+@device.get('/genres')
+@login_required
+def get_genres():
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+    channel_state = request.args.get('state', '').lower()
+    if channel_state == ChannelState.ENABLED:
+        genres = database.get_enabled_channel_genres(g.db_conn, user_device.device_uid)
+    elif channel_state == ChannelState.DISABLED:
+        genres = database.get_disabled_channel_genres(g.db_conn, user_device.device_uid)
+    else:
+        genres = database.get_all_genres(g.db_conn, user_device.device_uid)
+    return jsonify(genres)
+
+
 @device.get('/channels')
 @login_required
 def get_channels():

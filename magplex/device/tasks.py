@@ -26,7 +26,7 @@ def save_channels():
         database.insert_genre(conn, user_device.device_uid, g.genre_id, g.genre_number, g.genre_name)
     conn.commit()
 
-    genres = database.get_genres(conn, user_device.device_uid)
+    genres = database.get_all_genres(conn, user_device.device_uid)
     fetched_channels = user_device.get_all_channels()
     if fetched_channels is None:
         logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_UNAVAILABLE)

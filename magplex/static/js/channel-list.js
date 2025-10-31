@@ -15,14 +15,28 @@ class ChannelList extends HTMLElement {
             </div>
         `
         this.channels = await this.getChannelList();
+        this.genres = await this.getGenreList();
         this.innerHTML = ``;
         if (this.channels !== null) {
-            this.genres = [...new Set(this.channels.map(c => c.genre_name))];
             this.appendChild(this.getSearchBarElement());
             this.appendChild(this.getChannelListElement());
             this.renderChannelList();
         } else {
             this.appendChild(this.getConfigureElement());
+        }
+    }
+
+    async getGenreList() {
+        try {
+            const response = await fetch(`/api/device/genres${!this.editMode ? '?state=enabled' : ''}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            const genres = await response.json();
+            return genres.sort((a, b) => a.genre_number - b.genre_number);
+        } catch (error) {
+            return null;
         }
     }
 
@@ -57,7 +71,7 @@ class ChannelList extends HTMLElement {
             <select name='genre'>
                 <option value="">All</option>
                 ${this.editMode ? '<option value="selected">Selected Channels</option>' : ''}
-                ${this.genres.map(genre => `<option value="${genre}">${genre}</option>`).join('')}
+                ${this.genres.map(genre => `<option value="${genre.genre_id}">${genre.genre_name}</option>`).join('')}
             </select>
         `;
         const searchElem = searchContainerElem.querySelector('input');
@@ -83,9 +97,9 @@ class ChannelList extends HTMLElement {
         const genreElem = this.querySelector('.search-container [name=genre]');
         let search = searchElem.value.trim().toLowerCase();
         search = search === '' ? null : search;
-        let genre = genreElem.value.trim().toLowerCase();
-        genre = genre === '' ? null : genre;
-        const searchOnlySelected = this.editMode && genre === 'selected';
+        let genreId = genreElem.value.trim().toLowerCase();
+        genreId = genreId === '' ? null : genreId;
+        const searchOnlySelected = this.editMode && genreId === 'selected';
         const channelElements = this.querySelectorAll('.channel');
         for (const element of channelElements) {
             const channelName = element.dataset.channelName.toLowerCase();
@@ -97,8 +111,8 @@ class ChannelList extends HTMLElement {
                     continue;
                 }
             } else {
-                const genreName = element.dataset.genreName.toLowerCase();
-                if (genre === null || genreName.includes(genre)) {
+                const channelGenreId = element.dataset.genreId;
+                if (genreId === null || channelGenreId === genreId) {
                     element.hidden = false;
                 } else {
                     element.hidden = true;
@@ -136,17 +150,18 @@ class ChannelList extends HTMLElement {
         channelElem.classList.add('channel');
         channelElem.dataset['channelId'] = channel.channel_id;
         channelElem.dataset['channelName'] = channel.channel_name;
-        channelElem.dataset['genreName'] = channel.genre_name;
+        channelElem.dataset['genreId'] = channel.genre_id;
         channelElem.dataset['streamId'] = channel.stream_id;
         channelElem.toggleAttribute('selected', this.editMode && channel.channel_enabled)
 
+        const genre = this.genres.find((g) => g.genre_id === channel.genre_id);
         channelElem.innerHTML = `
             <div class="channel-left">
                 <span class="material-symbols-outlined">live_tv</span>
             </div>
             <div class="channel-details">
                 <span class="channel-name">${channel.channel_name}</span>
-                <span class="channel-group">${channel.genre_name}</span>
+                <span class="channel-group">${genre.genre_name}</span>
             </div>
             <div class="channel-right">
                 <span class="material-symbols-outlined">hd</span>

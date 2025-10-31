@@ -54,12 +54,46 @@ def insert_genre(conn, device_uid, genre_id, genre_number, genre_name):
         cursor.execute(query, locals())
 
 
-def get_genres(conn, device_uid):
+def get_all_genres(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
             select device_uid, genre_id, genre_number, genre_name, modified_timestamp, creation_timestamp
             from genres
             where device_uid = %(device_uid)s
+        """
+        cursor.execute(query, locals())
+        return [Genre(*row) for row in cursor]
+
+
+def get_enabled_channel_genres(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select g.device_uid, g.genre_id, genre_number, genre_name, g.modified_timestamp, g.creation_timestamp
+            from genres g
+            where g.device_uid = %(device_uid)s
+            and exists (
+                select 1 from channels c
+                where c.device_uid = %(device_uid)s
+                and c.genre_id = g.genre_id
+                and c.channel_enabled = true
+            )
+        """
+        cursor.execute(query, locals())
+        return [Genre(*row) for row in cursor]
+
+
+def get_disabled_channel_genres(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select g.device_uid, g.genre_id, genre_number, genre_name, g.modified_timestamp, g.creation_timestamp
+            from genres g
+            where g.device_uid = %(device_uid)s
+            and exists (
+                select 1 from channels c
+                where c.device_uid = %(device_uid)s
+                and c.genre_id = g.genre_id
+                and c.channel_enabled = false
+            )
         """
         cursor.execute(query, locals())
         return [Genre(*row) for row in cursor]
