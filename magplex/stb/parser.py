@@ -1,49 +1,55 @@
-from datetime import datetime, timezone
-from itertools import chain
 from xml.sax.saxutils import escape
 
 from lxml import etree
+from version import version
 
 
-def build_playlist(channels, base_url):
+def build_playlist(channels, genres, base_url):
     playlist = '#EXTM3U\n'
     playlist += '#EXT-X-VERSION:3\n\n'
-    for channel in channels:
-        channel_id = channel.get('channel_id')
-        channel_name = channel.get('channel_name')
-        genre_name = channel.get('genre_name')
-        playlist += f'#EXTINF:-1 tvg-id="{channel_id}" tvg-name="{channel_name}" group-title="{genre_name}",{channel_name}\n'
-        playlist += f'{base_url}/api/channels/{channel.get('stream_id')}\n\n'
+    for c in channels:
+        genre_name = None
+        for g in genres:
+            if g.genre_id == c.genre_id:
+                genre_name = g.genre_name
+        if genre_name is None:
+            continue
+        playlist += f'#EXTINF:-1 tvg-id="{c.channel_id}" tvg-name="{c.channel_name}" group-title="{genre_name}",{c.channel_name}\n'
+        playlist += f'{base_url}/api/channels/{c.stream_id}\n\n'
     return playlist
 
 
-def build_channel_guide(channels, guides):
+def build_channel_guide(channels, guides, timezone):
     tv = etree.Element(
         "tv",
         attrib={
             "generator-info-name": "XMLTV",
-            "source-info-name": "MagPlex by Tristan Balon",
+            "source-info-name": f"MagPlex v{version}",
         }
     )
-    for channel in channels:
-        channel_elem = etree.SubElement(tv, "channel", id=channel.get('channel_id'))
-        etree.SubElement(channel_elem, "display-name").text = escape(channel.get('channel_name'))
 
-    guides = list(chain.from_iterable(guides))
-    for guide in guides:
-        start = datetime.fromtimestamp(int(guide.get('start_timestamp')), tz=timezone.utc).strftime('%Y%m%d%H%M%S')
-        stop = datetime.fromtimestamp(int(guide.get('stop_timestamp')), tz=timezone.utc).strftime('%Y%m%d%H%M%S')
-        guide_elem = etree.SubElement(tv, "programme", channel=guide.get('channel_id'), start=start, stop=stop)
-        etree.SubElement(guide_elem, "title").text = escape(guide.get('channel_name'))
-        if guide.get('channel_description'):
-            etree.SubElement(guide_elem, "desc").text = escape(guide.get('channel_description'))
-        for category in guide.get('categories', []):
+    channel_map = {}
+    for c in channels:
+        channel_elem = etree.SubElement(tv, "channel", id=str(c.channel_id))
+        etree.SubElement(channel_elem, "display-name").text = escape(c.channel_name)
+        channel_map.update({c.channel_id: c.channel_name})
+
+    for g in guides:
+        channel_name = channel_map.get(g.channel_id)
+        if channel_name is None:
+            continue
+        start_timestamp = g.start_timestamp.strftime('%Y%m%d%H%M%S')
+        end_timestamp = g.end_timestamp.strftime('%Y%m%d%H%M%S')
+        guide_elem = etree.SubElement(tv, "programme", channel=str(g.channel_id), start=start_timestamp, stop=end_timestamp)
+        etree.SubElement(guide_elem, "title").text = escape(channel_name)
+        if g.description:
+            etree.SubElement(guide_elem, "desc").text = escape(g.description)
+        for category in g.categories:
             etree.SubElement(guide_elem, "category").text = escape(category)
 
-    xml_str = etree.tostring(tv, pretty_print=True, encoding="UTF-8", xml_declaration=False).decode("UTF-8")
+    xml = etree.tostring(tv, pretty_print=True, encoding="UTF-8", xml_declaration=False).decode("UTF-8")
 
     # Combine XML declaration, DOCTYPE, and XML content in the correct order
+    declaration = '<?xml version="1.0" encoding="UTF-8"?>'
     doctype = '<!DOCTYPE tv SYSTEM "xmltv.dtd">'
-    xml_declaration = '<?xml version="1.0" encoding="UTF-8"?>'
-    channel_guide = f'{xml_declaration}\n{doctype}\n{xml_str}'
-    return channel_guide
+    return f'{declaration}\n{doctype}\n{xml}'

@@ -149,7 +149,6 @@ def get_channel_guide():
         return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
     guides = database.get_all_channel_guides(g.db_conn, user_device.device_uid)
-    genres = database.get_all_genres(g.db_conn, user_device.device_uid)
-    guide = parser.build_channel_guide(channels, guides)
+    guide = parser.build_channel_guide(channels, guides, user_device.profile.timezone)
     return Response(guide, mimetype='text/xml')
 

@@ -230,7 +230,7 @@ def delete_channel(conn, device_uid, channel_id):
         cursor.execute(query, locals())
 
 
-def get_all_channel_guides(conn, device_uid):
+def get_current_channel_guides(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
             select g.device_uid, g.channel_id, title, categories, description, lower(timestamp_range) as start_timestamp,
@@ -240,6 +240,7 @@ def get_all_channel_guides(conn, device_uid):
             where c.channel_enabled = true
             and c.channel_stale = false
             and g.device_uid = %(device_uid)s
+            and lower(timestamp_range) <= current_timestamp
         """
         cursor.execute(query, locals())
         return [ChannelGuide(*row) for row in cursor]

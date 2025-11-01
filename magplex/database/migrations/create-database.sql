@@ -100,3 +100,4 @@ create table if not exists channel_guides (
     creation_timestamp      timestamp with time zone    not null default current_timestamp,
     primary key (device_uid, channel_id, timestamp_range)
 );
+create index if not exists channel_guides_start_timestamp_idx on channel_guides (lower(timestamp_range));

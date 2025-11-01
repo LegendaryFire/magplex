@@ -65,8 +65,10 @@ def parse_channel_guide(guide, timezone):
         return None
 
     start_timestamp = datetime.fromtimestamp(int(guide.get('start_timestamp')), tz=ZoneInfo(timezone))
+    start_timestamp = round_down_guide_timestamp(start_timestamp)
     end_timestamp = datetime.fromtimestamp(int(guide.get('stop_timestamp')), tz=ZoneInfo(timezone))
-    if start_timestamp <= end_timestamp:
+    end_timestamp = round_up_guide_timestamp(end_timestamp)
+    if start_timestamp >= end_timestamp:
         return None
 
     title = guide.get('name') if guide.get('name') != 'No details available' else None
@@ -78,8 +80,8 @@ def parse_channel_guide(guide, timezone):
         'title': sanitize_guide_title(title),
         'description': guide.get('descr'),
         'categories':  [c.strip() for c in guide.get('category', str()).split(',') if c.strip()],
-        'start_timestamp': round_guide_timestamp(start_timestamp),
-        'end_timestamp': round_guide_timestamp(end_timestamp)
+        'start_timestamp': start_timestamp,
+        'end_timestamp': end_timestamp
     }
 
     for value in guide.values():
@@ -95,12 +97,19 @@ def parse_channel_guide(guide, timezone):
     return ChannelGuide(**guide)
 
 
-def round_guide_timestamp(timestamp: datetime) -> datetime:
-    """Round a datetime to the nearest 30-minute mark."""
+def round_up_guide_timestamp(timestamp: datetime) -> datetime:
+    """Rounds up a datetime to the nearest 30-minute mark."""
     difference = timedelta(minutes=timestamp.minute % 30, seconds=timestamp.second, microseconds=timestamp.microsecond)
     timestamp -= difference
     if difference >= timedelta(minutes=15):
         timestamp += timedelta(minutes=30)
+    return timestamp
+
+
+def round_down_guide_timestamp(timestamp: datetime) -> datetime:
+    """Rounds down a datetime to the nearest 30-minute mark."""
+    difference = timedelta(minutes=timestamp.minute % 30, seconds=timestamp.second, microseconds=timestamp.microsecond)
+    timestamp -= difference
     return timestamp
 
 
