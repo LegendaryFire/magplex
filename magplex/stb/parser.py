@@ -42,7 +42,7 @@ def build_channel_guide(channels, guides, timezone):
         start_timestamp = g.start_timestamp.strftime('%Y%m%d%H%M%S')
         end_timestamp = g.end_timestamp.strftime('%Y%m%d%H%M%S')
         guide_elem = etree.SubElement(tv, "programme", channel=str(g.channel_id), start=start_timestamp, stop=end_timestamp)
-        etree.SubElement(guide_elem, "title").text = escape(channel_name)
+        etree.SubElement(guide_elem, "title").text = escape(g.title)
         if g.description:
             etree.SubElement(guide_elem, "desc").text = escape(g.description)
         for category in g.categories:

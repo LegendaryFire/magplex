@@ -5,11 +5,10 @@ import ffmpeg
 import requests
 from flask import Blueprint, Response, g, jsonify, request
 
-from magplex.device import database
+from magplex.device import database, media
 from magplex.device.device import DeviceManager
 from magplex.device.localization import ErrorMessage
 from magplex.stb import parser
-from magplex.utilities import media
 from magplex.utilities.variables import Environment
 
 stb = Blueprint("stb", __name__)
@@ -51,7 +50,7 @@ def discover():
         "FirmwareName": "bin_1.2",
         "FirmwareVersion": "1.2",
         "FriendlyName": "Magplex",
-        "LineupURL": f"{domain}/stb/lineup.json",
+        "LineupURL": f"{domain}/lineup.json",
         "Manufacturer": "LegendaryFire",
         "ModelNumber": "1.2",
         "TunerCount": 1
@@ -77,9 +76,9 @@ def lineup():
     channel_list = database.get_enabled_channels(g.db_conn, user_device.device_uid)
     for i, channel in enumerate(channel_list):
         channel_list[i] = {
-            "GuideName": channel.channel_name,
-            "GuideNumber": channel.channel_id,
-            "URL": f"{domain}/stb/playlist.m3u8?stream_id={channel.stream_id}"
+            'GuideName': channel.channel_name,
+            'GuideNumber': f'{channel.channel_id}',
+            'URL': f'{domain}/playlist.m3u8?stream_id={channel.stream_id}'
         }
 
     return jsonify(channel_list)
@@ -126,7 +125,7 @@ def get_channel_playlist():
     def generate():
         try:
             while True:
-                data = process.stdout.read(64 * 1024)  # 64KB
+                data = process.stdout.read(32 * 1024)  # 32KB
                 if not data:
                     break
                 yield data
