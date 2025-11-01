@@ -1,6 +1,7 @@
 from xml.sax.saxutils import escape
 
 from lxml import etree
+
 from version import version
 
 

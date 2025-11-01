@@ -5,7 +5,7 @@ import time
 import psycopg
 import redis
 
-from magplex.database.database import PostgresConnection, RedisPool, PostgresPool
+from magplex.database.database import PostgresConnection, PostgresPool, RedisPool
 from magplex.database.migrations import migrations
 from magplex.device.device import DeviceManager
 from magplex.utilities import logs

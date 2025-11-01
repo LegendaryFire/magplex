@@ -68,12 +68,12 @@ def save_channel_guides():
         return
     logging.info(f"Setting channel guide for device {user_device.device_uid}.")
 
-    db_conn = PostgresConnection()
-    channel_list = database.get_enabled_channels(db_conn, user_device.device_uid)
+    conn = PostgresConnection()
+    channel_list = database.get_enabled_channels(conn, user_device.device_uid)
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
         return
-    db_conn.close()
+    conn.close()
 
     # Build a list of EPG links to get the program guide for each channel.
     guide_urls = []
