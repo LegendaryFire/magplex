@@ -7,7 +7,7 @@ from flask import Blueprint, Response, g, jsonify, request
 
 from magplex.device import database, media
 from magplex.device.device import DeviceManager
-from magplex.device.localization import ErrorMessage
+from magplex.utilities.localization import ErrorMessage
 from magplex.stb import parser
 from magplex.utilities.variables import Environment
 

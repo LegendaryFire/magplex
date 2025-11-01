@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from magplex import users
 from magplex.database.database import PostgresConnection, RedisPool
 from magplex.device import cache, tasks
-from magplex.device.localization import ErrorMessage
+from magplex.utilities.localization import ErrorMessage
 from magplex.utilities.scheduler import TaskManager
 
 

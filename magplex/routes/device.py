@@ -9,7 +9,7 @@ from flask import Blueprint, Response, g, jsonify, redirect, request
 from magplex.decorators import login_required
 from magplex.device import database
 from magplex.device.device import DeviceManager
-from magplex.device.localization import ErrorMessage
+from magplex.utilities.localization import ErrorMessage
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.scheduler import TaskManager
 

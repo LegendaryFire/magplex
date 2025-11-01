@@ -6,7 +6,7 @@ import requests
 from flask import Blueprint, Response, request
 
 from magplex.device.device import DeviceManager
-from magplex.device.localization import ErrorMessage
+from magplex.utilities.localization import ErrorMessage
 
 proxy = Blueprint("proxy", __name__)
 

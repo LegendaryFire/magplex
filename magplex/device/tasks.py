@@ -3,7 +3,7 @@ from itertools import batched
 
 from magplex.database.database import PostgresConnection
 from magplex.device import database, parser
-from magplex.device.localization import ErrorMessage
+from magplex.utilities.localization import ErrorMessage
 
 
 def save_channels():
