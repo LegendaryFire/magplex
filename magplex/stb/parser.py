@@ -53,3 +53,7 @@ def build_channel_guide(channels, guides, timezone):
     declaration = '<?xml version="1.0" encoding="UTF-8"?>'
     doctype = '<!DOCTYPE tv SYSTEM "xmltv.dtd">'
     return f'{declaration}\n{doctype}\n{xml}'
+
+
+def build_playlist_proxy():
+    pass

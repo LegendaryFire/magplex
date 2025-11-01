@@ -77,7 +77,7 @@ def get_channel_guides():
     user_device = DeviceManager.get_device()
     if user_device is None:
         return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
-    epg = database.get_all_channel_guides(g.db_conn, user_device.device_uid)
+    epg = database.get_current_channel_guides(g.db_conn, user_device.device_uid)
     guide_map = defaultdict(list)
     for guide in epg:
         guide_map[guide.channel_id].append(guide)

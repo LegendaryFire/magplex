@@ -240,7 +240,7 @@ def get_current_channel_guides(conn, device_uid):
             where c.channel_enabled = true
             and c.channel_stale = false
             and g.device_uid = %(device_uid)s
-            and lower(timestamp_range) <= current_timestamp
+            and upper(g.timestamp_range) > current_timestamp
         """
         cursor.execute(query, locals())
         return [ChannelGuide(*row) for row in cursor]
