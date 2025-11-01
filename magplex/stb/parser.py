@@ -56,5 +56,54 @@ def build_channel_guide(channels, guides, timezone):
     return f'{declaration}\n{doctype}\n{xml}'
 
 
-def build_playlist_proxy():
-    pass
+def build_device_info(device_uid, domain):
+    xml = f"""
+        <root>
+        <URLBase>{domain}</URLBase>
+        <specVersion>
+        <major>1</major>
+        <minor>0</minor>
+        </specVersion>
+        <device>
+            <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>
+            <friendlyName>Magplex</friendlyName>
+            <manufacturer>Silicondust</manufacturer>
+            <modelName>HDTC-2US</modelName>
+            <modelNumber>HDTC-2US</modelNumber>
+            <serialNumber>{device_uid}</serialNumber>
+            <UDN>uuid:2025-10-FBE0-RLST64</UDN>
+        </device>
+    </root>
+    """
+    return xml
+
+
+def build_discover(domain):
+    return {
+        "BaseURL": domain,
+        "DeviceAuth": "Magplex",
+        "DeviceID": "2025-10-FBE0-RLST64",
+        "FirmwareName": "bin_1.2",
+        "FirmwareVersion": "1.2",
+        "FriendlyName": "Magplex",
+        "LineupURL": f"{domain}/lineup.json",
+        "Manufacturer": "LegendaryFire",
+        "ModelNumber": "1.2",
+        "TunerCount": 1
+    }
+
+def build_status():
+    return {
+        "ScanInProgress": 0,
+        "ScanPossible": 1,
+        "Source": "Cable",
+        "Lineup": "Complete"
+    }
+
+
+def build_lineup_channel(channel, domain):
+    return {
+        'GuideName': channel.channel_name,
+        'GuideNumber': f'{channel.channel_id}',
+        'URL': f'{domain}/playlist.m3u8?stream_id={channel.stream_id}'
+    }

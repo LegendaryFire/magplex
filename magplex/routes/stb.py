@@ -18,77 +18,37 @@ stb = Blueprint("stb", __name__)
 def root():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
-    return Response(f"""
-    <root>
-        <URLBase>{domain}</URLBase>
-        <specVersion>
-        <major>1</major>
-        <minor>0</minor>
-        </specVersion>
-        <device>
-            <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>
-            <friendlyName>Magplex</friendlyName>
-            <manufacturer>Silicondust</manufacturer>
-            <modelName>HDTC-2US</modelName>
-            <modelNumber>HDTC-2US</modelNumber>
-            <serialNumber>{user_device.device_uid}</serialNumber>
-            <UDN>uuid:2025-10-FBE0-RLST64</UDN>
-        </device>
-    </root>
-    """, mimetype='text/xml')
+    return Response(parser.build_device_info(user_device.device_uid, domain), mimetype='text/xml')
 
 
 @stb.route('/discover.json')
 def discover():
     domain = request.host_url[:-1]
-    return jsonify({
-        "BaseURL": domain,
-        "DeviceAuth": "Magplex",
-        "DeviceID": "2025-10-FBE0-RLST64",
-        "FirmwareName": "bin_1.2",
-        "FirmwareVersion": "1.2",
-        "FriendlyName": "Magplex",
-        "LineupURL": f"{domain}/lineup.json",
-        "Manufacturer": "LegendaryFire",
-        "ModelNumber": "1.2",
-        "TunerCount": 1
-    })
+    return jsonify(parser.build_discover(domain))
 
 
 @stb.route('/lineup_status.json')
 def lineup_status():
-    return jsonify({
-        "ScanInProgress": 0,
-        "ScanPossible": 1,
-        "Source": "Cable",
-        "Lineup": "Complete"
-    })
+    return jsonify(parser.build_status())
 
 
 @stb.route('/lineup.json')
 def lineup():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response("Unable to get device. Please check configuration.", status=HTTPStatus.FORBIDDEN)
+        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
     channel_list = database.get_enabled_channels(g.db_conn, user_device.device_uid)
-    for i, channel in enumerate(channel_list):
-        channel_list[i] = {
-            'GuideName': channel.channel_name,
-            'GuideNumber': f'{channel.channel_id}',
-            'URL': f'{domain}/playlist.m3u8?stream_id={channel.stream_id}'
-        }
-
-    return jsonify(channel_list)
+    return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
 
 
 @stb.route('/playlist.m3u8')
 def get_channel_playlist():
     stream_id = request.args.get('stream_id')
     if stream_id is None:
-        return Response("Missing required parameter 'stream_id'.", status=HTTPStatus.BAD_REQUEST)
+        return Response(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
 
     user_device = DeviceManager.get_device()
     if user_device is None:
