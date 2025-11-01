@@ -25,9 +25,6 @@ def on_starting(server):
     initialize()
 
 def post_fork(server, worker):
-    # Master process is forked with a non-thread safe pool. Pool must be closed.
-    PostgresPool.close_pool()
-
     # Set the pool name so it's easy to identify.
     PostgresPool.set_pool_name(f"pool-{worker.pid}")
 

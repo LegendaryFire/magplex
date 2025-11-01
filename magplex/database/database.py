@@ -8,7 +8,7 @@ from magplex.utilities.variables import Environment
 
 logging.getLogger('psycopg.pool').setLevel(logging.DEBUG)
 
-class LazyPostgresConnection:
+class PostgresConnection:
     def __init__(self):
         self._conn = None
 

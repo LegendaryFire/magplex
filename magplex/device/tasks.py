@@ -1,7 +1,7 @@
 import logging
 from itertools import batched
 
-from magplex.database.database import LazyPostgresConnection
+from magplex.database.database import PostgresConnection
 from magplex.device import database, parser
 from magplex.device.localization import ErrorMessage
 
@@ -18,7 +18,7 @@ def save_channels():
         logging.warning(ErrorMessage.DEVICE_GENRE_LIST_UNAVAILABLE)
         return None
 
-    conn = LazyPostgresConnection()
+    conn = PostgresConnection()
     for g in fetched_genres:
         g = parser.parse_genre(g)
         if g is None:
@@ -68,7 +68,7 @@ def save_channel_guides():
         return
     logging.info(f"Setting channel guide for device {user_device.device_uid}.")
 
-    db_conn = LazyPostgresConnection()
+    db_conn = PostgresConnection()
     channel_list = database.get_enabled_channels(db_conn, user_device.device_uid)
     if channel_list is None:
         logging.error('Failed to update channel guide. Channel list is None.')
@@ -85,7 +85,7 @@ def save_channel_guides():
     logging.info(f"Fetching channel guide data for device {user_device.device_uid}.")
     for link_batch in batched(guide_urls, 3):
         guide_batch = user_device.get_batch(link_batch)
-        conn = LazyPostgresConnection()
+        conn = PostgresConnection()
         for guides in guide_batch:
             if not guides or not isinstance(guides, list):
                 continue

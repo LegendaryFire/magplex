@@ -9,7 +9,7 @@ from apscheduler.jobstores.base import ConflictingIdError
 from requests.adapters import HTTPAdapter
 
 from magplex import users
-from magplex.database.database import LazyPostgresConnection, RedisPool
+from magplex.database.database import PostgresConnection, RedisPool
 from magplex.device import cache, tasks
 from magplex.device.localization import ErrorMessage
 from magplex.utilities.scheduler import TaskManager
@@ -20,7 +20,7 @@ class DeviceManager:
 
     @classmethod
     def create_device(cls):
-        conn = LazyPostgresConnection()
+        conn = PostgresConnection()
         device_profile = users.database.get_user_device(conn)
         if device_profile is None:
             return None

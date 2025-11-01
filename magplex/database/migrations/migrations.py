@@ -1,12 +1,12 @@
 import logging
 import os
 
-from magplex.database.database import LazyPostgresConnection
+from magplex.database.database import PostgresConnection
 
 migrations_folder = os.path.dirname(__file__)
 
 def create_database():
-    conn = LazyPostgresConnection()
+    conn = PostgresConnection()
 
     # Check to see if the database already exists.
     query = """
@@ -44,7 +44,7 @@ def create_database():
 
 
 def run_missing_migrations():
-    conn = LazyPostgresConnection()
+    conn = PostgresConnection()
     migration_names = sorted(os.listdir(migrations_folder))
 
     for migration_name in migration_names:

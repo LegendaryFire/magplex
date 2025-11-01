@@ -5,7 +5,7 @@ import time
 import psycopg
 import redis
 
-from magplex.database.database import LazyPostgresConnection, RedisPool
+from magplex.database.database import PostgresConnection, RedisPool, PostgresPool
 from magplex.database.migrations import migrations
 from magplex.device.device import DeviceManager
 from magplex.utilities import logs
@@ -38,7 +38,7 @@ def initialize():
 
     # Test Postgres database connection.
     try:
-        conn = LazyPostgresConnection()
+        conn = PostgresConnection()
         with conn.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
@@ -66,3 +66,5 @@ def initialize():
     device = DeviceManager.get_device()
     if device is None:
         logging.warning("Unable to get device. It's likely that a STB device has not been configured yet.")
+
+    PostgresPool.close_pool()
