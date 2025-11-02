@@ -67,4 +67,4 @@ def create_stream_response(url, encoder, headers):
             acodec='aac',
             audio_bitrate='128k'
         )
-    return process.run_async(cmd=Environment.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=False)
+    return process.run_async(cmd=Environment.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=True)

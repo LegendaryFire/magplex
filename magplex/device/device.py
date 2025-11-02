@@ -1,5 +1,7 @@
+import hashlib
 import json
 import logging
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -113,6 +115,11 @@ class Device:
         return True
 
 
+    def get_device_encryption_key(self):
+        """Gets the unique device hash, to be used as an encryption key."""
+        return hashlib.sha256(uuid.UUID(self.device_uid).bytes).digest()
+
+
     def refresh_access_token(self):
         """Gets the authentication token for the session."""
         awaiting_timeout = self._awaiting_timeout()
@@ -148,10 +155,6 @@ class Device:
             self.headers['Random'] = random_token
 
         return access_token
-
-
-    def refresh_authorization(self):
-        pass
 
 
     def update_access_token(self):
@@ -256,7 +259,7 @@ class Device:
 
 
     def get_channel_playlist(self, stream_id):
-        """Gets a generated channel playlist URL from stream ID."""
+        """Gets a generated channel playlist URL from channel ID."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
@@ -282,7 +285,7 @@ class Device:
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'
         genre_list = self.get(url)
         if genre_list is None:
-            logging.warning("Unable to retrieve genres.")
+            logging.warning(ErrorMessage.DEVICE_GENRE_LIST_UNAVAILABLE)
             return None
 
         return genre_list

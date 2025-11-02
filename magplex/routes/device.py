@@ -133,9 +133,8 @@ def toggle_channel(channel_id):
     return Response(status=HTTPStatus.OK)
 
 
-@device.route('/playlists/<int:stream_id>')
-@login_required
-def get_channel_playlist(stream_id):
+@device.route('/channels/<int:stream_id>')
+def stream_playlist(stream_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
         return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)

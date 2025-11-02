@@ -15,7 +15,7 @@ stb = Blueprint("stb", __name__)
 
 
 @stb.route('/')
-def root():
+def get_stb_root():
     user_device = DeviceManager.get_device()
     if user_device is None:
         return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
@@ -24,18 +24,18 @@ def root():
 
 
 @stb.route('/discover.json')
-def discover():
+def get_stb_discover():
     domain = request.host_url[:-1]
     return jsonify(parser.build_discover(domain))
 
 
 @stb.route('/lineup_status.json')
-def lineup_status():
+def get_stb_lineup_status():
     return jsonify(parser.build_status())
 
 
 @stb.route('/lineup.json')
-def lineup():
+def get_stb_lineup():
     user_device = DeviceManager.get_device()
     if user_device is None:
         return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
@@ -45,7 +45,7 @@ def lineup():
 
 
 @stb.route('/playlist.m3u8')
-def get_channel_playlist():
+def get_stb_channel_playlist():
     stream_id = request.args.get('stream_id')
     if stream_id is None:
         return Response(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
@@ -85,7 +85,7 @@ def get_channel_playlist():
     def generate():
         try:
             while True:
-                data = process.stdout.read(32 * 1024)  # 32KB
+                data = process.stdout.read(256 * 1024)  # 256KB
                 if not data:
                     break
                 yield data
@@ -102,7 +102,7 @@ def get_channel_playlist():
 
 
 @stb.get('/guide.xml')
-def get_channel_guide():
+def get_stb_channel_guide():
     user_device = DeviceManager.get_device()
     if user_device is None:
         return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
