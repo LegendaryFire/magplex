@@ -3,7 +3,10 @@ __pycache__/
 .idea/
 .git/
 *.pyc
-README.md
+
+# Ignore development files
+magplex/database/migrations/credentials.sql
+maglex/docker/docker-compose.yml
 logs/
-magplex.tar
+README.md
 .env

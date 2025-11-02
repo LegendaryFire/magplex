@@ -1,12 +1,11 @@
 # Use an official Python runtime as a parent image
-FROM python:3.12-bookworm
+FROM python:3.13-bookworm
 
-# Copy entrypoint to image
-COPY docker/entrypoints/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Set the working directory in the container, and initialize image.
+WORKDIR /opt/magplex
+COPY . .
 
-# Copy Gunicorn config to image
-COPY docker/scripts/gunicorn.conf.py /gunicorn.conf.py
+RUN chmod +x docker/entrypoints/docker-entrypoint.sh
 
 # Install Nginx
 RUN apt-get update && \
@@ -28,21 +27,14 @@ RUN wget https://repo.jellyfin.org/files/ffmpeg/debian/latest-7.x/amd64/jellyfin
 
 ENV PATH="/usr/lib/jellyfin-ffmpeg:${PATH}"
 
-# Reset the working directory in the container
-WORKDIR /
-
 # Copy the requirements file and install dependencies
-COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Gunicorn
 RUN pip install --no-cache-dir gunicorn
 
-# Copy the rest of the application code
-COPY . .
-
 # Update the image build date.
-COPY docker/scripts/build_date.py /build_date.py
-RUN python /build_date.py
+RUN python docker/scripts/build_date.py
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Run the application.
+ENTRYPOINT ["docker/entrypoints/docker-entrypoint.sh"]

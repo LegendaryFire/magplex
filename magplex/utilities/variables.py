@@ -26,6 +26,8 @@ class Environment:
     BASE_FFMPEG = os.getenv('FFMPEG', None) or shutil.which('ffmpeg')
     BASE_CODEC = os.getenv('CODEC', False)
 
+    DEBUG = os.getenv('DEBUG', False)
+
     @classmethod
     def valid(cls):
         return all(getattr(cls, variable) is not None for variable in dir(cls) if not variable.startswith('__'))
