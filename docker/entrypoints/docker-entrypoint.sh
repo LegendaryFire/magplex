@@ -13,5 +13,11 @@ ln -sf /dev/stderr /var/log/nginx/error.log
 # Start nginx in background.
 nginx
 
-# Run gunicorn in the foreground.
-exec gunicorn -c gunicorn.conf.py main:app
+
+if [ "$PYCHARM_DEBUG" = "1" ]; then
+    echo "Starting MagPlex in PyCharm debugger mode..."
+    exec python /main.py
+else
+    # Run gunicorn in the foreground.
+    exec gunicorn -c gunicorn.conf.py main:app
+fi
