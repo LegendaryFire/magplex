@@ -1,4 +1,5 @@
 import logging
+import threading
 from enum import Enum
 
 import ffmpeg
@@ -67,4 +68,25 @@ def create_stream_response(url, encoder, headers):
             acodec='aac',
             audio_bitrate='128k'
         )
-    return process.run_async(cmd=Environment.BASE_FFMPEG, pipe_stdout=True, pipe_stderr=True)
+    proc = process.run_async(
+        cmd=Environment.BASE_FFMPEG,
+        pipe_stdout=True,
+        pipe_stderr=True
+    )
+
+    if Environment.DEBUG:
+        # Monitor FFMPEG logs if debugging is enabled.
+        logger = logging.getLogger()
+        def log_output(pipe):
+            for line in iter(pipe.readline, b''):
+                text = line.decode(errors="ignore").rstrip()
+                if "error" in text.lower():
+                    logger.error(text)
+                elif "warning" in text.lower():
+                    logger.warning(text)
+                else:
+                    logger.debug(text)
+
+        threading.Thread(target=log_output, args=(proc.stderr,), daemon=True).start()
+
+    return proc

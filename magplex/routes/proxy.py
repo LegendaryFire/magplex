@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 from http import HTTPStatus
 from urllib.parse import urljoin
@@ -7,7 +8,7 @@ from urllib.parse import urljoin
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 import requests
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, request, stream_with_context
 
 from magplex.device.device import DeviceManager
 from magplex.utilities.localization import ErrorMessage
@@ -71,14 +72,19 @@ def proxy_stream():
     session_identifier = data.get('session_identifier')
     headers = {"X-Sid": session_identifier} if session_identifier else {}
 
-    stream_link = f'{data.get('base_link')}{data.get('segment_path')}'
+    stream_link = f"{data.get('base_link')}{data.get('segment_path')}"
+    logging.error(stream_link)
     r = requests.get(stream_link, headers=headers, stream=True, allow_redirects=True)
 
     if r.status_code != HTTPStatus.OK:
         return Response(ErrorMessage.DEVICE_STREAM_SEGMENT_FAILED, r.status_code)
 
-    return Response(r.iter_content(), headers=r.headers)
+    response = Response(stream_with_context(r.iter_content(chunk_size=8192)), status=HTTPStatus.OK,
+                        direct_passthrough=True, content_type="video/mp2t")
 
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 def encrypt_data(user_device, data: dict) -> str:
     crypto = AESGCM(user_device.get_device_encryption_key())
@@ -95,6 +101,8 @@ def encrypt_data(user_device, data: dict) -> str:
 def decrypt_data(user_device, data: str) -> dict:
     crypto = AESGCM(user_device.get_device_encryption_key())
 
+    # Restore stripped padding.
+    data += "=" * (-len(data) % 4)
     raw = base64.urlsafe_b64decode(data)
     nonce, ct = raw[:12], raw[12:]
     plaintext = crypto.decrypt(nonce, ct, None)

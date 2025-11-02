@@ -13,4 +13,5 @@ ln -sf /dev/stderr /var/log/nginx/error.log
 # Start nginx in background.
 nginx
 
+# Run gunicorn in the foreground.
 exec gunicorn -c docker/scripts/gunicorn.conf.py main:app

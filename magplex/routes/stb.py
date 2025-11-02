@@ -85,7 +85,7 @@ def get_stb_channel_playlist():
     def generate():
         try:
             while True:
-                data = process.stdout.read(256 * 1024)  # 256KB
+                data = process.stdout.read(64 * 1024)  # 64KB
                 if not data:
                     break
                 yield data
