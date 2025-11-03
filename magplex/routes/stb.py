@@ -8,7 +8,7 @@ from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
 from magplex.device import database, media
 from magplex.device.device import DeviceManager
-from magplex.utilities.localization import ErrorMessage
+from magplex.utilities.localization import Locale
 from magplex.stb import parser
 from magplex.utilities.variables import Environment
 
@@ -19,7 +19,7 @@ stb = Blueprint("stb", __name__)
 def get_stb_root():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
     return Response(parser.build_device_info(user_device.device_uid, domain), mimetype='text/xml')
 
@@ -39,7 +39,7 @@ def get_stb_lineup_status():
 def get_stb_lineup():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
     channel_list = database.get_enabled_channels(g.db_conn, user_device.device_uid)
     return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
@@ -49,11 +49,11 @@ def get_stb_lineup():
 def get_stb_channel_playlist():
     stream_id = request.args.get('stream_id')
     if stream_id is None:
-        return Response(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
+        return Response(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
 
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.BAD_REQUEST)
+        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.BAD_REQUEST)
 
     channel_url = user_device.get_channel_playlist(stream_id)
     if channel_url is None:
@@ -108,7 +108,7 @@ def get_stb_channel_playlist():
 def get_stb_channel_guide():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
     guides = database.get_current_channel_guides(g.db_conn, user_device.device_uid)
     guide = parser.build_channel_guide(channels, guides, user_device.profile.timezone)

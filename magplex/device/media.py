@@ -1,10 +1,10 @@
-import io
 import logging
 import threading
 from enum import Enum
 
 import ffmpeg
 
+from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 
 
@@ -17,13 +17,13 @@ class EncoderMap(Enum):
 
     def get_name(self):
         if self.value == EncoderMap.REMUX:
-            logging.error("Encoder name does not exist when remuxing.")
+            logging.error(Locale.ENCODER_REMUXING_NO_NAME)
         return self.value[0]
 
 
     def get_preset(self):
         if self.value == EncoderMap.REMUX:
-            logging.error("Encoder preset does not exist when remuxing.")
+            logging.error(Locale.ENCODER_REMUXING_NO_PRESET)
         return self.value[1]
 
 
@@ -38,7 +38,7 @@ def get_encoder():
         elif EncoderMap.HEVC_SOFTWARE.get_name() == Environment.BASE_CODEC:
             return EncoderMap.HEVC_SOFTWARE
         else:
-            logging.warning("Unable to find supported codec. Falling back to remuxing.")
+            logging.warning(Locale.ENCODER_NO_SUPPORTED_CODEC)
     return EncoderMap.REMUX
 
 

@@ -16,7 +16,7 @@ from requests.adapters import HTTPAdapter
 from magplex import users
 from magplex.database.database import PostgresConnection, RedisPool
 from magplex.device import cache, tasks
-from magplex.utilities.localization import ErrorMessage
+from magplex.utilities.localization import Locale
 from magplex.utilities.scheduler import TaskManager
 
 
@@ -72,18 +72,18 @@ class Device:
             job_name = f'{self.device_uid}:{job.__name__}'
             try:
                 if scheduler.get_job(job_name) is not None:
-                    logging.warning('Scheduler background task already exists, skipping.')
                     continue
                 scheduler.add_job(job, 'interval', id=job_name, next_run_time=datetime.now(timezone.utc), **kwargs)
+                logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY)
             except ConflictingIdError:
-                logging.warning('Scheduler conflicting ID error ignored')
+                logging.warning(Locale.TASK_CONFLICTING_JOB_IGNORED)
 
 
     def _awaiting_timeout(self):
         cache_conn = RedisPool.get_connection()
         awaiting_timeout = cache.get_device_timeout(cache_conn, self.device_uid)
         if awaiting_timeout:
-            logging.warning(ErrorMessage.DEVICE_AWAITING_TIMEOUT)
+            logging.warning(Locale.DEVICE_AWAITING_TIMEOUT)
 
         return awaiting_timeout
 
@@ -92,11 +92,11 @@ class Device:
         invalid_responses = {'Authorization failed', 'Access denied'}
         valid_response = True
         if response.status_code != HTTPStatus.OK:
-            logging.warning('Invalid response code received')
+            logging.warning(Locale.DEVICE_INVALID_RESPONSE_CODE)
             valid_response = False
         for response_text in invalid_responses:
             if response_text in response.text:
-                logging.warning('Invalid text found in response')
+                logging.warning(Locale.DEVICE_INVALID_RESPONSE_TEXT)
                 valid_response = False
         if not valid_response:
             self.headers.pop('Authorization', None)
@@ -108,10 +108,10 @@ class Device:
         try:
             data = json.loads(response.text)
             if data is None or not isinstance(data, (list, dict)):
-                logging.warning(ErrorMessage.DEVICE_RESPONSE_UNEXPECTED_JSON)
+                logging.warning(Locale.DEVICE_RESPONSE_UNEXPECTED_JSON)
                 return False
         except json.JSONDecodeError:
-            logging.warning(ErrorMessage.DEVICE_RESPONSE_NOT_JSON)
+            logging.warning(Locale.DEVICE_RESPONSE_NOT_JSON)
             return False
 
         return True
@@ -135,7 +135,7 @@ class Device:
         # Check for a valid response.
         valid_response = self.__validate_response_text(response)
         if not valid_response:
-            logging.warning(ErrorMessage.DEVICE_INVALID_RESPONSE_TEXT)
+            logging.warning(Locale.DEVICE_INVALID_RESPONSE_TEXT)
             return None
 
         try:
@@ -221,14 +221,14 @@ class Device:
             # Attempt to refresh the access token.
             access_token = self.refresh_access_token()
             if access_token is None:
-                logging.warning(ErrorMessage.DEVICE_ACCESS_TOKEN_UNAVAILABLE)
+                logging.warning(Locale.DEVICE_ACCESS_TOKEN_UNAVAILABLE)
                 cache.set_device_timeout(cache_conn, self.device_uid)
                 self.invalidate_authorization()
                 return None
 
             is_authorized = self.update_authorization()
             if is_authorized is None:
-                logging.warning(ErrorMessage.DEVICE_AUTHORIZATION_FAILED)
+                logging.warning(Locale.DEVICE_AUTHORIZATION_FAILED)
                 cache.set_device_timeout(cache_conn, self.device_uid)
                 self.invalidate_authorization()
                 return None
@@ -269,7 +269,7 @@ class Device:
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
-            logging.warning(ErrorMessage.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE)
             return None
 
         # Attempt to get the stream ID from the channel playlist command.
@@ -277,10 +277,10 @@ class Device:
         if not stream_link:
             error = data.get('error')
             if error == 'link_fault':
-                logging.warning(ErrorMessage.DEVICE_STREAM_ID_NOT_FOUND)
+                logging.warning(Locale.DEVICE_STREAM_ID_NOT_FOUND)
                 return None
             else:
-                logging.warning(ErrorMessage.GENERAL_UNKNOWN_ERROR)
+                logging.warning(Locale.GENERAL_UNKNOWN_ERROR)
                 return None
 
         return stream_link
@@ -291,7 +291,7 @@ class Device:
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'
         genre_list = self.get(url)
         if genre_list is None:
-            logging.warning(ErrorMessage.DEVICE_GENRE_LIST_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_GENRE_LIST_UNAVAILABLE)
             return None
 
         return genre_list
@@ -302,7 +302,7 @@ class Device:
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
-            logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)
             return None
 
         channels = data.get('data') if data else None

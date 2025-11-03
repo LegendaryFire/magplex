@@ -12,7 +12,7 @@ from magplex import PostgresConnection
 from magplex.decorators import login_required
 from magplex.device import database
 from magplex.device.device import DeviceManager
-from magplex.utilities.localization import ErrorMessage
+from magplex.utilities.localization import Locale
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.scheduler import TaskManager
 
@@ -28,7 +28,7 @@ class ChannelState(StrEnum):
 def get_genres():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     channel_state = request.args.get('state', '').lower()
     if channel_state == ChannelState.ENABLED:
         genres = database.get_enabled_channel_genres(g.db_conn, user_device.device_uid)
@@ -44,7 +44,7 @@ def get_genres():
 def get_channels():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return Response(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
     channel_state = request.args.get('state', '').lower()
     if channel_state == ChannelState.ENABLED:
@@ -64,13 +64,12 @@ def update_channels():
     scheduler = TaskManager.get_scheduler()
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     job = scheduler.get_job(f'{user_device.device_uid}:save_channels')
     if not job:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    logging.info(f"Manually triggered channel list refresh for device {user_device.device_uid}.")
     return Response(status=HTTPStatus.ACCEPTED)
 
 
@@ -79,7 +78,7 @@ def update_channels():
 def get_channel_guides():
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     epg = database.get_current_channel_guides(g.db_conn, user_device.device_uid)
     guide_map = defaultdict(list)
     for guide in epg:
@@ -92,7 +91,7 @@ def get_channel_guides():
 def get_channel_guide(channel_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     channel_guide = database.get_channel_guide(g.db_conn, user_device.device_uid, channel_id)
     return jsonify(channel_guide)
 
@@ -103,13 +102,13 @@ def refresh_channel_guides():
     scheduler = TaskManager.get_scheduler()
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     job = scheduler.get_job(f'{user_device.device_uid}:save_channel_guides')
     if not job:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    logging.info(ErrorMessage.TASK_CHANNEL_GUIDE_TRIGGERED)
+    logging.info(Locale.TASK_CHANNEL_GUIDE_TRIGGERED)
     return Response(status=HTTPStatus.ACCEPTED)
 
 
@@ -118,10 +117,10 @@ def refresh_channel_guides():
 def toggle_channels():
     channels_enabled = request.json.get('channels_enabled')
     if channels_enabled is None:
-        return ErrorResponse(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS)
+        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS)
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     database.update_channels_enabled(g.db_conn, user_device.device_uid, channels_enabled)
     return Response(status=HTTPStatus.OK)
 
@@ -131,7 +130,7 @@ def toggle_channels():
 def toggle_channel(channel_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     database.toggle_channel_enabled(g.db_conn, user_device.device_uid, channel_id)
     return Response(status=HTTPStatus.OK)
 
@@ -140,13 +139,13 @@ def toggle_channel(channel_id):
 def stream_playlist(channel_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
     if channel is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
     stream_link = user_device.get_channel_playlist(channel.stream_id)
     if stream_link is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_STREAM, HTTPStatus.NOT_FOUND)
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_STREAM, HTTPStatus.NOT_FOUND)
 
     return redirect(stream_link, code=HTTPStatus.FOUND)
 
@@ -155,15 +154,15 @@ def stream_playlist(channel_id):
 def proxy_playlist(channel_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
     channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
 
     if channel is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
     stream_link = user_device.get_channel_playlist(channel.stream_id)
 
     if stream_link is None:
-        return Response(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
+        return Response(Locale.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
     response = requests.get(stream_link)
     session_identifier = response.headers.get('X-Sid', None)
 
@@ -200,23 +199,23 @@ def proxy_playlist(channel_id):
 def proxy_stream(channel_id):
     data = request.args.get("data")
     if not data:
-        return ErrorResponse(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
 
     user_device = DeviceManager.get_device()
     if user_device is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
     channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
     if channel is None:
-        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
 
     data = user_device.decrypt_data(data)
     if data is None:
-        return ErrorResponse(ErrorMessage.DEVICE_INVALID_DECRYPTED_DATA, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_INVALID_DECRYPTED_DATA, status=HTTPStatus.FORBIDDEN)
 
     stream_id = data.get('stream_id')
     if stream_id != channel.stream_id:
-        return ErrorResponse(ErrorMessage.DEVICE_CHANNEL_STREAM_MISMATCH, status=HTTPStatus.NOT_FOUND)
+        return ErrorResponse(Locale.DEVICE_CHANNEL_STREAM_MISMATCH, status=HTTPStatus.NOT_FOUND)
 
     session_identifier = data.get('session_identifier')
     headers = {"X-Sid": session_identifier} if session_identifier else {}
@@ -226,7 +225,7 @@ def proxy_stream(channel_id):
     r = requests.get(stream_link, headers=headers, stream=True, allow_redirects=True)
 
     if r.status_code != HTTPStatus.OK:
-        return ErrorResponse(ErrorMessage.DEVICE_STREAM_SEGMENT_FAILED, HTTPStatus(r.status_code))
+        return ErrorResponse(Locale.DEVICE_STREAM_SEGMENT_FAILED, HTTPStatus(r.status_code))
 
     response = Response(stream_with_context(r.iter_content(chunk_size=8192)), status=HTTPStatus.OK,
                         direct_passthrough=True, content_type="video/mp2t")

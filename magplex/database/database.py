@@ -51,7 +51,6 @@ class PostgresConnection:
         else:
             self.commit()
         self.close()
-        logging.info("Connection returned through Postgres lazy context manager.")
 
 
 class PostgresPool:

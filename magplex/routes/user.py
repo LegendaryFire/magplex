@@ -7,6 +7,7 @@ from magplex.decorators import login_required
 from magplex.device.device import DeviceManager
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
+from magplex.utilities.localization import Locale
 
 user = Blueprint("user", __name__)
 
@@ -25,17 +26,17 @@ def save_username():
     new_username = request.json.get('new_username')
     password = request.json.get('password')
     if not current_username or not new_username or not password:
-        return ErrorResponse("Missing required fields.", HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
     if any(char.isspace() for char in new_username):
-        return ErrorResponse("New username can't contain spaces.", HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.UI_USERNAME_CONTAINS_SPACES, HTTPStatus.BAD_REQUEST)
 
     session_user = database.get_user(g.db_conn, g.user_session.user_uid)
     validated_user = database.validate_user(g.db_conn, session_user.username, password)
     if not validated_user:
-        return ErrorResponse("Invalid credentials, please try again.", HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.UI_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
 
     if new_username == validated_user.username:
-        return ErrorResponse("New username is the same as current.", HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.UI_USERNAME_DIDNT_CHANGE, HTTPStatus.FORBIDDEN)
 
     database.update_username(g.db_conn, session_user.user_uid, new_username)
     return Response(status=HTTPStatus.OK)
@@ -50,17 +51,17 @@ def save_password():
 
     session_user = database.get_user(g.db_conn, g.user_session.user_uid)
     if not current_password or not new_password or not new_password_repeated:
-        return ErrorResponse("Missing required fields.", HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
 
     validated_user = database.validate_user(g.db_conn, session_user.username, current_password)
     if not validated_user:
-        return ErrorResponse("Invalid credentials, please try again.", HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.UI_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
 
     if len(new_password) < 8:
-        return ErrorResponse("New password must be at least 8 characters long.", HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.UI_PASSWORD_REQUIREMENT_NOT_MET, HTTPStatus.FORBIDDEN)
 
     if new_password != new_password_repeated:
-        return ErrorResponse("The new passwords do not match, please try again.", HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.UI_PASSWORD_DOESNT_MATCH, HTTPStatus.BAD_REQUEST)
 
     database.update_password(g.db_conn, session_user.user_uid, new_password)
     return Response(status=HTTPStatus.OK)
@@ -71,10 +72,10 @@ def login():
     username = request.json.get('username')
     password = request.json.get('password')
     if not username or not password:
-        return ErrorResponse('Missing either username or password. Please try again.', HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
     user_account = database.validate_user(g.db_conn, username, password)
     if user_account is None:
-        return ErrorResponse('Invalid user credentials, please try again.', HTTPStatus.UNAUTHORIZED)
+        return ErrorResponse(Locale.UI_INVALID_CREDENTIALS, HTTPStatus.UNAUTHORIZED)
 
     expiration_timestamp = datetime.now() + timedelta(days=90)
     user_session = database.insert_user_session(g.db_conn, user_account.user_uid,

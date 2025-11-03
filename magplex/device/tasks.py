@@ -3,19 +3,20 @@ from itertools import batched
 
 from magplex.database.database import PostgresConnection
 from magplex.device import database, parser
-from magplex.utilities.localization import ErrorMessage
+from magplex.utilities.localization import Locale
 
 
 def save_channels():
     from magplex.device.device import DeviceManager
+    logging.info(Locale.TASK_RUNNING_CHANNEL_LIST_REFRESH)
     user_device = DeviceManager.get_device()
     if user_device is None:
-        logging.warning(ErrorMessage.DEVICE_UNAVAILABLE)
+        logging.warning(Locale.DEVICE_UNAVAILABLE)
         return None
 
     fetched_genres = user_device.get_genres()
     if fetched_genres is None:
-        logging.warning(ErrorMessage.DEVICE_GENRE_LIST_UNAVAILABLE)
+        logging.warning(Locale.DEVICE_GENRE_LIST_UNAVAILABLE)
         return None
 
     conn = PostgresConnection()
@@ -29,7 +30,7 @@ def save_channels():
     genres = database.get_all_genres(conn, user_device.device_uid)
     fetched_channels = user_device.get_all_channels()
     if fetched_channels is None:
-        logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_UNAVAILABLE)
+        logging.warning(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)
         return None
 
     index = 0
@@ -54,7 +55,7 @@ def save_channels():
 
     # Get the latest copy of the channel list.
     channel_list = database.get_all_channels(conn, user_device.device_uid)
-    logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_SUCCESSFUL)
+    logging.warning(Locale.DEVICE_CHANNEL_LIST_SUCCESSFUL)
     conn.close()
     return channel_list
 
@@ -62,16 +63,16 @@ def save_channels():
 def save_channel_guides():
     """Background task ran at an interval to populate the cache with EPG information."""
     from magplex.device.device import DeviceManager
+    logging.info(Locale.TASK_RUNNING_CHANNEL_GUIDE_REFRESH)
     user_device = DeviceManager.get_device()
     if user_device is None:
-        logging.error(ErrorMessage.DEVICE_UNAVAILABLE)
+        logging.error(Locale.DEVICE_UNAVAILABLE)
         return
-    logging.info(f"Setting channel guide for device {user_device.device_uid}.")
 
     conn = PostgresConnection()
     channel_list = database.get_enabled_channels(conn, user_device.device_uid)
     if channel_list is None:
-        logging.error('Failed to update channel guide. Channel list is None.')
+        logging.error(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)
         return
     conn.close()
 
@@ -82,7 +83,6 @@ def save_channel_guides():
         guide_urls.append(link)
 
     # Process the channel guide URLs in batches to prevent rate limiting.
-    logging.info(f"Fetching channel guide data for device {user_device.device_uid}.")
     for link_batch in batched(guide_urls, 3):
         guide_batch = user_device.get_batch(link_batch)
         conn = PostgresConnection()

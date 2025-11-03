@@ -4,6 +4,7 @@ from flask import Blueprint, Response, jsonify, render_template, send_file
 
 import version
 from magplex.decorators import login_required
+from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 
 ui = Blueprint("ui", __name__)
@@ -26,7 +27,7 @@ def logs():
     try:
         return send_file(Environment.BASE_LOG, as_attachment=False)
     except FileNotFoundError:
-        return Response("Could not find log file.", HTTPStatus.NOT_FOUND)
+        return Response(Locale.LOG_FILE_NOT_FOUND, HTTPStatus.NOT_FOUND)
 
 
 @ui.route('/about')
