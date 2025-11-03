@@ -1,3 +1,4 @@
+import io
 import logging
 import threading
 from enum import Enum
@@ -48,7 +49,10 @@ def create_stream_response(url, encoder, headers):
         allowed_extensions='ALL',
         http_persistent=1,
         flags='low_delay',
-        headers=headers
+        rw_timeout=60 * 10**6,  # 60 seconds, in microseconds.
+        reconnect_streamed=1,
+        reconnect_on_network_error=1,
+        headers = headers
     )
 
     if encoder == EncoderMap.REMUX:
@@ -68,18 +72,19 @@ def create_stream_response(url, encoder, headers):
             acodec='aac',
             audio_bitrate='128k'
         )
+
     proc = process.run_async(
         cmd=Environment.BASE_FFMPEG,
         pipe_stdout=True,
         pipe_stderr=True
     )
 
-    if Environment.DEBUG:
-        # Monitor FFMPEG logs if debugging is enabled.
-        logger = logging.getLogger()
-        def log_output(pipe):
-            for line in iter(pipe.readline, b''):
-                text = line.decode(errors="ignore").rstrip()
+    # Monitor FFMPEG logs if debugging is enabled.
+    logger = logging.getLogger()
+    def log_output(pipe):
+        for line in iter(pipe.readline, b''):
+            text = line.decode(errors="ignore").rstrip()  # Must consume error to drain piped output.
+            if Environment.DEBUG:
                 if "error" in text.lower():
                     logger.error(text)
                 elif "warning" in text.lower():

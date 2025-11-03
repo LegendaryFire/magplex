@@ -1,9 +1,10 @@
 import logging
 from http import HTTPStatus
+from subprocess import TimeoutExpired
 
 import ffmpeg
 import requests
-from flask import Blueprint, Response, g, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
 from magplex.device import database, media
 from magplex.device.device import DeviceManager
@@ -59,7 +60,7 @@ def get_stb_channel_playlist():
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
 
     # Attempt to get X-Sid header if it exists.
-    response = requests.get(channel_url, stream=True, allow_redirects=True)
+    response = requests.get(channel_url, allow_redirects=True)
 
     # Pass session header and others if they exist.
     headers = {}
@@ -67,9 +68,6 @@ def get_stb_channel_playlist():
         if key in response.headers:
             headers[key] = response.headers[key]
     headers = ''.join(f"{k}: {v}\r\n" for k, v in headers.items())
-
-    domain = request.host_url[:-1]
-    channel_url = f'{domain}/api/proxy/channels/{stream_id}'
 
     if Environment.BASE_FFMPEG is None:
         logging.error("Unable to find ffmpeg installation.")
@@ -84,16 +82,21 @@ def get_stb_channel_playlist():
 
     def generate():
         try:
-            while True:
-                data = process.stdout.read(64 * 1024)  # 64KB
-                if not data:
-                    break
-                yield data
+            for chunk in iter(lambda: process.stdout.read(64 * 1024), b''):
+                yield chunk
+        except GeneratorExit:
+            process.terminate()  # Client disconnected, terminate process.
         finally:
-            process.kill()
+            try:
+                process.wait(timeout=10)  # Wait for the process to properly cleanup and close.
+            except TimeoutExpired:
+                process.kill()
+            finally:
+                process.stdout.close()
 
     return Response(
-        generate(),
+        stream_with_context(generate()),
+        direct_passthrough=True,
         headers={
             "Content-Type": "video/mp2t",
             "Access-Control-Allow-Origin": "*"
