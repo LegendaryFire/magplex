@@ -8,12 +8,11 @@ from urllib.parse import urljoin
 import requests
 from flask import Blueprint, Response, g, jsonify, redirect, request, stream_with_context
 
-from magplex import PostgresConnection
 from magplex.decorators import login_required
 from magplex.device import database
 from magplex.device.device import DeviceManager
-from magplex.utilities.localization import Locale
 from magplex.utilities.error import ErrorResponse
+from magplex.utilities.localization import Locale
 from magplex.utilities.scheduler import TaskManager
 
 device = Blueprint("device", __name__)

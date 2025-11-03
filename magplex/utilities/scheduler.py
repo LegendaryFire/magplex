@@ -4,7 +4,6 @@ from datetime import timezone
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from magplex.utilities import tasks
 from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 

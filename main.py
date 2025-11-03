@@ -1,7 +1,6 @@
 import magplex
 from app_setup import initialize
 
-
 app = magplex.create_app()
 if __name__ == '__main__':
     initialize()

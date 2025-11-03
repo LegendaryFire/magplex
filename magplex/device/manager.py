@@ -1,5 +1,4 @@
-from magplex import users
-from magplex import PostgresConnection
+from magplex import PostgresConnection, users
 from magplex.device.device import Device
 
 

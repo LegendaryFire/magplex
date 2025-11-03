@@ -8,8 +8,8 @@ from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
 from magplex.device import database, media
 from magplex.device.device import DeviceManager
-from magplex.utilities.localization import Locale
 from magplex.stb import parser
+from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 
 stb = Blueprint("stb", __name__)
