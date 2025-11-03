@@ -88,7 +88,7 @@ def get_stb_channel_playlist():
             process.terminate()  # Client disconnected, terminate process.
         finally:
             try:
-                process.wait(timeout=10)  # Wait for the process to properly cleanup and close.
+                process.wait(timeout=10)  # Wait for the process to properly clean up and close.
             except TimeoutExpired:
                 process.kill()
             finally:

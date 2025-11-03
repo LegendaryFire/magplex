@@ -3,9 +3,12 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from enum import StrEnum
 from http import HTTPStatus
+from urllib.parse import urljoin
 
-from flask import Blueprint, Response, g, jsonify, redirect, request
+import requests
+from flask import Blueprint, Response, g, jsonify, redirect, request, stream_with_context
 
+from magplex import PostgresConnection
 from magplex.decorators import login_required
 from magplex.device import database
 from magplex.device.device import DeviceManager
@@ -106,7 +109,7 @@ def refresh_channel_guides():
         return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    logging.info(f"Manually triggered channel guide refresh for device {user_device.device_uid}.")
+    logging.info(ErrorMessage.TASK_CHANNEL_GUIDE_TRIGGERED)
     return Response(status=HTTPStatus.ACCEPTED)
 
 
@@ -133,13 +136,101 @@ def toggle_channel(channel_id):
     return Response(status=HTTPStatus.OK)
 
 
-@device.route('/channels/<int:stream_id>')
-def stream_playlist(stream_id):
+@device.route('/channels/<int:channel_id>')
+def stream_playlist(channel_id):
     user_device = DeviceManager.get_device()
     if user_device is None:
         return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
-    channel_url = user_device.get_channel_playlist(stream_id)
-    if channel_url is None:
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
+    if channel is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+    stream_link = user_device.get_channel_playlist(channel.stream_id)
+    if stream_link is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_STREAM, HTTPStatus.NOT_FOUND)
+
+    return redirect(stream_link, code=HTTPStatus.FOUND)
+
+
+@device.route('/channels/<int:channel_id>/proxy')
+def proxy_playlist(channel_id):
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
+
+    if channel is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+    stream_link = user_device.get_channel_playlist(channel.stream_id)
+
+    if stream_link is None:
+        return Response(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
+    response = requests.get(stream_link)
+    session_identifier = response.headers.get('X-Sid', None)
+
+    # There are often redirects, which we must follow to get the final link path.
+    base_link = urljoin(response.url, './')
+
+    current_playlist = response.text
+    proxied_playlist = []
+    for line in current_playlist.splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            data = {
+                'stream_id': channel.stream_id,
+                'base_link': base_link,
+                'segment_path': line,
+                'session_identifier': session_identifier
+            }
+            proxied_url = f"/api/device/channels/{channel.channel_id}/proxy/stream.ts?data={user_device.encrypt_data(data)}"
+            proxied_playlist.append(proxied_url)
+        else:
+            proxied_playlist.append(line)
+
+    return Response(
+        "\n".join(proxied_playlist),
+        headers={
+            "Content-Type": "application/vnd.apple.mpegurl",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-cache",
+        }
+    )
+
+
+@device.route('/channels/<int:channel_id>/proxy/stream.ts')
+def proxy_stream(channel_id):
+    data = request.args.get("data")
+    if not data:
+        return ErrorResponse(ErrorMessage.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
+
+    user_device = DeviceManager.get_device()
+    if user_device is None:
+        return ErrorResponse(ErrorMessage.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
+    if channel is None:
         return ErrorResponse(ErrorMessage.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
 
-    return redirect(channel_url, code=HTTPStatus.FOUND)
+    data = user_device.decrypt_data(data)
+    if data is None:
+        return ErrorResponse(ErrorMessage.DEVICE_INVALID_DECRYPTED_DATA, status=HTTPStatus.FORBIDDEN)
+
+    stream_id = data.get('stream_id')
+    if stream_id != channel.stream_id:
+        return ErrorResponse(ErrorMessage.DEVICE_CHANNEL_STREAM_MISMATCH, status=HTTPStatus.NOT_FOUND)
+
+    session_identifier = data.get('session_identifier')
+    headers = {"X-Sid": session_identifier} if session_identifier else {}
+
+    stream_link = f"{data.get('base_link')}{data.get('segment_path')}"
+    logging.error(stream_link)
+    r = requests.get(stream_link, headers=headers, stream=True, allow_redirects=True)
+
+    if r.status_code != HTTPStatus.OK:
+        return ErrorResponse(ErrorMessage.DEVICE_STREAM_SEGMENT_FAILED, HTTPStatus(r.status_code))
+
+    response = Response(stream_with_context(r.iter_content(chunk_size=8192)), status=HTTPStatus.OK,
+                        direct_passthrough=True, content_type="video/mp2t")
+
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response

@@ -151,7 +151,6 @@ class ChannelList extends HTMLElement {
         channelElem.dataset['channelId'] = channel.channel_id;
         channelElem.dataset['channelName'] = channel.channel_name;
         channelElem.dataset['genreId'] = channel.genre_id;
-        channelElem.dataset['streamId'] = channel.stream_id;
         channelElem.toggleAttribute('selected', this.editMode && channel.channel_enabled)
 
         const genre = this.genres.find((g) => g.genre_id === channel.genre_id);

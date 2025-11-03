@@ -1,6 +1,8 @@
+import base64
 import hashlib
 import json
 import logging
+import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -8,6 +10,7 @@ from http import HTTPStatus
 
 import requests
 from apscheduler.jobstores.base import ConflictingIdError
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from requests.adapters import HTTPAdapter
 
 from magplex import users
@@ -158,6 +161,7 @@ class Device:
 
 
     def update_access_token(self):
+        """Fetch a new access token and update authorization headers."""
         cache_conn = RedisPool.get_connection()
         access_token = cache.get_access_token(cache_conn, self.device_uid)
         if access_token is not None:
@@ -169,10 +173,12 @@ class Device:
 
 
     def is_authorized(self):
+        """Check if the session exists."""
         return 'Authorization' in self.headers
 
 
     def invalidate_authorization(self):
+        """Invalidate the session token."""
         cache_conn = RedisPool.get_connection()
         cache.expire_access(cache_conn, self.device_uid)
         self.headers.pop('Authorization', None)
@@ -239,6 +245,7 @@ class Device:
 
 
     def get_batch(self, urls):
+        """Process a batch of URLs using the portal GET method."""
         def get(url):
             try:
                 get_response = self.get(url)
@@ -263,7 +270,7 @@ class Device:
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
-            logging.warning("Unable to retrieve channel playlist.")
+            logging.warning(ErrorMessage.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE)
             return None
 
         # Attempt to get the stream ID from the channel playlist command.
@@ -271,10 +278,10 @@ class Device:
         if not stream_link:
             error = data.get('error')
             if error == 'link_fault':
-                logging.warning(f"Unable to get playlist link. Stream ID {stream_id} does not exist.")
+                logging.warning(ErrorMessage.DEVICE_STREAM_ID_NOT_FOUND)
                 return None
             else:
-                logging.warning("Unable to get playlist link. Unknown error.")
+                logging.warning(ErrorMessage.GENERAL_UNKNOWN_ERROR)
                 return None
 
         return stream_link
@@ -292,11 +299,37 @@ class Device:
 
 
     def get_all_channels(self):
+        """Gert a list of all the channels."""
         url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
-            logging.warning('Unable to get channel list.')
+            logging.warning(ErrorMessage.DEVICE_CHANNEL_LIST_UNAVAILABLE)
             return None
 
         channels = data.get('data') if data else None
         return channels
+
+
+    def encrypt_data(self, data: dict) -> str:
+        """Encrypt data using device unique key."""
+        crypto = AESGCM(self.get_device_encryption_key())
+
+        # 96-bit random nonce for AES-GCM
+        nonce = os.urandom(12)
+        plaintext = json.dumps(data).encode()
+
+        ct = crypto.encrypt(nonce, plaintext, None)
+        blob = nonce + ct
+        return base64.urlsafe_b64encode(blob).decode().rstrip("=")  # URL safe
+
+
+    def decrypt_data(self, data: str) -> dict:
+        """Decrypt data using device unique key."""
+        crypto = AESGCM(self.get_device_encryption_key())
+
+        # Restore stripped padding.
+        data += "=" * (-len(data) % 4)
+        raw = base64.urlsafe_b64decode(data)
+        nonce, ct = raw[:12], raw[12:]
+        plaintext = crypto.decrypt(nonce, ct, None)
+        return json.loads(plaintext)

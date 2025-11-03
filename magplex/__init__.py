@@ -5,7 +5,6 @@ import magplex.database as database
 from magplex import users
 from magplex.database.database import PostgresConnection, RedisPool
 from magplex.routes.device import device
-from magplex.routes.proxy import proxy
 from magplex.routes.stb import stb
 from magplex.routes.ui import ui
 from magplex.routes.user import user
@@ -18,7 +17,6 @@ def create_app():
 
     app.register_blueprint(user, url_prefix="/api/user")
     app.register_blueprint(device, url_prefix='/api/device')
-    app.register_blueprint(proxy, url_prefix='/api/proxy')
     app.register_blueprint(stb, url_prefix='/stb')
     app.register_blueprint(ui)
 

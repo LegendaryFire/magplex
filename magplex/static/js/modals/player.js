@@ -2,14 +2,14 @@ class PlayerModal extends Modal {
     constructor() {
         super();
         this.modalTitle = null;
-        this.streamId = null;
+        this.channelId = null;
         this.videoElem = null;
         this.hls = null;
     }
 
     connectedCallback() {
         this.modalTitle = this.dataset.channelName;
-        this.streamId = this.dataset.streamId;
+        this.channelId = this.dataset.channelId;
 
         this.innerHTML = `<video controls></video>`;
         super.connectedCallback();
@@ -40,7 +40,7 @@ class PlayerModal extends Modal {
             return;
         }
 
-        const channelUrl = `/api/proxy/channels/${this.streamId}`;
+        const channelUrl = `/api/device/channels/${this.channelId}/proxy`;
         this.hls = new Hls();
         this.hls.loadSource(channelUrl);
         this.hls.attachMedia(this.videoElem);

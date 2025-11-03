@@ -117,13 +117,15 @@ def get_channel(conn, device_uid, channel_id):
     with conn.cursor() as cursor:
         query = """
             select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                genre_number, genre_name, stream_id, modified_timestamp, creation_timestamp
+                   genre_id, stream_id, modified_timestamp, creation_timestamp
             from channels
             where device_uid = %(device_uid)s
             and channel_id = %(channel_id)s
         """
         cursor.execute(query, locals())
-        return [Channel(*row) for row in cursor]
+        for row in cursor:
+            return Channel(*row)
+        return None
 
 
 def get_all_channels(conn, device_uid):
