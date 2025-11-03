@@ -97,7 +97,7 @@ def logout():
 @user.get('device')
 @login_required
 def get_user_device():
-    return jsonify(database.get_user_device(g.db_conn))
+    return jsonify(database.get_user_device_profile(g.db_conn))
 
 
 @user.post('/device')

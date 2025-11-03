@@ -26,7 +26,7 @@ class DeviceManager:
     @classmethod
     def create_device(cls):
         conn = PostgresConnection()
-        device_profile = users.database.get_user_device(conn)
+        device_profile = users.database.get_user_device_profile(conn)
         if device_profile is None:
             return None
         conn.close()
@@ -46,7 +46,6 @@ class DeviceManager:
 class Device:
     def __init__(self, profile):
         self.device_uid = str(profile.device_uid)
-        self.authorized = True
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
         self.session.mount("http://", self.adapter)
@@ -150,8 +149,8 @@ class Device:
             return None
 
         cache_conn = RedisPool.get_connection()
-        cache.set_access_token(cache_conn, self.device_uid, access_token)
-        cache.set_access_random(cache_conn, self.device_uid, random_token)
+        cache.set_device_access_token(cache_conn, self.device_uid, access_token)
+        cache.set_device_access_random(cache_conn, self.device_uid, random_token)
         self.headers['Authorization'] = f'Bearer {access_token}'
         if random_token is not None:
             self.headers['X-Random'] = random_token
@@ -163,10 +162,10 @@ class Device:
     def update_access_token(self):
         """Fetch a new access token and update authorization headers."""
         cache_conn = RedisPool.get_connection()
-        access_token = cache.get_access_token(cache_conn, self.device_uid)
+        access_token = cache.get_device_access_token(cache_conn, self.device_uid)
         if access_token is not None:
             self.headers.update({'Authorization': f'Bearer {access_token}'})
-        random_token = cache.get_access_random(cache_conn, self.device_uid)
+        random_token = cache.get_device_access_random(cache_conn, self.device_uid)
         if random_token is not None:
             self.headers.update({'X-Random': f'{random_token}'})
             self.headers.update({'Random': f'{random_token}'})
@@ -180,7 +179,7 @@ class Device:
     def invalidate_authorization(self):
         """Invalidate the session token."""
         cache_conn = RedisPool.get_connection()
-        cache.expire_access(cache_conn, self.device_uid)
+        cache.expire_device_access(cache_conn, self.device_uid)
         self.headers.pop('Authorization', None)
         self.headers.pop('X-Random', None)
         self.headers.pop('Random', None)

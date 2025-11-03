@@ -120,12 +120,14 @@ def expire_user_session(conn, session_uid):
         return None
 
 
-def get_user_device(conn):
+def get_user_device_profile(conn, user_uid=None):
     with conn.cursor() as cursor:
         query = """
             select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
                 portal, language, timezone, modified_timestamp, creation_timestamp
             from devices
+            where (%(user_uid) is null or user_uid = %(user_uid)s)
+            limit 1
         """
         cursor.execute(query, locals())
         row = cursor.fetchone()
