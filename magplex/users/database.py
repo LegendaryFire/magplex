@@ -126,7 +126,7 @@ def get_user_device_profile(conn, user_uid=None):
             select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
                 portal, language, timezone, modified_timestamp, creation_timestamp
             from devices
-            where (%(user_uid) is null or user_uid = %(user_uid)s)
+            where (%(user_uid)s::uuid is null or user_uid = %(user_uid)s)
             limit 1
         """
         cursor.execute(query, locals())

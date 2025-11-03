@@ -5,7 +5,13 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from magplex.utilities import tasks
+from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
+
+
+def wake_scheduler():
+    """This job is responsible for keeping the scheduler alive, for when tasks are manually triggered."""
+    pass
 
 
 class IgnoreWakeSchedulerFilter(logging.Filter):
@@ -14,6 +20,7 @@ class IgnoreWakeSchedulerFilter(logging.Filter):
 
 
 logging.getLogger("apscheduler.executors.default").addFilter(IgnoreWakeSchedulerFilter())
+
 
 class TaskManager:
     _scheduler = None
@@ -36,8 +43,9 @@ class TaskManager:
                 },
                 timezone=timezone.utc
             )
-            cls._scheduler.add_job(tasks.wake_scheduler, 'interval', id="wake_scheduler",
+            cls._scheduler.add_job(wake_scheduler, 'interval', id="wake_scheduler",
                                    seconds=5, replace_existing=True)
+            logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY)
 
         return cls._scheduler
 
