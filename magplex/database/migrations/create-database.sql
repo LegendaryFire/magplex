@@ -36,6 +36,12 @@ create table if not exists user_sessions (
 create index if not exists user_sessions_user_idx on user_sessions (session_uid);
 
 
+create table if not exists user_keys (
+    api_key                 uuid                        not null primary key default gen_random_uuid(),
+    user_uid                uuid                        not null unique references users (user_uid) on delete cascade,
+    creation_timestamp      timestamp with time zone    not null default current_timestamp
+);
+
 
 ----------------------- Devices -----------------------
 create table if not exists devices (

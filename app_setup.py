@@ -61,10 +61,12 @@ def initialize():
     if not scheduler.running:
         scheduler.start()
 
-
+    # TODO: Initialize all devices on startup, and add their background tasks to the queue.
+    """
     # Create STB profile and device.
     device = DeviceManager.get_device()
     if device is None:
         logging.warning("Unable to get device. It's likely that a STB device has not been configured yet.")
+    """
 
     PostgresPool.close_pool()

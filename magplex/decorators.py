@@ -1,12 +1,44 @@
 from functools import wraps
 
-from flask import g, redirect
+from flask import g, redirect, request
+
+from magplex import PostgresConnection, users
+from magplex.utilities.error import ErrorResponse
+
+from magplex.utilities.localization import Locale
 
 
-def login_required(f):
+def authorized_route(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not getattr(g, "user_session", None):
+        # Attempt to get the user from an API key.
+        user_authenticated = False
+        api_key = request.headers.get('ApiKey')
+        if api_key:
+            with PostgresConnection() as conn:
+                user_profile = users.database.get_user_key(conn, api_key)
+                if user_profile:
+                    g.user_uid = user_profile.user_uid
+                    user_device_profile = users.database.get_device_profile_by_user(conn, user_profile.user_uid)
+                    g.device_uid = user_device_profile.device_uid if user_device_profile else None
+                    user_authenticated = True
+                else:
+                    return ErrorResponse(Locale.UI_INVALID_CREDENTIALS)
+
+        # Attempt to get the user from a session.
+        session_uid = request.cookies.get('session_uid')
+        if session_uid:
+            with PostgresConnection() as conn:
+                user_session = users.database.get_user_session(conn, session_uid)
+                if user_session is not None:
+                    g.user_session = user_session
+                    g.user_uid = user_session.user_uid
+                    user_device_profile = users.database.get_device_profile_by_user(conn, user_session.user_uid)
+                    g.device_uid = user_device_profile.device_uid if user_device_profile else None
+                    user_authenticated = True
+
+        if not user_authenticated:
             return redirect('/login')
+
         return f(*args, **kwargs)
     return decorated

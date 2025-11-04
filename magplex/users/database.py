@@ -21,6 +21,13 @@ class UserSession:
 
 
 @dataclass
+class UserApi:
+    api_key: UUID
+    user_uid: UUID
+    creation_timestamp: datetime
+
+
+@dataclass
 class DeviceProfile:
     device_uid: UUID
     user_uid: UUID
@@ -47,6 +54,7 @@ def validate_user(conn, username, password):
         row = cursor.fetchone()
         return User(*row) if row else None
 
+
 def get_user(conn, user_uid):
     with conn.cursor() as cursor:
         query = """
@@ -58,6 +66,7 @@ def get_user(conn, user_uid):
         row = cursor.fetchone()
         return User(*row) if row else None
 
+
 def update_username(conn, user_uid, username):
     with conn.cursor() as cursor:
         query = """
@@ -66,6 +75,7 @@ def update_username(conn, user_uid, username):
             where user_uid = %(user_uid)s
         """
         cursor.execute(query, locals())
+
 
 def update_password(conn, user_uid, password):
     with conn.cursor() as cursor:
@@ -98,6 +108,19 @@ def get_user_session(conn, session_uid):
         return None
 
 
+def get_user_key(conn, api_key):
+    with conn.cursor() as cursor:
+        query = """
+            select api_key, user_uid, creation_timestamp
+            from user_keys
+            where api_key = %(api_key)s
+        """
+        cursor.execute(query, locals())
+        for row in cursor:
+            return UserApi(*row)
+        return None
+
+
 def insert_user_session(conn, user_uid, ip_address, expiration_timestamp):
     with conn.cursor() as cursor:
         query = """
@@ -120,18 +143,33 @@ def expire_user_session(conn, session_uid):
         return None
 
 
-def get_user_device_profile(conn, user_uid=None):
+def get_device_profile_by_uid(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
             select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
                 portal, language, timezone, modified_timestamp, creation_timestamp
             from devices
-            where (%(user_uid)s::uuid is null or user_uid = %(user_uid)s)
+            where device_uid = %(device_uid)s
             limit 1
         """
         cursor.execute(query, locals())
         row = cursor.fetchone()
         return DeviceProfile(*row) if row else None
+
+
+def get_device_profile_by_user(conn, user_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
+                portal, language, timezone, modified_timestamp, creation_timestamp
+            from devices
+            where user_uid = %(user_uid)s
+            limit 1
+        """
+        cursor.execute(query, locals())
+        row = cursor.fetchone()
+        return DeviceProfile(*row) if row else None
+
 
 
 def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, signature, portal, language, timezone):

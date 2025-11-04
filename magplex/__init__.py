@@ -1,4 +1,4 @@
-from flask import Flask, g, request
+from flask import Flask, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import magplex.database as database
@@ -16,18 +16,16 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     app.register_blueprint(user, url_prefix="/api/user")
-    app.register_blueprint(device, url_prefix='/api/device')
+    app.register_blueprint(device, url_prefix='/api/devices')
     app.register_blueprint(stb, url_prefix='/stb')
     app.register_blueprint(ui)
+
 
     @app.before_request
     def before_request():
         g.db_conn = PostgresConnection()
         g.cache_conn = RedisPool.get_connection()
-        session_uid = request.cookies.get('session_uid')
-        if session_uid:
-            with PostgresConnection() as conn:
-                g.user_session = users.database.get_user_session(conn, session_uid)
+
 
     @app.teardown_request
     def teardown_request(exception=None):

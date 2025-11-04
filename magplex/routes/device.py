@@ -8,9 +8,9 @@ from urllib.parse import urljoin
 import requests
 from flask import Blueprint, Response, g, jsonify, redirect, request, stream_with_context
 
-from magplex.decorators import login_required
+from magplex.decorators import authorized_route
 from magplex.device import database
-from magplex.device.device import DeviceManager
+from magplex.device.manager import DeviceManager
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
 from magplex.utilities.scheduler import TaskManager
@@ -22,10 +22,10 @@ class ChannelState(StrEnum):
     DISABLED = 'disabled'
 
 
-@device.get('/genres')
-@login_required
-def get_genres():
-    user_device = DeviceManager.get_device()
+@device.get('/<uuid:device_uid>/genres')
+@authorized_route
+def get_genres(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     channel_state = request.args.get('state', '').lower()
@@ -38,11 +38,11 @@ def get_genres():
     return jsonify(genres)
 
 
-@device.get('/channels')
-@login_required
-def get_channels():
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.get('/<uuid:device_uid>/channels')
+@authorized_route
+def get_channels(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
     channel_state = request.args.get('state', '').lower()
@@ -57,13 +57,14 @@ def get_channels():
         return jsonify(all_channels)
 
 
-@device.post('/channels')
-@login_required
-def update_channels():
-    scheduler = TaskManager.get_scheduler()
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.post('/<uuid:device_uid>/channels')
+@authorized_route
+def update_channels(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
+    scheduler = TaskManager.get_scheduler()
     job = scheduler.get_job(f'{user_device.device_uid}:save_channels')
     if not job:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
@@ -72,12 +73,13 @@ def update_channels():
     return Response(status=HTTPStatus.ACCEPTED)
 
 
-@device.get('/channels/guides')
-@login_required
-def get_channel_guides():
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.get('/<uuid:device_uid>/channels/guides')
+@authorized_route
+def get_channel_guides(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
     epg = database.get_current_channel_guides(g.db_conn, user_device.device_uid)
     guide_map = defaultdict(list)
     for guide in epg:
@@ -85,23 +87,25 @@ def get_channel_guides():
     return jsonify(guide_map)
 
 
-@device.get('/channels/<int:channel_id>/guide')
-@login_required
-def get_channel_guide(channel_id):
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>/guide')
+@authorized_route
+def get_channel_guide(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
     channel_guide = database.get_channel_guide(g.db_conn, user_device.device_uid, channel_id)
     return jsonify(channel_guide)
 
 
-@device.post('/channels/guides')
-@login_required
-def refresh_channel_guides():
-    scheduler = TaskManager.get_scheduler()
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.post('/<uuid:device_uid>/channels/guides')
+@authorized_route
+def refresh_channel_guides(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
+    scheduler = TaskManager.get_scheduler()
     job = scheduler.get_job(f'{user_device.device_uid}:save_channel_guides')
     if not job:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
@@ -111,37 +115,42 @@ def refresh_channel_guides():
     return Response(status=HTTPStatus.ACCEPTED)
 
 
-@device.post('/channels/toggle')
-@login_required
-def toggle_channels():
+@device.post('/<uuid:device_uid>/channels/toggle')
+@authorized_route
+def toggle_channels(device_uid):
     channels_enabled = request.json.get('channels_enabled')
     if channels_enabled is None:
         return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS)
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
     database.update_channels_enabled(g.db_conn, user_device.device_uid, channels_enabled)
     return Response(status=HTTPStatus.OK)
 
 
-@device.post('/channels/<int:channel_id>/toggle')
-@login_required
-def toggle_channel(channel_id):
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.post('/<uuid:device_uid>/channels/<int:channel_id>/toggle')
+@authorized_route
+def toggle_channel(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
     database.toggle_channel_enabled(g.db_conn, user_device.device_uid, channel_id)
     return Response(status=HTTPStatus.OK)
 
 
-@device.route('/channels/<int:channel_id>')
-def stream_playlist(channel_id):
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.route('/<uuid:device_uid>/channels/<int:channel_id>')
+def stream_playlist(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
     channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
     if channel is None:
         return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+
     stream_link = user_device.get_channel_playlist(channel.stream_id)
     if stream_link is None:
         return ErrorResponse(Locale.DEVICE_UNKNOWN_STREAM, HTTPStatus.NOT_FOUND)
@@ -149,13 +158,13 @@ def stream_playlist(channel_id):
     return redirect(stream_link, code=HTTPStatus.FOUND)
 
 
-@device.route('/channels/<int:channel_id>/proxy')
-def proxy_playlist(channel_id):
-    user_device = DeviceManager.get_device()
-    if user_device is None:
+@device.route('/<uuid:device_uid>/channels/<int:channel_id>/proxy')
+def proxy_playlist(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
-    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
 
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
     if channel is None:
         return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
     stream_link = user_device.get_channel_playlist(channel.stream_id)
@@ -179,7 +188,7 @@ def proxy_playlist(channel_id):
                 'segment_path': line,
                 'session_identifier': session_identifier
             }
-            proxied_url = f"/api/device/channels/{channel.channel_id}/proxy/stream.ts?data={user_device.encrypt_data(data)}"
+            proxied_url = f"/api/devices/{device_uid}/channels/{channel.channel_id}/proxy/stream.ts?data={user_device.encrypt_data(data)}"
             proxied_playlist.append(proxied_url)
         else:
             proxied_playlist.append(line)
@@ -194,13 +203,13 @@ def proxy_playlist(channel_id):
     )
 
 
-@device.route('/channels/<int:channel_id>/proxy/stream.ts')
-def proxy_stream(channel_id):
+@device.route('/<uuid:device_uid>/channels/<int:channel_id>/proxy/stream.ts')
+def proxy_stream(device_uid, channel_id):
     data = request.args.get("data")
     if not data:
         return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
 
-    user_device = DeviceManager.get_device()
+    user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
