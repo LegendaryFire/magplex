@@ -38,10 +38,6 @@ class DeviceManager:
             cls._device = cls.create_device()
         return cls._device
 
-    @classmethod
-    def reset_device(cls):
-        cls._device = None
-
 
 class Device:
     def __init__(self, profile):
@@ -66,8 +62,12 @@ class Device:
 
 
     def _schedule_tasks(self):
-        jobs = {tasks.save_channels: {'hours': 1}, tasks.save_channel_guides: {'hours': 1}}
         scheduler = TaskManager.get_scheduler()
+        jobs = {
+            tasks.save_channels: {'hours': 1, 'args': [self.device_uid]},
+            tasks.save_channel_guides: {'hours': 1, 'args': [self.device_uid]}
+        }
+
         for job, kwargs in jobs.items():
             job_name = f'{self.device_uid}:{job.__name__}'
             try:

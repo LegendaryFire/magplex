@@ -6,10 +6,10 @@ from magplex.device import database, parser
 from magplex.utilities.localization import Locale
 
 
-def save_channels():
-    from magplex.device.device import DeviceManager
+def save_channels(device_uid):
+    from magplex.device.manager import DeviceManager
     logging.info(Locale.TASK_RUNNING_CHANNEL_LIST_REFRESH)
-    user_device = DeviceManager.get_device()
+    user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         logging.warning(Locale.DEVICE_UNAVAILABLE)
         return None
@@ -60,11 +60,11 @@ def save_channels():
     return channel_list
 
 
-def save_channel_guides():
+def save_channel_guides(device_uid):
     """Background task ran at an interval to populate the cache with EPG information."""
-    from magplex.device.device import DeviceManager
+    from magplex.device.manager import DeviceManager
     logging.info(Locale.TASK_RUNNING_CHANNEL_GUIDE_REFRESH)
-    user_device = DeviceManager.get_device()
+    user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         logging.error(Locale.DEVICE_UNAVAILABLE)
         return
