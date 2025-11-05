@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, g, jsonify, redirect, request
 
-from magplex.decorators import authorized_route
+from magplex.decorators import authorize_route
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
@@ -12,14 +12,14 @@ user = Blueprint("user", __name__)
 
 
 @user.get('/')
-@authorized_route
+@authorize_route
 def get_user():
     user_account = database.get_user(g.db_conn, g.user_session.user_uid)
     return jsonify(user_account)
 
 
 @user.post('/username')
-@authorized_route
+@authorize_route
 def save_username():
     current_username = request.json.get('current_username')
     new_username = request.json.get('new_username')
@@ -32,7 +32,7 @@ def save_username():
     session_user = database.get_user(g.db_conn, g.user_session.user_uid)
     validated_user = database.validate_user(g.db_conn, session_user.username, password)
     if not validated_user:
-        return ErrorResponse(Locale.UI_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.GENERAL_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
 
     if new_username == validated_user.username:
         return ErrorResponse(Locale.UI_USERNAME_DIDNT_CHANGE, HTTPStatus.FORBIDDEN)
@@ -42,7 +42,7 @@ def save_username():
 
 
 @user.post('/password')
-@authorized_route
+@authorize_route
 def save_password():
     current_password = request.json.get('current_password')
     new_password = request.json.get('new_password')
@@ -54,7 +54,7 @@ def save_password():
 
     validated_user = database.validate_user(g.db_conn, session_user.username, current_password)
     if not validated_user:
-        return ErrorResponse(Locale.UI_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.GENERAL_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
 
     if len(new_password) < 8:
         return ErrorResponse(Locale.UI_PASSWORD_REQUIREMENT_NOT_MET, HTTPStatus.FORBIDDEN)
@@ -74,7 +74,7 @@ def login():
         return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
     user_account = database.validate_user(g.db_conn, username, password)
     if user_account is None:
-        return ErrorResponse(Locale.UI_INVALID_CREDENTIALS, HTTPStatus.UNAUTHORIZED)
+        return ErrorResponse(Locale.GENERAL_INVALID_CREDENTIALS, HTTPStatus.UNAUTHORIZED)
 
     expiration_timestamp = datetime.now() + timedelta(days=90)
     user_session = database.insert_user_session(g.db_conn, user_account.user_uid,
@@ -95,13 +95,13 @@ def logout():
 
 
 @user.get('/device')
-@authorized_route
+@authorize_route
 def get_user_device():
     return jsonify(database.get_device_profile_by_user(g.db_conn, g.user_session.user_uid))
 
 
 @user.post('/device')
-@authorized_route
+@authorize_route
 def save_user_device():
     mac_address = request.json.get('mac_address')
     device_id1 = request.json.get('device_id1')

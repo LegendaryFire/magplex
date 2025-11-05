@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class Locale(StrEnum):
     # General Localization
+    GENERAL_INVALID_CREDENTIALS = 'Invalid credentials, please try again.'
     GENERAL_MISSING_ENDPOINT_PARAMETERS = 'Missing mandatory URL parameters or data'
     GENERAL_MISSING_REQUIRED_FIELDS = 'Missing required fields, please try again'
     GENERAL_UNKNOWN_ERROR = 'An unknown error has occurred'
@@ -43,7 +44,6 @@ class Locale(StrEnum):
     TASK_RUNNING_CHANNEL_LIST_REFRESH = 'Running device channel list refresh task'
 
     # User Interface Localization
-    UI_INVALID_CREDENTIALS = 'Invalid credentials, please try again.'
     UI_USERNAME_CONTAINS_SPACES = "New username can't contain spaces"
     UI_USERNAME_DIDNT_CHANGE = 'The new username is the same as current'
     UI_PASSWORD_REQUIREMENT_NOT_MET = 'New password must be at least 8 characters long'

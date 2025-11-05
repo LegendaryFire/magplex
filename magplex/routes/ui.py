@@ -3,7 +3,7 @@ from http import HTTPStatus
 from flask import Blueprint, Response, jsonify, render_template, send_file
 
 import version
-from magplex.decorators import authorized_route
+from magplex.decorators import authorize_route, AuthMethod
 from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 
@@ -16,13 +16,13 @@ def login_page():
 
 
 @ui.route('/')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def index():
     return render_template('index.html')
 
 
 @ui.route('/logs')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def logs():
     try:
         return send_file(Environment.BASE_LOG, as_attachment=False)
@@ -31,7 +31,7 @@ def logs():
 
 
 @ui.route('/about')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def get_about():
     return jsonify({
         'version': version.version,

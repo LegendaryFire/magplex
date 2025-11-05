@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 import requests
 from flask import Blueprint, Response, g, jsonify, redirect, request, stream_with_context
 
-from magplex.decorators import authorized_route
+from magplex.decorators import authorize_route, AuthMethod
 from magplex.device import database
 from magplex.device.manager import DeviceManager
 from magplex.utilities.error import ErrorResponse
@@ -23,11 +23,11 @@ class ChannelState(StrEnum):
 
 
 @device.get('/<uuid:device_uid>/genres')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def get_genres(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
-        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     channel_state = request.args.get('state', '').lower()
     if channel_state == ChannelState.ENABLED:
         genres = database.get_enabled_channel_genres(g.db_conn, user_device.device_uid)
@@ -39,11 +39,11 @@ def get_genres(device_uid):
 
 
 @device.get('/<uuid:device_uid>/channels')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def get_channels(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
-        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
     channel_state = request.args.get('state', '').lower()
     if channel_state == ChannelState.ENABLED:
@@ -58,7 +58,7 @@ def get_channels(device_uid):
 
 
 @device.post('/<uuid:device_uid>/channels')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def update_channels(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -74,7 +74,7 @@ def update_channels(device_uid):
 
 
 @device.get('/<uuid:device_uid>/channels/guides')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def get_channel_guides(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -88,7 +88,7 @@ def get_channel_guides(device_uid):
 
 
 @device.get('/<uuid:device_uid>/channels/<int:channel_id>/guide')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def get_channel_guide(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -99,7 +99,7 @@ def get_channel_guide(device_uid, channel_id):
 
 
 @device.post('/<uuid:device_uid>/channels/guides')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def refresh_channel_guides(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -116,7 +116,7 @@ def refresh_channel_guides(device_uid):
 
 
 @device.post('/<uuid:device_uid>/channels/toggle')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def toggle_channels(device_uid):
     channels_enabled = request.json.get('channels_enabled')
     if channels_enabled is None:
@@ -131,7 +131,7 @@ def toggle_channels(device_uid):
 
 
 @device.post('/<uuid:device_uid>/channels/<int:channel_id>/toggle')
-@authorized_route
+@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
 def toggle_channel(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -170,7 +170,7 @@ def proxy_playlist(device_uid, channel_id):
     stream_link = user_device.get_channel_playlist(channel.stream_id)
 
     if stream_link is None:
-        return Response(Locale.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
     response = requests.get(stream_link)
     session_identifier = response.headers.get('X-Sid', None)
 
