@@ -94,7 +94,7 @@ def logout():
     return redirect('/')
 
 
-@user.get('device')
+@user.get('/device')
 @authorized_route
 def get_user_device():
     return jsonify(database.get_device_profile_by_user(g.db_conn, g.user_session.user_uid))

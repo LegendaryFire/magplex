@@ -1,6 +1,6 @@
 class DeviceModal extends Modal {
     async connectedCallback() {
-        const device = await this.getDevice();
+        const deviceProfile = await getDeviceProfile();
         this.modalTitle = "Settings";
         this.innerHTML = `
             <div class="content-wrapper">
@@ -10,31 +10,31 @@ class DeviceModal extends Modal {
                         <form id="device-form">
                             <label>
                                 MAC Address
-                                <input type="text" name="mac_address" placeholder="00-00-00-00-00-00" value="${device?.mac_address ?? ''}" required>
+                                <input type="text" name="mac_address" placeholder="00-00-00-00-00-00" value="${deviceProfile?.mac_address ?? ''}" required>
                             </label>
                             <label>
                                 Device ID 1
-                                <input type="text" name="device_id1" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${device?.device_id1 ?? ''}">
+                                <input type="text" name="device_id1" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.device_id1 ?? ''}">
                             </label>
                             <label>
                                 Device ID 2
-                                <input type="text" name="device_id2" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${device?.device_id2 ?? ''}">
+                                <input type="text" name="device_id2" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.device_id2 ?? ''}">
                             </label>
                             <label>
                                 Signature
-                                <input type="text" name="signature" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${device?.signature ?? ''}">
+                                <input type="text" name="signature" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.signature ?? ''}">
                             </label>
                             <label>
                                 Language
-                                <input type="text" name="language" placeholder="en" value="${device?.language ?? ''}" required>
+                                <input type="text" name="language" placeholder="en" value="${deviceProfile?.language ?? ''}" required>
                             </label>
                             <label>
                                 Timezone
-                                <input type="text" name="timezone" placeholder="America/Vancouver" value="${device?.timezone ?? ''}" required>
+                                <input type="text" name="timezone" placeholder="America/Vancouver" value="${deviceProfile?.timezone ?? ''}" required>
                             </label>
                             <label>
                                 Portal
-                                <input type="text" name="portal" placeholder="example.portal.tv" value="${device?.portal ?? ''}" required>
+                                <input type="text" name="portal" placeholder="example.portal.tv" value="${deviceProfile?.portal ?? ''}" required>
                             </label>
                             <button type="submit">Save</button>
                         </form>
@@ -47,25 +47,16 @@ class DeviceModal extends Modal {
         const deviceForm = document.querySelector('#device-form');
         deviceForm.addEventListener('submit', (event) => {
             event.preventDefault();
-            const device = serializeForm(deviceForm);
-            this.saveDevice(device);
+            const deviceProfile = serializeForm(deviceForm);
+            this.saveDevice(deviceProfile);
         });
     }
 
-    async getDevice() {
-        try {
-            const response = await fetch('/api/user/device');
-            return await response.json();
-        } catch (error) {
-            return null;
-        }
-    }
-
-    async saveDevice(device) {
+    async saveDevice(deviceProfile) {
         const response = await fetch('/api/user/device', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(device)
+            body: JSON.stringify(deviceProfile)
         });
 
         if (!response.ok) {

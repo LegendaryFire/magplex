@@ -7,7 +7,8 @@ class PlayerModal extends Modal {
         this.hls = null;
     }
 
-    connectedCallback() {
+    async connectedCallback() {
+        this.deviceProfile = await getDeviceProfile();
         this.modalTitle = this.dataset.channelName;
         this.channelId = this.dataset.channelId;
 
@@ -40,7 +41,7 @@ class PlayerModal extends Modal {
             return;
         }
 
-        const channelUrl = `/api/device/channels/${this.channelId}/proxy`;
+        const channelUrl = `/api/devices/${this.deviceProfile.device_uid}/channels/${this.channelId}/proxy`;
         this.hls = new Hls();
         this.hls.loadSource(channelUrl);
         this.hls.attachMedia(this.videoElem);

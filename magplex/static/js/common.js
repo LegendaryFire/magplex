@@ -27,3 +27,12 @@ function parseError(response) {
     const errorMessage = response?.error?.message;
     return errorMessage ? errorMessage : "Unknown error occurred.";
 }
+
+async function getDeviceProfile() {
+    try {
+        const response = await fetch('/api/user/device');
+        return await response.json();
+    } catch (error) {
+        return null;
+    }
+}

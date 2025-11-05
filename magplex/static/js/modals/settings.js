@@ -1,8 +1,9 @@
 class SettingsModal extends Modal {
     async connectedCallback() {
-        const aboutInfo = await this.getInfo();
-
+        this.deviceProfile = await getDeviceProfile();
+        debugger;
         this.modalTitle = "Settings";
+        this.magplexInfo = await this.getInfo();
         this.innerHTML = `
             <div class="content-wrapper">
                 <div class="content-group">
@@ -42,8 +43,9 @@ class SettingsModal extends Modal {
                                 <h4>by LegendaryFire</h4>
                             </div>
                             <div class="right-container">
-                                <p class="version">Version ${aboutInfo.version}</p>
-                                <p class="build-date">${aboutInfo.build_date}</p>
+                                <p class="version">Version ${this.magplexInfo.version}</p>
+                                <p class="build-date">${this.magplexInfo.build_date}</p>
+                                <p class="build-date">Device UID: ${this?.deviceProfile.device_uid}</p>
                             </div>
                         </div>
                     </div>
@@ -97,7 +99,7 @@ class SettingsModal extends Modal {
     }
 
     async refreshEpg() {
-        const response = await fetch('/api/device/channels/guides', {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides`, {
             method: 'POST'
         });
         if (!response.ok) {
@@ -110,7 +112,7 @@ class SettingsModal extends Modal {
     }
 
     async refreshChannels() {
-        const response = await fetch('/api/device/channels', {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels`, {
             method: 'POST'
         });
         if (!response.ok) {

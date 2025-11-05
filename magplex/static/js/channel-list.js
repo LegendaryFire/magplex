@@ -4,9 +4,11 @@ class ChannelList extends HTMLElement {
         this.genres = []
         this.channels = [];
         this.editMode = false;
+        this.deviceProfile = null;
     }
 
     async connectedCallback() {
+        this.deviceProfile = await getDeviceProfile();
         this.editMode = this.hasAttribute('edit-mode');
         this.innerHTML = `
             <div class="message-container">
@@ -28,7 +30,8 @@ class ChannelList extends HTMLElement {
 
     async getGenreList() {
         try {
-            const response = await fetch(`/api/device/genres${!this.editMode ? '?state=enabled' : ''}`, {
+            const genreUrl = `/api/devices/${this.deviceProfile.device_uid}/genres${!this.editMode ? '?state=enabled' : ''}`;
+            const response = await fetch(genreUrl, {
                 headers: {
                     'Accept': 'application/json'
                 }
@@ -42,7 +45,8 @@ class ChannelList extends HTMLElement {
 
     async getChannelList() {
         try {
-            const response = await fetch(`/api/device/channels${!this.editMode ? '?state=enabled' : ''}`, {
+            const channelListUrl = `/api/devices/${this.deviceProfile.device_uid}/channels${!this.editMode ? '?state=enabled' : ''}`
+            const response = await fetch(channelListUrl, {
                 headers: {
                     'Accept': 'application/json'
                 }
