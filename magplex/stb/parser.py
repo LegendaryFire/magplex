@@ -20,7 +20,7 @@ def build_playlist(channels, genres, base_url):
     return playlist
 
 
-def build_channel_guide(channels, guides, timezone):
+def build_channel_guide(channels, guides):
     tv = etree.Element(
         "tv",
         attrib={

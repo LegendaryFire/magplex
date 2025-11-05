@@ -24,7 +24,7 @@ def get_stb_root(device_uid):
     return Response(parser.build_device_info(user_device.device_uid, domain), mimetype='text/xml')
 
 
-@stb.route('/<uuid:device_uid>/discover.json')
+@stb.route('/<uuid:device_uid>/stb/discover.json')
 def get_stb_discover(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -33,7 +33,7 @@ def get_stb_discover(device_uid):
     return jsonify(parser.build_discover(domain))
 
 
-@stb.route('/<uuid:device_uid>/lineup_status.json')
+@stb.route('/<uuid:device_uid>/stb/lineup_status.json')
 def get_stb_lineup_status(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -41,7 +41,7 @@ def get_stb_lineup_status(device_uid):
     return jsonify(parser.build_status())
 
 
-@stb.route('/<uuid:device_uid>/lineup.json')
+@stb.route('/<uuid:device_uid>/stb/lineup.json')
 def get_stb_lineup(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -51,7 +51,7 @@ def get_stb_lineup(device_uid):
     return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
 
 
-@stb.route('/<uuid:device_uid>/playlist.m3u8')
+@stb.route('/<uuid:device_uid>/stb/playlist.m3u8')
 def get_stb_channel_playlist(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -110,7 +110,7 @@ def get_stb_channel_playlist(device_uid):
     )
 
 
-@stb.get('/<uuid:device_uid>/guide.xml')
+@stb.get('/<uuid:device_uid>/stb/guide.xml')
 def get_stb_channel_guide(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -118,6 +118,6 @@ def get_stb_channel_guide(device_uid):
 
     channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
     guides = database.get_current_channel_guides(g.db_conn, user_device.device_uid)
-    guide = parser.build_channel_guide(channels, guides, user_device.profile.timezone)
+    guide = parser.build_channel_guide(channels, guides)
     return Response(guide, mimetype='text/xml')
 

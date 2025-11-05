@@ -13,7 +13,7 @@ def authorized_route(f):
     def decorated(*args, **kwargs):
         # Attempt to get the user from an API key.
         user_authenticated = False
-        api_key = request.headers.get('ApiKey')
+        api_key = request.headers.get('X-Api-Key')
         if api_key:
             with PostgresConnection() as conn:
                 user_profile = users.database.get_user_key(conn, api_key)
