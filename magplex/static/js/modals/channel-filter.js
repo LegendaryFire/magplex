@@ -5,6 +5,7 @@ class ChannelFilterModal extends Modal {
     }
 
     async connectedCallback() {
+        this.deviceProfile = await getDeviceProfile();
         this.modalTitle = "Settings";
         this.innerHTML = `
             <div class="content-wrapper">
@@ -40,7 +41,7 @@ class ChannelFilterModal extends Modal {
     }
 
     async toggleChannels(channelsEnabled) {
-        const response = await fetch(`/api/device/channels/toggle`, {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/toggle`, {
             method: 'POST',
             body: JSON.stringify({'channels_enabled': channelsEnabled}),
             headers: {'Content-Type': 'application/json'}
@@ -57,7 +58,7 @@ class ChannelFilterModal extends Modal {
     }
 
     async toggleChannel(channelId) {
-        const response = await fetch(`/api/device/channels/${channelId}/toggle`, {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/${channelId}/toggle`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
         });
