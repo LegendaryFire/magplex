@@ -4,7 +4,6 @@ from http import HTTPStatus
 from flask import Blueprint, Response, g, jsonify, redirect, request
 
 from magplex.decorators import authorized_route
-from magplex.device.device import DeviceManager
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale

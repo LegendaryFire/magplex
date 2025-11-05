@@ -17,7 +17,7 @@ def create_app():
 
     app.register_blueprint(user, url_prefix="/api/user")
     app.register_blueprint(device, url_prefix='/api/devices')
-    app.register_blueprint(stb, url_prefix='/stb')
+    app.register_blueprint(stb, url_prefix='/api/devices')
     app.register_blueprint(ui)
 
 
