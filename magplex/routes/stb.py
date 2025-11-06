@@ -6,6 +6,7 @@ import ffmpeg
 import requests
 from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
+from magplex.utilities.error import ErrorResponse
 from magplex.decorators import authorize_route, AuthMethod
 from magplex.device import database, media
 from magplex.device.manager import DeviceManager
@@ -31,7 +32,7 @@ def get_stb_root(device_uid):
 def get_stb_discover(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
-        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
     return jsonify(parser.build_discover(domain))
 
@@ -41,7 +42,7 @@ def get_stb_discover(device_uid):
 def get_stb_lineup_status(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
-        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     return jsonify(parser.build_status())
 
 
@@ -57,15 +58,14 @@ def get_stb_lineup(device_uid):
 
 
 @stb.route('/<uuid:device_uid>/stb/playlist.m3u8')
-@authorize_route(auth_method=AuthMethod.API)
 def get_stb_channel_playlist(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
-        return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
     stream_id = request.args.get('stream_id')
     if stream_id is None:
-        return Response(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
+        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
 
     channel_url = user_device.get_channel_playlist(stream_id)
     if channel_url is None:

@@ -69,11 +69,14 @@ def create_stream_response(url, encoder, headers):
             muxpreload=0.5,
             vcodec=encoder.get_name(),
             preset=encoder.get_preset(),
-            g=50,
+            g=25,
             acodec='aac',
             audio_bitrate='128k',
-            bufsize='2M'
+            bufsize='8000k'
         )
+
+    if Environment.DEBUG:
+        process = process.global_args('-loglevel', 'verbose')
 
     proc = process.run_async(
         cmd=Environment.BASE_FFMPEG,
@@ -87,6 +90,19 @@ def create_stream_response(url, encoder, headers):
         for line in iter(pipe.readline, b''):
             text = line.decode(errors="ignore").rstrip()  # Must consume error to drain piped output.
             if Environment.DEBUG:
+                if "error" in text.lower():
+                    logger.error(text)
+                elif "warning" in text.lower():
+                    logger.warning(text)
+                else:
+                    logger.debug(text)
+
+        threading.Thread(target=log_output, args=(proc.stderr,), daemon=True).start()
+
+    if Environment.DEBUG:
+        def log_output(pipe):
+            for line in iter(pipe.readline, b''):
+                text = line.decode(errors="ignore").rstrip()
                 if "error" in text.lower():
                     logger.error(text)
                 elif "warning" in text.lower():
