@@ -13,30 +13,10 @@ from apscheduler.jobstores.base import ConflictingIdError
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from requests.adapters import HTTPAdapter
 
-from magplex import users
-from magplex.database.database import PostgresConnection, RedisPool
+from magplex.database.database import RedisPool
 from magplex.device import cache, tasks
 from magplex.utilities.localization import Locale
 from magplex.utilities.scheduler import TaskManager
-
-
-class DeviceManager:
-    _device = None
-
-    @classmethod
-    def create_device(cls):
-        conn = PostgresConnection()
-        device_profile = users.database.get_user_device_profile(conn)
-        if device_profile is None:
-            return None
-        conn.close()
-        return Device(device_profile)
-
-    @classmethod
-    def get_device(cls):
-        if cls._device is None:
-            cls._device = cls.create_device()
-        return cls._device
 
 
 class Device:

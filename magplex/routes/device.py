@@ -23,7 +23,7 @@ class ChannelState(StrEnum):
 
 
 @device.get('/<uuid:device_uid>/genres')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def get_genres(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -39,7 +39,7 @@ def get_genres(device_uid):
 
 
 @device.get('/<uuid:device_uid>/channels')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def get_channels(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -58,7 +58,7 @@ def get_channels(device_uid):
 
 
 @device.post('/<uuid:device_uid>/channels')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def update_channels(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -74,7 +74,7 @@ def update_channels(device_uid):
 
 
 @device.get('/<uuid:device_uid>/channels/guides')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def get_channel_guides(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -88,7 +88,7 @@ def get_channel_guides(device_uid):
 
 
 @device.get('/<uuid:device_uid>/channels/<int:channel_id>/guide')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def get_channel_guide(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -99,7 +99,7 @@ def get_channel_guide(device_uid, channel_id):
 
 
 @device.post('/<uuid:device_uid>/channels/guides')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def refresh_channel_guides(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -116,7 +116,7 @@ def refresh_channel_guides(device_uid):
 
 
 @device.post('/<uuid:device_uid>/channels/toggle')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def toggle_channels(device_uid):
     channels_enabled = request.json.get('channels_enabled')
     if channels_enabled is None:
@@ -131,7 +131,7 @@ def toggle_channels(device_uid):
 
 
 @device.post('/<uuid:device_uid>/channels/<int:channel_id>/toggle')
-@authorize_route(auth_method=AuthMethod.API_AND_SESSION)
+@authorize_route(auth_method=AuthMethod.ALL)
 def toggle_channel(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):

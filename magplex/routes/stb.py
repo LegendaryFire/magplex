@@ -6,6 +6,7 @@ import ffmpeg
 import requests
 from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
+from magplex.decorators import authorize_route, AuthMethod
 from magplex.device import database, media
 from magplex.device.manager import DeviceManager
 from magplex.stb import parser
@@ -15,6 +16,7 @@ from magplex.utilities.variables import Environment
 stb = Blueprint("stb", __name__)
 
 
+@authorize_route(auth_method=AuthMethod.API)
 @stb.route('/<uuid:device_uid>/stb/')
 def get_stb_root(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -24,6 +26,7 @@ def get_stb_root(device_uid):
     return Response(parser.build_device_info(user_device.device_uid, domain), mimetype='text/xml')
 
 
+@authorize_route(auth_method=AuthMethod.API)
 @stb.route('/<uuid:device_uid>/stb/discover.json')
 def get_stb_discover(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -33,6 +36,7 @@ def get_stb_discover(device_uid):
     return jsonify(parser.build_discover(domain))
 
 
+@authorize_route(auth_method=AuthMethod.API)
 @stb.route('/<uuid:device_uid>/stb/lineup_status.json')
 def get_stb_lineup_status(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -41,6 +45,7 @@ def get_stb_lineup_status(device_uid):
     return jsonify(parser.build_status())
 
 
+@authorize_route(auth_method=AuthMethod.API)
 @stb.route('/<uuid:device_uid>/stb/lineup.json')
 def get_stb_lineup(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -51,6 +56,7 @@ def get_stb_lineup(device_uid):
     return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
 
 
+@authorize_route(auth_method=AuthMethod.API)
 @stb.route('/<uuid:device_uid>/stb/playlist.m3u8')
 def get_stb_channel_playlist(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -110,6 +116,7 @@ def get_stb_channel_playlist(device_uid):
     )
 
 
+@authorize_route(auth_method=AuthMethod.API)
 @stb.get('/<uuid:device_uid>/stb/guide.xml')
 def get_stb_channel_guide(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)

@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 
 from flask import g, redirect, request
@@ -11,17 +12,17 @@ from magplex.utilities.localization import Locale
 class AuthMethod:
     API = 'api'
     SESSION = 'session'
-    API_AND_SESSION = 'both'
+    ALL = 'all'
 
 
-def authorize_route(f=None, *, auth_method=AuthMethod.API_AND_SESSION):
+def authorize_route(*, auth_method=AuthMethod.ALL):
     def decorator(func):
         @wraps(func)
         def decorated(*args, **kwargs):
             # Attempt to get the user from an API key.
             user_authenticated = False
             api_key = request.headers.get('X-Api-Key')
-            if api_key and auth_method in (AuthMethod.API, AuthMethod.API_AND_SESSION):
+            if api_key and auth_method in (AuthMethod.API, AuthMethod.ALL):
                 with PostgresConnection() as conn:
                     user_profile = users.database.get_user_key(conn, api_key)
                     if user_profile:
@@ -29,12 +30,10 @@ def authorize_route(f=None, *, auth_method=AuthMethod.API_AND_SESSION):
                         user_device_profile = users.database.get_device_profile_by_user(conn, user_profile.user_uid)
                         g.device_uid = user_device_profile.device_uid if user_device_profile else None
                         user_authenticated = True
-                    else:
-                        return ErrorResponse(Locale.GENERAL_INVALID_CREDENTIALS)
 
             # Attempt to get the user from a session.
             session_uid = request.cookies.get('session_uid')
-            if session_uid and auth_method in (AuthMethod.SESSION, AuthMethod.API_AND_SESSION):
+            if session_uid and auth_method in (AuthMethod.SESSION, AuthMethod.ALL):
                 with PostgresConnection() as conn:
                     user_session = users.database.get_user_session(conn, session_uid)
                     if user_session is not None:
@@ -52,7 +51,4 @@ def authorize_route(f=None, *, auth_method=AuthMethod.API_AND_SESSION):
 
             return func(*args, **kwargs)
         return decorated
-
-    if f is None:
-        return decorator
-    return decorator(f)
+    return decorator
