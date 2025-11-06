@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, g, jsonify, redirect, request
 
-from magplex.decorators import authorize_route
+from magplex.decorators import authorize_route, AuthMethod
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
@@ -12,14 +12,14 @@ user = Blueprint("user", __name__)
 
 
 @user.get('/')
-@authorize_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def get_user():
     user_account = database.get_user(g.db_conn, g.user_session.user_uid)
     return jsonify(user_account)
 
 
 @user.post('/username')
-@authorize_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def save_username():
     current_username = request.json.get('current_username')
     new_username = request.json.get('new_username')
@@ -42,7 +42,7 @@ def save_username():
 
 
 @user.post('/password')
-@authorize_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def save_password():
     current_password = request.json.get('current_password')
     new_password = request.json.get('new_password')
@@ -95,13 +95,13 @@ def logout():
 
 
 @user.get('/device')
-@authorize_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def get_user_device():
     return jsonify(database.get_device_profile_by_user(g.db_conn, g.user_session.user_uid))
 
 
 @user.post('/device')
-@authorize_route
+@authorize_route(auth_method=AuthMethod.SESSION)
 def save_user_device():
     mac_address = request.json.get('mac_address')
     device_id1 = request.json.get('device_id1')

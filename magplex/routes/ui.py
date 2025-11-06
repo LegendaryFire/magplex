@@ -16,7 +16,7 @@ def login_page():
 
 
 @ui.route('/')
-@authorize_route(auth_method=AuthMethod.SESSION)
+@authorize_route(auth_method=AuthMethod.SESSION, force_redirect=True)
 def index():
     return render_template('index.html')
 

@@ -142,6 +142,7 @@ def toggle_channel(device_uid, channel_id):
 
 
 @device.route('/<uuid:device_uid>/channels/<int:channel_id>')
+@authorize_route(auth_method=AuthMethod.ALL)
 def stream_playlist(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
@@ -159,6 +160,7 @@ def stream_playlist(device_uid, channel_id):
 
 
 @device.route('/<uuid:device_uid>/channels/<int:channel_id>/proxy')
+@authorize_route(auth_method=AuthMethod.ALL)
 def proxy_playlist(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):

@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from http import HTTPStatus
 
 from flask import g, redirect, request
 
@@ -15,7 +16,7 @@ class AuthMethod:
     ALL = 'all'
 
 
-def authorize_route(*, auth_method=AuthMethod.ALL):
+def authorize_route(*, auth_method=AuthMethod.ALL, force_redirect=False):
     def decorator(func):
         @wraps(func)
         def decorated(*args, **kwargs):
@@ -44,10 +45,10 @@ def authorize_route(*, auth_method=AuthMethod.ALL):
                         user_authenticated = True
 
             if not user_authenticated:
-                if "application/json" in request.headers.get("Accept", ""):
-                    return ErrorResponse(Locale.GENERAL_INVALID_CREDENTIALS)
-                else:
+                if force_redirect:
                     return redirect('/login')
+                else:
+                    return ErrorResponse(Locale.GENERAL_INVALID_CREDENTIALS, HTTPStatus.FORBIDDEN)
 
             return func(*args, **kwargs)
         return decorated
