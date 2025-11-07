@@ -3,6 +3,10 @@ from http import HTTPStatus
 from flask import Response, jsonify
 
 
+class InvalidJsonError(Exception):
+    pass
+
+
 class ErrorResponse(Response):
     def __init__(self, message, status=HTTPStatus.BAD_REQUEST):
         self.message = message

@@ -1,41 +1,66 @@
+class ChannelListMode {
+    static PLAYER = 'player'
+    static FILTER = 'filter'
+}
+
 class ChannelList extends HTMLElement {
     constructor() {
         super();
-        this.genres = []
-        this.channels = [];
-        this.editMode = false;
+        this.listMode = null;
         this.deviceProfile = null;
+        this.genres = []
+        this.channelList = [];
     }
 
+    initializeVariables() {
+        this.getGenresUrl = new URL(`/api/devices/${this.deviceProfile.device_uid}/genres`, window.location.origin);
+        this.getChannelsUrl = new URL(`/api/devices/${this.deviceProfile.device_uid}/channels`, window.location.origin);
+
+        if (this.listMode === ChannelListMode.PLAYER) {
+            this.getGenresUrl.searchParams.set('channel_stale', 'false');
+            this.getGenresUrl.searchParams.set('channel_enabled', 'true');
+            this.getChannelsUrl.searchParams.set('channel_stale', 'false');
+            this.getChannelsUrl.searchParams.set('channel_enabled', 'true');
+        } else if (this.listMode === ChannelListMode.FILTER) {
+            this.getGenresUrl.searchParams.set('channel_stale', 'false');
+            this.getChannelsUrl.searchParams.set('channel_stale', 'false');
+        }
+    }
+
+
     async connectedCallback() {
+        this.listMode = this.getAttribute("list-mode");
         this.deviceProfile = await getDeviceProfile();
-        this.editMode = this.hasAttribute('edit-mode');
+        this.initializeVariables();
+
         this.innerHTML = `
             <div class="message-container">
                 <h2>Loading Channels</h2>
                 <h3>Please wait...</h3>
             </div>
         `
-        this.channels = await this.getChannelList();
-        this.genres = await this.getGenreList();
-        this.innerHTML = ``;
-        if (this.channels !== null) {
-            this.appendChild(this.getSearchBarElement());
-            this.appendChild(this.getChannelListElement());
-            this.renderChannelList();
-        } else {
+        this.channelList = await this.getChannelList();
+        this.genreList = await this.getGenreList();
+        const selectMode = this.listMode !== ChannelListMode.PLAYER ? 'select' : '';
+        this.innerHTML = `
+            <div class="search-container"></div>
+            <ul class="channel-list" ${selectMode}></ul>
+        `;
+
+        if (this.channelList === null) {
             this.appendChild(this.getConfigureElement());
+            return;
         }
+
+        this.renderSearch();
+        this.renderSearchGenres();
+        this.renderChannelList();
+        this.registerChannelListEvents();
     }
 
     async getGenreList() {
         try {
-            const genreUrl = `/api/devices/${this.deviceProfile.device_uid}/genres${!this.editMode ? '?state=enabled' : ''}`;
-            const response = await fetch(genreUrl, {
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
+            const response = await fetch(this.getGenresUrl);
             const genres = await response.json();
             return genres.sort((a, b) => a.genre_number - b.genre_number);
         } catch (error) {
@@ -43,14 +68,26 @@ class ChannelList extends HTMLElement {
         }
     }
 
-    async getChannelList() {
+    async getChannelList(q=null, genreId=null, enabledOnly=null) {
         try {
-            const channelListUrl = `/api/devices/${this.deviceProfile.device_uid}/channels${!this.editMode ? '?state=enabled' : ''}`
-            const response = await fetch(channelListUrl, {
-                headers: {
-                    'Accept': 'application/json'
+            const getChannelsUrl = new URL(this.getChannelsUrl);
+            if (q != null) {
+                q = q.trim();
+                if (q !== "") {
+                    getChannelsUrl.searchParams.set("q", q);
                 }
-            });
+            }
+            if (genreId != null) {
+                genreId = genreId.trim();
+                if (genreId !== "") {
+                    getChannelsUrl.searchParams.set("genre_id", genreId);
+                }
+            }
+            if (enabledOnly != null) {
+                getChannelsUrl.searchParams.set("channel_enabled", enabledOnly);
+            }
+
+            const response = await fetch(getChannelsUrl);
             return await response.json();
         } catch (error) {
             return null;
@@ -67,130 +104,144 @@ class ChannelList extends HTMLElement {
         return configureDeviceElem;
     }
 
-    getSearchBarElement() {
-        const searchContainerElem = document.createElement('div');
-        searchContainerElem.classList.add('search-container');
-        searchContainerElem.innerHTML = `
-            <input type="text" name='search' placeholder='Search...'>
-            <select name='genre'>
-                <option value="">All</option>
-                ${this.editMode ? '<option value="selected">Selected Channels</option>' : ''}
-                ${this.genres.map(genre => `<option value="${genre.genre_id}">${genre.genre_name}</option>`).join('')}
-            </select>
+    renderSearch() {
+        const template = document.createElement('template');
+        template.innerHTML = `
+            <input id="search-input" type="text" name='search' placeholder='Search...'>
+            <select id="genre-select" name='genre'></select>
         `;
-        const searchElem = searchContainerElem.querySelector('input');
-        searchElem.addEventListener('keyup', (event) => {
-            const searchVal = event.currentTarget.value;
-            const genreVal = searchContainerElem.querySelector('[name=genre]').value;
-            this.searchChannelList(searchVal, genreVal);
+        const searchContainerElem = this.querySelector('div.search-container');
+        searchContainerElem.appendChild(template.content.cloneNode(true));
+
+        const searchInputElem = searchContainerElem.querySelector('input[name=search]');
+        const genreSelectElem = searchContainerElem.querySelector('select[name=genre]');
+
+        searchInputElem.addEventListener('keyup', async () => {
+            await this.searchChannelList();
         });
 
-        const genreElem = searchContainerElem.querySelector('select');
-        genreElem.addEventListener('change', (event) => {
-            const searchVal = searchContainerElem.querySelector('[name=search]').value;
-            const genreVal = event.currentTarget.value;
-            this.searchChannelList(searchVal, genreVal);
+        genreSelectElem.addEventListener('change', async () => {
+            await this.searchChannelList();
         });
-
 
         return searchContainerElem;
     }
 
-    searchChannelList() {
+    renderSearchGenres() {
+        const searchContainerElem = this.querySelector('div.search-container');
+        const genreSelectElem = searchContainerElem.querySelector('select[name=genre]');
+        genreSelectElem.innerHTML = '';
+
+        const allGenresElem = document.createElement('option');
+        allGenresElem.innerText = 'All';
+        genreSelectElem.appendChild(allGenresElem);
+
+        if (this.listMode === ChannelListMode.FILTER) {
+            const allSelectedElem = document.createElement('option');
+            allSelectedElem.value = 'selected';
+            allSelectedElem.innerText = 'Selected';
+            genreSelectElem.appendChild(allSelectedElem);
+        }
+
+        for (const genre of this.genreList) {
+            const genreElem = document.createElement('option');
+            genreElem.value = genre.genre_id;
+            genreElem.textContent = genre.genre_name;
+            genreSelectElem.appendChild(genreElem);
+        }
+    }
+
+    async searchChannelList() {
         const searchElem = this.querySelector('.search-container [name=search]');
         const genreElem = this.querySelector('.search-container [name=genre]');
-        let search = searchElem.value.trim().toLowerCase();
-        search = search === '' ? null : search;
-        let genreId = genreElem.value.trim().toLowerCase();
-        genreId = genreId === '' ? null : genreId;
-        const searchOnlySelected = this.editMode && genreId === 'selected';
-        const channelElements = this.querySelectorAll('.channel');
-        for (const element of channelElements) {
-            const channelName = element.dataset.channelName.toLowerCase();
-            if (searchOnlySelected) {
-                if (element.hasAttribute('selected')) {
-                    element.hidden = false;
-                } else {
-                    element.hidden = true;
-                    continue;
-                }
-            } else {
-                const channelGenreId = element.dataset.genreId;
-                if (genreId === null || channelGenreId === genreId) {
-                    element.hidden = false;
-                } else {
-                    element.hidden = true;
-                    continue;
-                }
-            }
-
-            if (search === null || channelName.includes(search)) {
-                element.hidden = false;
-            } else {
-                element.hidden = true;
-                continue;
-            }
-        }
+        const searchValue = searchElem.value;
+        const genreValue = genreElem.value !== 'selected' ? genreElem.value : null;
+        const enabledOnly =  genreElem.value === 'selected' ? true : null;
+        this.channelList = await this.getChannelList(searchValue, genreValue, enabledOnly);
+        this.renderChannelList();
     }
 
     renderChannelList() {
         /** Renders the channels in the channel list container. */
-        const channelListElem = this.querySelector('ul.channel-list');
-        for (const channel of this.channels) {
-            const channelElem = this.buildChannelElement(channel);
-            channelListElem.appendChild(channelElem);
+        const channelListContainer = this.querySelector('ul.channel-list');
+        channelListContainer.innerHTML = '';
+
+        if (this.listMode === ChannelListMode.PLAYER) {
+            for (const channel of this.channelList) {
+                this.renderButtonChannel(channelListContainer, channel);
+            }
+        } else if (this.listMode === ChannelListMode.FILTER) {
+           for (const channel of this.channelList) {
+                this.renderSelectChannel(channelListContainer, channel);
+            }
         }
     }
 
-    getChannelListElement() {
-        const channelListElem = document.createElement('ul');
-        channelListElem.classList.add('channel-list');
-        channelListElem.toggleAttribute('edit-mode', this.editMode);
-        return channelListElem;
-    }
-
-    buildChannelElement(channel) {
-        const channelElem = document.createElement('li');
-        channelElem.classList.add('channel');
-        channelElem.dataset['channelId'] = channel.channel_id;
-        channelElem.dataset['channelName'] = channel.channel_name;
-        channelElem.dataset['genreId'] = channel.genre_id;
-        channelElem.toggleAttribute('selected', this.editMode && channel.channel_enabled)
-
-        const genre = this.genres.find((g) => g.genre_id === channel.genre_id);
-        channelElem.innerHTML = `
-            <div class="channel-left">
-                <span class="material-symbols-outlined">live_tv</span>
-            </div>
-            <div class="channel-details">
-                <span class="channel-name">${channel.channel_name}</span>
-                <span class="channel-group">${genre.genre_name}</span>
-            </div>
-            <div class="channel-right">
-                <span class="material-symbols-outlined">hd</span>
-                <span class="channel-number">${channel.channel_id}</span>
-            </div>
-        `
-
-        channelElem.addEventListener('click', () => {
-            if (this.editMode) {
-                const selectedState = channelElem.hasAttribute('selected');
-                channelElem.toggleAttribute('selected', !selectedState);
-                const genreElem = this.querySelector('.search-container [name=genre]');
-                if (genreElem.value === 'selected') {
-                    this.searchChannelList();
-                }
-
+    registerChannelListEvents() {
+        const channelListContainer = this.querySelector('ul.channel-list');
+        channelListContainer.addEventListener('click', async (e) => {
+            const channelElem = e.target.closest('.channel');
+            if (!channelElem) return;
+            if (this.listMode === ChannelListMode.FILTER) {
+                const channelState = channelElem.hasAttribute('selected');
+                channelElem.toggleAttribute('selected', !channelState);
                 if (typeof this.channelToggleCallback === 'function') {
-                    this.channelToggleCallback(channel.channel_id);
+                    const channelId = channelElem.dataset.channelId;
+                    await this.channelToggleCallback(channelId, !channelState);
+                    await this.searchChannelList();
                 }
-            } else {
+            } else if (this.listMode === ChannelListMode.PLAYER) {
                 if (typeof this.channelClickCallback === 'function') {
-                    this.channelClickCallback(channel.channel_id, channel.channel_name, channel.stream_id);
+                    const channelId = channelElem.dataset.channelId;
+                    const channelName = channelElem.querySelector('.channel-name').textContent;
+                    await this.channelClickCallback(channelId, channelName);
                 }
             }
         });
-        return channelElem;
+    }
+
+    renderSelectChannel(containerElement, channel) {
+        let template = document.createElement('template');
+        const genre = this.genreList.find((g) => g.genre_id === channel.genre_id);
+        template.innerHTML = `
+            <li class="channel" data-channel-id="${channel.channel_id}" ${channel.channel_enabled ? 'selected' : ''}>
+                <div class="channel-left">
+                    <span class="material-symbols-outlined">live_tv</span>
+                </div>
+                <div class="channel-details">
+                    <span class="channel-name">${channel.channel_name}</span>
+                    <span class="channel-group">${genre.genre_name}</span>
+                </div>
+                <div class="channel-right">
+                    <span class="material-symbols-outlined">hd</span>
+                    <span class="channel-number">${channel.channel_id}</span>
+                </div>
+            </li>
+        `
+        template = template.content.querySelector('.channel');
+        containerElement.appendChild(template);
+    }
+
+    renderButtonChannel(containerElement, channel) {
+        let template = document.createElement('template');
+        const genre = this.genreList.find((g) => g.genre_id === channel.genre_id);
+        template.innerHTML = `
+            <li class="channel" data-channel-id="${channel.channel_id}">
+                <div class="channel-left">
+                    <span class="material-symbols-outlined">live_tv</span>
+                </div>
+                <div class="channel-details">
+                    <span class="channel-name">${channel.channel_name}</span>
+                    <span class="channel-group">${genre.genre_name}</span>
+                </div>
+                <div class="channel-right">
+                    <span class="material-symbols-outlined">hd</span>
+                    <span class="channel-number">${channel.channel_id}</span>
+                </div>
+            </li>
+        `
+        template = template.content.querySelector('.channel');
+        containerElement.appendChild(template);
     }
 }
 

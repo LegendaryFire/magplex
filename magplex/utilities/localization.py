@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class Locale(StrEnum):
     # General Localization
+    GENERAL_EXPECTED_JSON = 'Content type is not application/json or the JSON body is malformed.'
     GENERAL_INVALID_CREDENTIALS = 'Invalid credentials, please try again.'
     GENERAL_MISSING_ENDPOINT_PARAMETERS = 'Missing mandatory URL parameters or data'
     GENERAL_MISSING_REQUIRED_FIELDS = 'Missing required fields, please try again'

@@ -17,7 +17,7 @@ from magplex.utilities.variables import Environment
 stb = Blueprint("stb", __name__)
 
 
-@stb.route('/<uuid:device_uid>/stb/')
+@stb.get('/<uuid:device_uid>/stb/')
 @authorize_route(auth_method=AuthMethod.API)
 def get_stb_root(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -27,7 +27,7 @@ def get_stb_root(device_uid):
     return Response(parser.build_device_info(user_device.device_uid, domain), mimetype='text/xml')
 
 
-@stb.route('/<uuid:device_uid>/stb/discover.json')
+@stb.get('/<uuid:device_uid>/stb/discover.json')
 @authorize_route(auth_method=AuthMethod.API)
 def get_stb_discover(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -37,7 +37,7 @@ def get_stb_discover(device_uid):
     return jsonify(parser.build_discover(domain))
 
 
-@stb.route('/<uuid:device_uid>/stb/lineup_status.json')
+@stb.get('/<uuid:device_uid>/stb/lineup_status.json')
 @authorize_route(auth_method=AuthMethod.API)
 def get_stb_lineup_status(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -46,18 +46,18 @@ def get_stb_lineup_status(device_uid):
     return jsonify(parser.build_status())
 
 
-@stb.route('/<uuid:device_uid>/stb/lineup.json')
+@stb.get('/<uuid:device_uid>/stb/lineup.json')
 @authorize_route(auth_method=AuthMethod.API)
 def get_stb_lineup(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
     domain = request.host_url[:-1]
-    channel_list = database.get_enabled_channels(g.db_conn, user_device.device_uid)
+    channel_list = database.get_channels(g.db_conn, user_device.device_uid, channel_enabled=True)
     return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
 
 
-@stb.route('/<uuid:device_uid>/stb/playlist.m3u8')
+@stb.get('/<uuid:device_uid>/stb/playlist.m3u8')
 def get_stb_channel_playlist(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -123,7 +123,7 @@ def get_stb_channel_guide(device_uid):
     if user_device is None:
         return Response(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
-    channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
+    channels = database.get_channels(g.db_conn, user_device.device_uid, channel_enabled=True)
     guides = database.get_current_channel_guides(g.db_conn, user_device.device_uid)
     guide = parser.build_channel_guide(channels, guides)
     return Response(guide, mimetype='text/xml')

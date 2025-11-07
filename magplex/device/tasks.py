@@ -46,15 +46,15 @@ def save_channels(device_uid):
     conn.commit()
 
     # Mark missing channels as stale.
-    existing_channels = database.get_all_channels(conn, user_device.device_uid)
+    existing_channels = database.get_channels(conn, user_device.device_uid)
     fetched_channel_ids = [c.channel_id for c in fetched_channels]
     for existing_channel in existing_channels:
         if existing_channel.channel_id not in fetched_channel_ids:
-            database.update_channel_stale(conn, user_device.device_uid, existing_channel.channel_id, True)
+            database.update_channel(conn, user_device.device_uid, existing_channel.channel_id, channel_stale=True)
     conn.commit()
 
     # Get the latest copy of the channel list.
-    channel_list = database.get_all_channels(conn, user_device.device_uid)
+    channel_list = database.get_channels(conn, user_device.device_uid)
     logging.warning(Locale.DEVICE_CHANNEL_LIST_SUCCESSFUL)
     conn.close()
     return channel_list
@@ -70,7 +70,7 @@ def save_channel_guides(device_uid):
         return
 
     conn = PostgresConnection()
-    channel_list = database.get_enabled_channels(conn, user_device.device_uid)
+    channel_list = database.get_channels(conn, user_device.device_uid, channel_enabled=True)
     if channel_list is None:
         logging.error(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)
         return

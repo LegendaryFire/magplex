@@ -21,9 +21,10 @@ def get_user():
 @user.post('/username')
 @authorize_route(auth_method=AuthMethod.SESSION)
 def save_username():
-    current_username = request.json.get('current_username')
-    new_username = request.json.get('new_username')
-    password = request.json.get('password')
+    data = request.get_json()
+    current_username = data.get('current_username')
+    new_username = data.get('new_username')
+    password = data.get('password')
     if not current_username or not new_username or not password:
         return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
     if any(char.isspace() for char in new_username):
@@ -44,9 +45,10 @@ def save_username():
 @user.post('/password')
 @authorize_route(auth_method=AuthMethod.SESSION)
 def save_password():
-    current_password = request.json.get('current_password')
-    new_password = request.json.get('new_password')
-    new_password_repeated = request.json.get('new_password_repeated')
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    new_password_repeated = data.get('new_password_repeated')
 
     session_user = database.get_user(g.db_conn, g.user_session.user_uid)
     if not current_password or not new_password or not new_password_repeated:
@@ -68,8 +70,9 @@ def save_password():
 
 @user.post('/login')
 def login():
-    username = request.json.get('username')
-    password = request.json.get('password')
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
     if not username or not password:
         return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
     user_account = database.validate_user(g.db_conn, username, password)
@@ -103,13 +106,14 @@ def get_user_device():
 @user.post('/device')
 @authorize_route(auth_method=AuthMethod.SESSION)
 def save_user_device():
-    mac_address = request.json.get('mac_address')
-    device_id1 = request.json.get('device_id1')
-    device_id2 = request.json.get('device_id2')
-    signature = request.json.get('signature')
-    portal = request.json.get('portal')
-    language = request.json.get('language')
-    tz = request.json.get('timezone')
+    data = request.get_json()
+    mac_address = data.get('mac_address')
+    device_id1 = data.get('device_id1')
+    device_id2 = data.get('device_id2')
+    signature = data.get('signature')
+    portal = data.get('portal')
+    language = data.get('language')
+    tz = data.get('timezone')
     database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
                                        portal, language, tz)
     return Response(status=HTTPStatus.NO_CONTENT)

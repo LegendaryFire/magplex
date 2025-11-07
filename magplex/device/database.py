@@ -54,12 +54,20 @@ def insert_genre(conn, device_uid, genre_id, genre_number, genre_name):
         cursor.execute(query, locals())
 
 
-def get_all_genres(conn, device_uid):
+def get_all_genres(conn, device_uid, channel_enabled=None, channel_stale=None):
     with conn.cursor() as cursor:
         query = """
             select device_uid, genre_id, genre_number, genre_name, modified_timestamp, creation_timestamp
-            from genres
-            where device_uid = %(device_uid)s
+            from genres g
+            where g.device_uid = %(device_uid)s
+            and (%(channel_enabled)s::bool is null and %(channel_stale)s::bool is null)
+            or exists (
+                select 1 from channels c
+                where c.device_uid = %(device_uid)s
+                and c.genre_id = g.genre_id
+                and (%(channel_enabled)s::bool is null or %(channel_enabled)s = c.channel_enabled)
+                and (%(channel_stale)s::bool is null or %(channel_stale)s = c.channel_stale)
+            )
         """
         cursor.execute(query, locals())
         return [Genre(*row) for row in cursor]
@@ -128,106 +136,42 @@ def get_channel(conn, device_uid, channel_id):
         return None
 
 
-def get_all_channels(conn, device_uid):
+def get_channels(conn, device_uid, channel_enabled=None, channel_stale=None, genre_id=None, q=None):
     with conn.cursor() as cursor:
         query = """
             select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
                    genre_id, stream_id, modified_timestamp, creation_timestamp
             from channels
             where device_uid = %(device_uid)s
+            and (%(channel_enabled)s::bool is null or %(channel_enabled)s = channel_enabled)
+            and (%(channel_stale)s::bool is null or %(channel_stale)s = channel_stale)
+            and (%(genre_id)s::int is null or %(genre_id)s = genre_id)
+            and (%(q)s::varchar is null or channel_name ilike '%%' || %(q)s || '%%')
+            order by device_uid, genre_id, channel_number
         """
         cursor.execute(query, locals())
         return [Channel(*row) for row in cursor]
 
 
-def get_enabled_channels(conn, device_uid):
+def update_channel(conn, device_uid, channel_id, channel_name=None, channel_hd=None, channel_enabled=None, channel_stale=None):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   genre_id, stream_id, modified_timestamp, creation_timestamp
-            from channels
-            where device_uid = %(device_uid)s
-            and channel_stale = false
-            and channel_enabled = true
-        """
-        cursor.execute(query, locals())
-        return [Channel(*row) for row in cursor]
-
-
-def get_disabled_channels(conn, device_uid):
-    with conn.cursor() as cursor:
-        query = """
-            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   genre_id, stream_id, modified_timestamp, creation_timestamp
-            from channels
-            where device_uid = %(device_uid)s
-            and channel_stale = false
-            and channel_enabled = false
-        """
-        cursor.execute(query, locals())
-        return [Channel(*row) for row in cursor]
-
-
-def get_stale_channels(conn, device_uid):
-    with conn.cursor() as cursor:
-        query = """
-            select device_uid, channel_id, channel_number, channel_name, channel_hd, channel_enabled, channel_stale,
-                   genre_id, genre_name, stream_id, creation_timestamp
-            from channels
-            where device_uid = %(device_uid)s
-            and channel_stale = true
-        """
-        cursor.execute(query, locals())
-        return [Channel(*row) for row in cursor]
-
-
-def update_stale_channel(conn, device_uid, channel_id, channel_stale):
-    with conn.cursor() as cursor:
-        query = """
-            update channels set channel_stale = %(channel_stale)s::bool
-            where device_uid = %(device_uid)s
-            and channel_id = %(channel_id)s
-        """
-        cursor.execute(query, locals())
-        conn.commit()
-
-
-
-def toggle_channel_enabled(conn, device_uid, channel_id):
-    with conn.cursor() as cursor:
-        query = """
-            update channels set channel_enabled = not channel_enabled
+            update channels set channel_name = coalesce(%(channel_name)s, channel_name),
+                channel_hd = coalesce(%(channel_hd)s, channel_hd),
+                channel_enabled = coalesce(%(channel_enabled)s, channel_enabled),
+                channel_stale = coalesce(%(channel_stale)s, channel_stale)
             where device_uid = %(device_uid)s
             and channel_id = %(channel_id)s
         """
         cursor.execute(query, locals())
 
 
-def update_channels_enabled(conn, device_uid, channels_enabled):
+def update_channels(conn, device_uid, channel_enabled=None, channel_stale=None):
     with conn.cursor() as cursor:
         query = """
-            update channels set channel_enabled = %(channels_enabled)s
+            update channels set channel_enabled = coalesce(%(channel_enabled)s, channel_enabled),
+                channel_stale = coalesce(%(channel_stale)s, channel_stale)
             where device_uid = %(device_uid)s
-        """
-        cursor.execute(query, locals())
-
-
-def update_channel_stale(conn, device_uid, channel_id, channel_stale):
-    with conn.cursor() as cursor:
-        query = """
-            update channels set channel_stale = %(channel_stale)s
-            where device_uid = %(device_uid)s
-            and channel_id = %(channel_id)s
-        """
-        cursor.execute(query, locals())
-
-
-def delete_channel(conn, device_uid, channel_id):
-    with conn.cursor() as cursor:
-        query = """
-            delete from channels
-                where device_uid = %(device_uid)s
-                and channel_id = %(channel_id)s
         """
         cursor.execute(query, locals())
 

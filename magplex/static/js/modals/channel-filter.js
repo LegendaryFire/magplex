@@ -17,7 +17,7 @@ class ChannelFilterModal extends Modal {
                         <button id="disable-all-btn">Disable All</button>
                     </div>
                         <form id="device-form">
-                            <channel-list edit-mode></channel-list>
+                            <channel-list list-mode="filter"></channel-list>
                         </form>
                     </div>
                 </div>
@@ -37,7 +37,7 @@ class ChannelFilterModal extends Modal {
             this.connectedCallback();
         });
 
-        this.querySelector('channel-list').channelToggleCallback = this.toggleChannel.bind(this);
+        this.querySelector('channel-list[list-mode=filter]').channelToggleCallback = await this.toggleChannel.bind(this);
     }
 
     async toggleChannels(channelsEnabled) {
@@ -57,10 +57,11 @@ class ChannelFilterModal extends Modal {
         showToast(`All channels ${channelsEnabled ? 'enabled' : 'disabled'} successfully.`, ToastType.SUCCESS);
     }
 
-    async toggleChannel(channelId) {
-        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/${channelId}/toggle`, {
+    async toggleChannel(channelId, channelEnabled) {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/${channelId}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'}
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({'channel_id': channelId, 'channel_enabled': channelEnabled})
         });
 
         if (!response.ok) {

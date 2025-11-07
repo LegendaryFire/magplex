@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone
-from enum import StrEnum
 from http import HTTPStatus
 from urllib.parse import urljoin
 
@@ -11,15 +10,12 @@ from flask import Blueprint, Response, g, jsonify, redirect, request, stream_wit
 from magplex.decorators import authorize_route, AuthMethod
 from magplex.device import database
 from magplex.device.manager import DeviceManager
+from magplex.utilities import sanitizer
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
 from magplex.utilities.scheduler import TaskManager
 
 device = Blueprint("device", __name__)
-
-class ChannelState(StrEnum):
-    ENABLED = 'enabled'
-    DISABLED = 'disabled'
 
 
 @device.get('/<uuid:device_uid>/genres')
@@ -28,13 +24,13 @@ def get_genres(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
-    channel_state = request.args.get('state', '').lower()
-    if channel_state == ChannelState.ENABLED:
-        genres = database.get_enabled_channel_genres(g.db_conn, user_device.device_uid)
-    elif channel_state == ChannelState.DISABLED:
-        genres = database.get_disabled_channel_genres(g.db_conn, user_device.device_uid)
-    else:
-        genres = database.get_all_genres(g.db_conn, user_device.device_uid)
+
+    kwargs = {}
+    if 'channel_enabled' in request.args:
+        kwargs.update({'channel_enabled': sanitizer.sanitize_bool(request.args.get('channel_enabled'))})
+    if 'channel_stale' in request.args:
+        kwargs.update({'channel_stale': sanitizer.sanitize_bool(request.args.get('channel_stale'))})
+    genres = database.get_all_genres(g.db_conn, user_device.device_uid, **kwargs)
     return jsonify(genres)
 
 
@@ -45,21 +41,40 @@ def get_channels(device_uid):
     if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
-    channel_state = request.args.get('state', '').lower()
-    if channel_state == ChannelState.ENABLED:
-        enabled_channels = database.get_enabled_channels(g.db_conn, user_device.device_uid)
-        return jsonify(enabled_channels)
-    elif channel_state == ChannelState.DISABLED:
-        disabled_channels = database.get_disabled_channels(g.db_conn, user_device.device_uid)
-        return jsonify(disabled_channels)
-    else:
-        all_channels = database.get_all_channels(g.db_conn, user_device.device_uid)
-        return jsonify(all_channels)
+    kwargs = {}
+    if 'channel_enabled' in request.args:
+        kwargs.update({'channel_enabled': sanitizer.sanitize_bool(request.args.get('channel_enabled'))})
+    if 'channel_stale' in request.args:
+        kwargs.update({'channel_stale': sanitizer.sanitize_bool(request.args.get('channel_stale'))})
+    if 'genre_id' in request.args:
+        kwargs.update({'genre_id': sanitizer.sanitize_int(request.args.get('genre_id'))})
+    if 'q' in request.args:
+        kwargs.update({'q': sanitizer.sanitize_string(request.args.get('q'))})
+    channels = database.get_channels(g.db_conn, user_device.device_uid, **kwargs)
+    return jsonify(channels)
+
 
 
 @device.post('/<uuid:device_uid>/channels')
 @authorize_route(auth_method=AuthMethod.ALL)
 def update_channels(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+
+    data = request.get_json()
+    kwargs = {}
+    if 'channel_enabled' in data:
+        kwargs.update({'channel_enabled': sanitizer.sanitize_bool(data.get('channel_enabled'))})
+    if 'channel_stale' in data:
+        kwargs.update({'channel_stale': sanitizer.sanitize_bool(data.get('channel_stale'))})
+    database.update_channels(g.db_conn, user_device.device_uid, **kwargs)
+    return Response(status=HTTPStatus.OK)
+
+
+@device.post('/<uuid:device_uid>/channels/sync')
+@authorize_route(auth_method=AuthMethod.ALL)
+def sync_channels(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
@@ -70,7 +85,49 @@ def update_channels(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
     job.modify(next_run_time=datetime.now(timezone.utc))
-    return Response(status=HTTPStatus.ACCEPTED)
+    return Response(status=HTTPStatus.OK)
+
+
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>')
+@authorize_route(auth_method=AuthMethod.ALL)
+def get_channel_playlist(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
+    if channel is None:
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+
+    stream_link = user_device.get_channel_playlist(channel.stream_id)
+    if stream_link is None:
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_STREAM, HTTPStatus.NOT_FOUND)
+
+    return redirect(stream_link, code=HTTPStatus.FOUND)
+
+
+@device.post('/<uuid:device_uid>/channels/<int:channel_id>')
+@authorize_route(auth_method=AuthMethod.ALL)
+def update_channel(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
+    if channel is None:
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+
+    data = request.get_json()
+    kwargs = {}
+    if 'channel_name' in data:
+        kwargs.update({'channel_name': sanitizer.sanitize_string(data.get('channel_name'), max_length=128)})
+    if 'channel_hd' in data:
+        kwargs.update({'channel_hd': sanitizer.sanitize_bool(data.get('channel_hd'))})
+    if 'channel_enabled' in data:
+        kwargs.update({'channel_enabled': sanitizer.sanitize_bool(data.get('channel_enabled'))})
+    database.update_channel(g.db_conn, user_device.device_uid, channel_id, **kwargs)
+
+    return Response(status=HTTPStatus.OK)
 
 
 @device.get('/<uuid:device_uid>/channels/guides')
@@ -87,20 +144,9 @@ def get_channel_guides(device_uid):
     return jsonify(guide_map)
 
 
-@device.get('/<uuid:device_uid>/channels/<int:channel_id>/guide')
+@device.post('/<uuid:device_uid>/channels/guides/sync')
 @authorize_route(auth_method=AuthMethod.ALL)
-def get_channel_guide(device_uid, channel_id):
-    user_device = DeviceManager.get_user_device(device_uid)
-    if user_device is None or user_device.device_uid != str(device_uid):
-        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
-
-    channel_guide = database.get_channel_guide(g.db_conn, user_device.device_uid, channel_id)
-    return jsonify(channel_guide)
-
-
-@device.post('/<uuid:device_uid>/channels/guides')
-@authorize_route(auth_method=AuthMethod.ALL)
-def refresh_channel_guides(device_uid):
+def sync_channel_guides(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
@@ -115,51 +161,18 @@ def refresh_channel_guides(device_uid):
     return Response(status=HTTPStatus.ACCEPTED)
 
 
-@device.post('/<uuid:device_uid>/channels/toggle')
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>/guide')
 @authorize_route(auth_method=AuthMethod.ALL)
-def toggle_channels(device_uid):
-    channels_enabled = request.json.get('channels_enabled')
-    if channels_enabled is None:
-        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS)
-
+def get_channel_guide(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
 
-    database.update_channels_enabled(g.db_conn, user_device.device_uid, channels_enabled)
-    return Response(status=HTTPStatus.OK)
+    channel_guide = database.get_channel_guide(g.db_conn, user_device.device_uid, channel_id)
+    return jsonify(channel_guide)
 
 
-@device.post('/<uuid:device_uid>/channels/<int:channel_id>/toggle')
-@authorize_route(auth_method=AuthMethod.ALL)
-def toggle_channel(device_uid, channel_id):
-    user_device = DeviceManager.get_user_device(device_uid)
-    if user_device is None or user_device.device_uid != str(device_uid):
-        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
-
-    database.toggle_channel_enabled(g.db_conn, user_device.device_uid, channel_id)
-    return Response(status=HTTPStatus.OK)
-
-
-@device.route('/<uuid:device_uid>/channels/<int:channel_id>')
-@authorize_route(auth_method=AuthMethod.ALL)
-def stream_playlist(device_uid, channel_id):
-    user_device = DeviceManager.get_user_device(device_uid)
-    if user_device is None or user_device.device_uid != str(device_uid):
-        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
-
-    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
-    if channel is None:
-        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
-
-    stream_link = user_device.get_channel_playlist(channel.stream_id)
-    if stream_link is None:
-        return ErrorResponse(Locale.DEVICE_UNKNOWN_STREAM, HTTPStatus.NOT_FOUND)
-
-    return redirect(stream_link, code=HTTPStatus.FOUND)
-
-
-@device.route('/<uuid:device_uid>/channels/<int:channel_id>/proxy')
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>/proxy')
 @authorize_route(auth_method=AuthMethod.ALL)
 def proxy_playlist(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -205,7 +218,7 @@ def proxy_playlist(device_uid, channel_id):
     )
 
 
-@device.route('/<uuid:device_uid>/channels/<int:channel_id>/proxy/stream.ts')
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>/proxy/stream.ts')
 def proxy_stream(device_uid, channel_id):
     data = request.args.get("data")
     if not data:

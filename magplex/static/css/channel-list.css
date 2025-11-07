@@ -27,7 +27,7 @@ channel-list {
             padding: 0;
         }
 
-        &[edit-mode] {
+        &[select] {
             li.channel {
                 &:hover {
                     box-shadow: 0 3px 8px -1px rgba(0,0,0,0.3);
@@ -60,7 +60,7 @@ channel-list {
             }
         }
 
-        &:not([edit-mode]) {
+        &:not([select]) {
             li.channel {
                 &:hover {
                     border-color: transparent;
