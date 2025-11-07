@@ -1,7 +1,6 @@
 class SettingsModal extends Modal {
     async connectedCallback() {
         this.deviceProfile = await getDeviceProfile();
-        debugger;
         this.modalTitle = "Settings";
         this.magplexInfo = await this.getInfo();
         this.innerHTML = `

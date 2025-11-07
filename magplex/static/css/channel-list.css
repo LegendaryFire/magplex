@@ -30,7 +30,7 @@ channel-list {
         &[edit-mode] {
             li.channel {
                 &:hover {
-                    box-shadow: 0 3px 8px -1px rgba(0,0,0,0.8);
+                    box-shadow: 0 3px 8px -1px rgba(0,0,0,0.3);
                     cursor: pointer;
                 }
 
@@ -64,7 +64,7 @@ channel-list {
             li.channel {
                 &:hover {
                     border-color: transparent;
-                    box-shadow: 0 3px 8px -1px rgba(0,0,0,0.8);
+                    box-shadow: 0 3px 8px -1px rgba(0,0,0,0.3);
                     cursor: pointer;
                 }
 

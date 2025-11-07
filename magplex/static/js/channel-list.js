@@ -12,7 +12,7 @@ class ChannelList extends HTMLElement {
         this.editMode = this.hasAttribute('edit-mode');
         this.innerHTML = `
             <div class="message-container">
-                <h2>Loading channel list.</h2>
+                <h2>Loading Channels</h2>
                 <h3>Please wait...</h3>
             </div>
         `
