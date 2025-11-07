@@ -98,8 +98,9 @@ class SettingsModal extends Modal {
     }
 
     async refreshEpg() {
-        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides`, {
-            method: 'POST'
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides/sync`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
         });
         if (!response.ok) {
             const data = await response.json()
@@ -111,8 +112,9 @@ class SettingsModal extends Modal {
     }
 
     async refreshChannels() {
-        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels`, {
-            method: 'POST'
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/sync`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
         });
         if (!response.ok) {
             const data = await response.json()

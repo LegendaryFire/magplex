@@ -71,7 +71,11 @@ class ChannelFilterModal extends Modal {
             return;
         }
         this.refreshChannelList = true;
-        showToast(`Channel ${channelId} toggled successfully.`, ToastType.SUCCESS);
+        if (channelEnabled === true) {
+            showToast(`Channel enabled successfully.`, ToastType.SUCCESS);
+        } else {
+            showToast(`Channel disabled successfully.`, ToastType.WARNING);
+        }
     }
 
     closeModal() {
