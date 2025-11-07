@@ -41,9 +41,9 @@ class ChannelFilterModal extends Modal {
     }
 
     async toggleChannels(channelsEnabled) {
-        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/toggle`, {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels`, {
             method: 'POST',
-            body: JSON.stringify({'channels_enabled': channelsEnabled}),
+            body: JSON.stringify({'channel_enabled': channelsEnabled}),
             headers: {'Content-Type': 'application/json'}
         });
 
@@ -53,8 +53,13 @@ class ChannelFilterModal extends Modal {
             showToast(message, ToastType.ERROR);
             return;
         }
+
         this.refreshChannelList = true;
-        showToast(`All channels ${channelsEnabled ? 'enabled' : 'disabled'} successfully.`, ToastType.SUCCESS);
+        if (channelsEnabled === true) {
+            showToast(`Channel enabled successfully.`, ToastType.SUCCESS);
+        } else {
+            showToast(`Channel disabled successfully.`, ToastType.WARNING);
+        }
     }
 
     async toggleChannel(channelId, channelEnabled) {
@@ -70,6 +75,7 @@ class ChannelFilterModal extends Modal {
             showToast(message, ToastType.ERROR);
             return;
         }
+
         this.refreshChannelList = true;
         if (channelEnabled === true) {
             showToast(`Channel enabled successfully.`, ToastType.SUCCESS);
