@@ -39,7 +39,7 @@ body.modal-visible {
 
         div.content-group {
             & {
-                margin-bottom: 5px;
+                margin-bottom: 25px;
             }
 
             &:last-child {

@@ -24,7 +24,7 @@ class KeysModal extends Modal {
                             <input id="api-key" type="text" placeholder="No API Key" value="" disabled>
                         </label>
                         <div class="button-row">
-                            <button id="generate-key-btn" data-confirmed="false">Generate API Key</button>
+                            <button id="generate-key-btn" data-confirmed="false">Update API Key</button>
                             <button id="delete-key-btn" data-confirmed="false">Delete API Key</button>
                         </div>
                     </div>
@@ -35,15 +35,69 @@ class KeysModal extends Modal {
         await this.renderKeys();
 
         const generateKeyBtn = document.querySelector('#generate-key-btn');
+        let generateConfirmTimeout = null;
         generateKeyBtn.addEventListener('click', async () => {
-            await this.updateApiKey();
-            await this.renderKeys();
+            if (generateKeyBtn.dataset.confirmed === 'true') {
+                // User confirmed within timeout
+                clearTimeout(generateConfirmTimeout);
+                generateConfirmTimeout = null;
+
+                await this.updateApiKey();
+                await this.renderKeys();
+
+                generateKeyBtn.dataset.confirmed = 'false';
+                generateKeyBtn.style.color = 'inherit';
+                generateKeyBtn.innerText = 'Update API Key';
+                return;
+            }
+
+            // First click — ask for confirmation
+            generateKeyBtn.dataset.confirmed = 'true';
+            generateKeyBtn.style.color = 'var(--color-warning)';
+            generateKeyBtn.innerText = 'Confirm Update API Key';
+
+            // Clear any existing timeout to prevent overlap
+            clearTimeout(generateConfirmTimeout);
+
+            generateConfirmTimeout = setTimeout(() => {
+                generateKeyBtn.dataset.confirmed = 'false';
+                generateKeyBtn.style.color = 'inherit';
+                generateKeyBtn.innerText = 'Update API Key';
+                generateConfirmTimeout = null;
+            }, 3000);
         });
 
         const deleteKeyBtn = document.querySelector('#delete-key-btn');
+        let deleteConfirmTimeout = null;
         deleteKeyBtn.addEventListener('click', async () => {
-            await this.deleteApiKey();
-            await this.renderKeys();
+            if (deleteKeyBtn.dataset.confirmed === 'true') {
+                // User confirmed within timeout
+                clearTimeout(deleteConfirmTimeout);
+                deleteConfirmTimeout = null;
+
+                await this.deleteApiKey();
+                await this.renderKeys();
+
+                deleteKeyBtn.dataset.confirmed = 'false';
+                deleteKeyBtn.style.color = 'inherit';
+                deleteKeyBtn.innerText = 'Delete API Key';
+                return;
+            }
+
+            // First click — ask for confirmation
+            deleteKeyBtn.dataset.confirmed = 'true';
+            deleteKeyBtn.style.color = 'var(--color-warning)';
+            deleteKeyBtn.innerText = 'Confirm Delete API Key';
+
+            // Clear any previous timeout if user spam-clicks
+            clearTimeout(deleteConfirmTimeout);
+
+            deleteConfirmTimeout = setTimeout(() => {
+                deleteKeyBtn.dataset.confirmed = 'false';
+                deleteKeyBtn.style.color = 'inherit';
+                deleteKeyBtn.innerText = 'Delete API Key';
+                deleteConfirmTimeout = null;
+            }, 3000);
         });
     }
 

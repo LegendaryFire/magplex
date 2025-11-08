@@ -90,6 +90,7 @@ def login():
 
 
 @user.get('/logout')
+@authorize_route(auth_method=AuthMethod.SESSION)
 def logout():
     user_session = getattr(g, 'user_session', None)
     if user_session is not None:

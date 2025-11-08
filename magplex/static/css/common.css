@@ -2,6 +2,7 @@
     --color: #cfcfcf;
     --color-inactive: #808080;
     --color-disabled: #424242;
+    --color-warning: #ff7474;
     --color-hover: #afafaf;
     --background-color: #3a3a3a;
     --background-gradient: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%) fixed;

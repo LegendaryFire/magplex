@@ -23,7 +23,7 @@ class SettingsModal extends Modal {
                         </div>
                         <div class="button-row">
                             <button id="channel-filter-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Channel Filter</button>
-                            <button id="api-keys-btn">API Key</button>
+                            <button id="api-keys-btn" ${this.deviceProfile === null ? 'disabled' : ''}>API Key</button>
                         </div>
                     </div>
                 </div>
@@ -47,7 +47,6 @@ class SettingsModal extends Modal {
                             <div class="right-container">
                                 <p class="version">Version ${this.magplexInfo.version}</p>
                                 <p class="build-date">${this.magplexInfo.build_date}</p>
-                                ${this.deviceProfile !== null ? `<p class>Device UID: ${this.deviceProfile.device_uid}</p>` : ''}
                             </div>
                         </div>
                     </div>
