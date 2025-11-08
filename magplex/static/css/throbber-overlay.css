@@ -1,0 +1,38 @@
+throbber-overlay[visible] {
+    & {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100dvw;
+        height: 100dvh;
+        max-width: 100dvw;
+        max-height: 100dvh;
+        background: #000000;
+        opacity: 0.8;
+        overflow-y: auto;
+        z-index: 1;
+    }
+
+    div.throbber-container img {
+        width: 150px;
+        height: 150px;
+    }
+
+    div.message-container {
+        & {
+            max-width: 800px;
+        }
+
+        h2, h4 {
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+    }
+}

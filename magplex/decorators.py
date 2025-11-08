@@ -23,7 +23,7 @@ def authorize_route(*, auth_method=AuthMethod.ALL, force_redirect=False):
             api_key = request.headers.get('X-Api-Key')
             if api_key and auth_method in (AuthMethod.API, AuthMethod.ALL):
                 with PostgresConnection() as conn:
-                    user_profile = users.database.get_user_key(conn, api_key)
+                    user_profile = users.database.validate_api_key(conn, api_key)
                     if user_profile:
                         g.user_uid = user_profile.user_uid
                         user_device_profile = users.database.get_device_profile_by_user(conn, user_profile.user_uid)

@@ -2,7 +2,7 @@ class SettingsModal extends Modal {
     async connectedCallback() {
         this.modalTitle = "Settings";
         this.deviceProfile = await getDeviceProfile();
-        this.magplexInfo = await this.getInfo();
+        this.magplexInfo = await this.getMagplexInfo();
         this.innerHTML = `
             <div class="content-wrapper">
                 <div class="content-group">
@@ -20,7 +20,10 @@ class SettingsModal extends Modal {
                     <div class="content-container">
                         <div class="button-row">
                             <button id="configure-device-btn">Device Configuration</button>
+                        </div>
+                        <div class="button-row">
                             <button id="channel-filter-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Channel Filter</button>
+                            <button id="api-keys-btn">API Key</button>
                         </div>
                     </div>
                 </div>
@@ -65,6 +68,12 @@ class SettingsModal extends Modal {
             document.querySelector('body').appendChild(channelFilterModal);
         });
 
+        const apiKeysBtn = document.querySelector('#api-keys-btn');
+        apiKeysBtn.addEventListener('click', (event) => {
+            const apiKeysModal = document.createElement('keys-modal');
+            document.querySelector('body').appendChild(apiKeysModal);
+        });
+
         const usernameBtn = document.querySelector('#change-username-btn');
         usernameBtn.addEventListener('click', (event) => {
             const usernameModal = document.createElement('username-modal');
@@ -88,7 +97,7 @@ class SettingsModal extends Modal {
         });
     }
 
-    async getInfo() {
+    async getMagplexInfo() {
         try {
             const response = await fetch('/about');
             return await response.json();

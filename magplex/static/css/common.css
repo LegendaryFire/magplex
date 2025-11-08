@@ -1,6 +1,7 @@
 :root {
     --color: #cfcfcf;
     --color-inactive: #808080;
+    --color-disabled: #424242;
     --color-hover: #afafaf;
     --background-color: #3a3a3a;
     --background-gradient: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%) fixed;
@@ -76,6 +77,10 @@ label {
         margin-top: 4px;
         margin-bottom: 10px;
     }
+
+    input[disabled] {
+        color: var(--color-disabled);
+    }
 }
 
 button {
@@ -111,6 +116,10 @@ div.button-row {
         display: flex;
         flex-direction: row;
         gap: 10px;
+    }
+
+    &:not(:last-child) {
+        margin-bottom: 8px;
     }
 
     button:not(:first-child) {

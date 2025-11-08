@@ -108,7 +108,19 @@ def get_user_session(conn, session_uid):
         return None
 
 
-def get_user_key(conn, api_key):
+def insert_user_session(conn, user_uid, ip_address, expiration_timestamp):
+    with conn.cursor() as cursor:
+        query = """
+            insert into user_sessions (user_uid, ip_address, expiration_timestamp)
+            values (%(user_uid)s, %(ip_address)s, %(expiration_timestamp)s)
+            returning session_uid, user_uid, ip_address, expiration_timestamp, creation_timestamp
+        """
+        cursor.execute(query, locals())
+        row = cursor.fetchone()
+        return UserSession(*row) if row else None
+
+
+def validate_api_key(conn, api_key):
     with conn.cursor() as cursor:
         query = """
             select api_key, user_uid, creation_timestamp
@@ -121,16 +133,39 @@ def get_user_key(conn, api_key):
         return None
 
 
-def insert_user_session(conn, user_uid, ip_address, expiration_timestamp):
+def get_api_key(conn, user_uid):
     with conn.cursor() as cursor:
         query = """
-            insert into user_sessions (user_uid, ip_address, expiration_timestamp)
-            values (%(user_uid)s, %(ip_address)s, %(expiration_timestamp)s)
-            returning session_uid, user_uid, ip_address, expiration_timestamp, creation_timestamp
+            select api_key, user_uid, creation_timestamp
+            from user_keys
+            where user_uid = %(user_uid)s
         """
         cursor.execute(query, locals())
-        row = cursor.fetchone()
-        return UserSession(*row) if row else None
+        for row in cursor:
+            return UserApi(*row)
+        return None
+
+
+def insert_api_key(conn, user_uid):
+    with conn.cursor() as cursor:
+        query = """
+            insert into user_keys (api_key, user_uid, creation_timestamp)
+            values (gen_random_uuid(), %(user_uid)s, current_timestamp)
+            on conflict (user_uid) do update
+            set api_key = gen_random_uuid(), user_uid = %(user_uid)s, creation_timestamp = current_timestamp
+        """
+        cursor.execute(query, locals())
+        return None
+
+
+def delete_api_key(conn, user_uid):
+    with conn.cursor() as cursor:
+        query = """
+            delete from user_keys
+            where user_uid = %(user_uid)s
+        """
+        cursor.execute(query, locals())
+        return None
 
 
 def expire_user_session(conn, session_uid):

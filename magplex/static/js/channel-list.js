@@ -29,9 +29,11 @@ class ChannelList extends HTMLElement {
 
 
     async connectedCallback() {
+        showThrobber();
         this.deviceProfile = await getDeviceProfile();
         if (this.deviceProfile === null) {
             this.renderNotConfigured();
+            hideThrobber();
             return;
         }
         this.listMode = this.getAttribute("list-mode");
@@ -39,8 +41,8 @@ class ChannelList extends HTMLElement {
 
         this.innerHTML = `
             <div class="message-container">
-                <h2>Loading Channels</h2>
-                <h3>Please wait...</h3>
+                <h3>Loading Channels</h3>
+                <h4>Please wait...</h4>
             </div>
         `
         this.channelList = await this.getChannelList();
@@ -60,6 +62,7 @@ class ChannelList extends HTMLElement {
         this.renderSearchGenres();
         this.renderChannelList();
         this.registerChannelListEvents();
+        hideThrobber();
     }
 
     async getGenreList() {
@@ -120,13 +123,15 @@ class ChannelList extends HTMLElement {
         const searchInputElem = searchContainerElem.querySelector('input[name=search]');
         const genreSelectElem = searchContainerElem.querySelector('select[name=genre]');
 
-        const debouncedSearch = debounceFn(this.searchChannelList.bind(this), 300);
+        const debouncedSearch = debounceFn(this.updateChannelList.bind(this), 300);
         searchInputElem.addEventListener('input', () => {
             debouncedSearch()
         });
 
         genreSelectElem.addEventListener('change', async () => {
-            await this.searchChannelList();
+            showThrobber();
+            await this.updateChannelList();
+            hideThrobber();
         });
 
         return searchContainerElem;
@@ -156,7 +161,7 @@ class ChannelList extends HTMLElement {
         }
     }
 
-    async searchChannelList() {
+    async updateChannelList() {
         const searchElem = this.querySelector('.search-container [name=search]');
         const genreElem = this.querySelector('.search-container [name=genre]');
         const searchValue = searchElem.value;
@@ -167,7 +172,6 @@ class ChannelList extends HTMLElement {
     }
 
     renderChannelList() {
-        /** Renders the channels in the channel list container. */
         const channelListContainer = this.querySelector('ul.channel-list');
         channelListContainer.innerHTML = '';
 
@@ -193,7 +197,7 @@ class ChannelList extends HTMLElement {
                 if (typeof this.channelToggleCallback === 'function') {
                     const channelId = channelElem.dataset.channelId;
                     await this.channelToggleCallback(channelId, !channelState);
-                    await this.searchChannelList();
+                    await this.updateChannelList();
                 }
             } else if (this.listMode === ChannelListMode.PLAYER) {
                 if (typeof this.channelClickCallback === 'function') {

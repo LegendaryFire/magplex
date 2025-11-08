@@ -1,7 +1,7 @@
 class ChannelFilterModal extends Modal {
     constructor() {
         super();
-        this.refreshChannelList = false;
+        this.refreshOnClose = false;
     }
 
     async connectedCallback() {
@@ -27,20 +27,20 @@ class ChannelFilterModal extends Modal {
 
         const enableAllBtn = this.querySelector('#enable-all-btn');
         enableAllBtn.addEventListener('click', async () => {
-            await this.toggleChannels(true);
+            await this.toggleAllChannels(true);
             this.connectedCallback();
         });
 
         const disableAllBtn = this.querySelector('#disable-all-btn');
         disableAllBtn.addEventListener('click', async () => {
-            await this.toggleChannels(false);
+            await this.toggleAllChannels(false);
             this.connectedCallback();
         });
 
         this.querySelector('channel-list[list-mode=filter]').channelToggleCallback = await this.toggleChannel.bind(this);
     }
 
-    async toggleChannels(channelsEnabled) {
+    async toggleAllChannels(channelsEnabled) {
         const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels`, {
             method: 'POST',
             body: JSON.stringify({'channel_enabled': channelsEnabled}),
@@ -54,11 +54,11 @@ class ChannelFilterModal extends Modal {
             return;
         }
 
-        this.refreshChannelList = true;
+        this.refreshOnClose = true;
         if (channelsEnabled === true) {
-            showToast(`Channel enabled successfully.`, ToastType.SUCCESS);
+            showToast(`All channels enabled successfully.`, ToastType.SUCCESS);
         } else {
-            showToast(`Channel disabled successfully.`, ToastType.WARNING);
+            showToast(`All channels disabled successfully.`, ToastType.WARNING);
         }
     }
 
@@ -76,7 +76,7 @@ class ChannelFilterModal extends Modal {
             return;
         }
 
-        this.refreshChannelList = true;
+        this.refreshOnClose = true;
         if (channelEnabled === true) {
             showToast(`Channel enabled successfully.`, ToastType.SUCCESS);
         } else {
@@ -84,9 +84,9 @@ class ChannelFilterModal extends Modal {
         }
     }
 
-    closeModal() {
-        if (this.refreshChannelList) {
-            document.querySelector('channel-list').connectedCallback();
+    async closeModal () {
+        if (this.refreshOnClose) {
+            await document.querySelector('channel-list').updateChannelList();
         }
         this.remove();
     }

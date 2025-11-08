@@ -89,7 +89,7 @@ def login():
     return response
 
 
-@user.route('/logout')
+@user.get('/logout')
 def logout():
     user_session = getattr(g, 'user_session', None)
     if user_session is not None:
@@ -117,3 +117,25 @@ def save_user_device():
     database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
                                        portal, language, tz)
     return Response(status=HTTPStatus.NO_CONTENT)
+
+
+@user.get('/api')
+@authorize_route(auth_method=AuthMethod.SESSION)
+def get_api_key():
+    api_key = database.get_api_key(g.db_conn, g.user_session.user_uid)
+    return jsonify(api_key)
+
+
+@user.post('/api')
+@authorize_route(auth_method=AuthMethod.SESSION)
+def update_api_key():
+    database.insert_api_key(g.db_conn, g.user_session.user_uid)
+    return Response(status=HTTPStatus.NO_CONTENT)
+
+
+@user.delete('/api')
+@authorize_route(auth_method=AuthMethod.SESSION)
+def delete_api_key():
+    database.delete_api_key(g.db_conn, g.user_session.user_uid)
+    return Response(status=HTTPStatus.NO_CONTENT)
+

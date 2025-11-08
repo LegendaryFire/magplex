@@ -14,6 +14,29 @@ function showToast(message, toastType) {
     }).showToast();
 }
 
+
+function showThrobber(messageTitle='Loading', messageDescription='Please wait...') {
+    // Force one throbber at a time.
+    let throbber = document.querySelector('throbber-overlay');
+    if (document.querySelector('throbber-overlay')) {
+        return;
+    }
+
+    throbber = document.createElement('throbber-overlay');
+    throbber.setAttribute('message-title', messageTitle);
+    throbber.setAttribute('message-description', messageDescription);
+    document.querySelector('body').appendChild(throbber);
+}
+
+
+function hideThrobber() {
+    const throbber = document.querySelector('throbber-overlay');
+    if (throbber) {
+        throbber.remove();
+    }
+}
+
+
 function serializeForm(form) {
     const formData = new FormData(form);
     const obj = {};
@@ -22,6 +45,7 @@ function serializeForm(form) {
     }
     return obj;
 }
+
 
 function parseError(response) {
     const errorMessage = response?.error?.message;
