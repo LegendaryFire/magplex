@@ -42,4 +42,15 @@ settings-modal {
         margin-bottom: 0;
         text-align: center;
     }
+
+    div.task-timestamp {
+        display: flex;
+        justify-content: center;
+        font-size: 14px;
+        font-style: italic;
+    }
+
+    div.task-timestamp:not(:last-child) {
+        margin-bottom: 5px;
+    }
 }

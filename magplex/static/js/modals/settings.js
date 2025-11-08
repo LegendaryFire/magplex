@@ -32,7 +32,9 @@ class SettingsModal extends Modal {
                     <h2 class="content-title">Background Tasks</h2>
                     <div class="content-container">
                         <button id="refresh-channels-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh Channels</button>
+                        <div id="refresh-channels-runtime" class="task-timestamp">Last Runtime: Never</div>
                         <button id="refresh-epg-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh EPG</button>
+                        <div id="refresh-epg-runtime"  class="task-timestamp">Last Runtime: Never</div>
                     </div>
                 </div>
                 
@@ -54,6 +56,8 @@ class SettingsModal extends Modal {
             </div>
         `;
         super.connectedCallback();
+
+        await this.renderTaskRuntimes();
 
         const configureDeviceBtn = document.querySelector('#configure-device-btn');
         configureDeviceBtn.addEventListener('click', (event) => {
@@ -102,6 +106,44 @@ class SettingsModal extends Modal {
             return await response.json();
         } catch (error) {
             return null;
+        }
+    }
+
+    async getTaskRuntimes() {
+        try {
+            const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/tasks`);
+            return await response.json();
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async renderTaskRuntimes() {
+        const channelRuntimeLabel = this.querySelector('#refresh-channels-runtime');
+        const guideRuntimeLabel = this.querySelector('#refresh-epg-runtime');
+        channelRuntimeLabel.innerText = 'Last Run: Never';
+        guideRuntimeLabel.innerText = 'Last Run: Never';
+        if (this.deviceProfile === null) {
+            return;
+        }
+
+        const deviceTaskRuntimes = await this.getTaskRuntimes();
+        const channelsTask = deviceTaskRuntimes.find((task) => task.task_name === 'save_channels');
+        const guidesTask = deviceTaskRuntimes.find((task) => task.task_name === 'save_channel_guides');
+        const dateFormatter = new Intl.DateTimeFormat("en-US", {
+            month: "short", day: "numeric", year: "numeric",
+            hour: "numeric", minute: "2-digit", hour12: true,
+            timeZoneName: "short"
+        });
+
+        if (channelsTask) {
+            const runDate = new Date(channelsTask.creation_timestamp);
+            channelRuntimeLabel.innerText = `Last Run: ${dateFormatter.format(runDate)}`;
+        }
+
+        if (guidesTask) {
+            const runDate = new Date(guidesTask.creation_timestamp);
+            guideRuntimeLabel.innerText = `Last Run: ${dateFormatter.format(runDate)}`;
         }
     }
 

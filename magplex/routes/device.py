@@ -260,3 +260,13 @@ def proxy_stream(device_uid, channel_id):
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Access-Control-Allow-Origin"] = "*"
     return response
+
+
+@device.get('/<uuid:device_uid>/tasks')
+@authorize_route(auth_method=AuthMethod.ALL)
+def get_tasks(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None:
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+    device_tasks = database.get_latest_device_tasks(g.db_conn, user_device.device_uid)
+    return jsonify(device_tasks)

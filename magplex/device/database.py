@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 
-@dataclass
+@dataclass(slots=True)
 class Genre:
     device_uid: UUID | None
     genre_id: int
@@ -28,7 +28,7 @@ class Channel:
     creation_timestamp: datetime | None
 
 
-@dataclass
+@dataclass(slots=True)
 class ChannelGuide:
     device_uid: UUID
     channel_id: int
@@ -40,6 +40,12 @@ class ChannelGuide:
     modified_timestamp: datetime
     creation_timestamp: datetime
 
+
+@dataclass(slots=True)
+class TaskLog:
+    device_uid: UUID
+    task_name: str
+    creation_timestamp: datetime
 
 
 def insert_genre(conn, device_uid, genre_id, genre_number, genre_name):
@@ -217,3 +223,24 @@ def insert_channel_guide(conn, device_uid, channel_id, title, categories, descri
                 timestamp_range = excluded.timestamp_range, modified_timestamp = current_timestamp
         """
         cursor.execute(query, locals())
+
+
+def insert_device_task_log(conn, device_uid, task_name):
+    with conn.cursor() as cursor:
+        query = """
+            insert into task_logs (device_uid, task_name)
+            values (%(device_uid)s, %(task_name)s)
+        """
+        cursor.execute(query, locals())
+
+
+def get_latest_device_tasks(conn, device_uid):
+    with conn.cursor() as cursor:
+        query = """
+            select distinct on (task_name) device_uid, task_name, creation_timestamp
+            from task_logs
+            where device_uid = %(device_uid)s
+            order by task_name, creation_timestamp desc
+        """
+        cursor.execute(query, locals())
+        return [TaskLog(*row) for row in cursor]

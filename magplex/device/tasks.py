@@ -55,7 +55,9 @@ def save_channels(device_uid):
 
     # Get the latest copy of the channel list.
     channel_list = database.get_channels(conn, user_device.device_uid)
+    database.insert_device_task_log(conn, user_device.device_uid, 'save_channels')
     logging.warning(Locale.DEVICE_CHANNEL_LIST_SUCCESSFUL)
+    conn.commit()
     conn.close()
     return channel_list
 
@@ -98,3 +100,8 @@ def save_channel_guides(device_uid):
                                               g.description, g.start_timestamp, g.end_timestamp)
         conn.commit()
         conn.close()
+
+    conn = PostgresConnection()
+    database.insert_device_task_log(conn, user_device.device_uid, 'save_channel_guides')
+    conn.commit()
+    conn.close()
