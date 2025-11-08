@@ -25,10 +25,6 @@ class DeviceModal extends Modal {
                                 <input type="text" name="signature" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.signature ?? ''}">
                             </label>
                             <label>
-                                Language
-                                <input type="text" name="language" placeholder="en" value="${deviceProfile?.language ?? ''}" required>
-                            </label>
-                            <label>
                                 Timezone
                                 <input type="text" name="timezone" placeholder="America/Vancouver" value="${deviceProfile?.timezone ?? ''}" required>
                             </label>

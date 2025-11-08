@@ -5,6 +5,7 @@
     --color-warning: #ff7474;
     --color-hover: #afafaf;
     --background-color: #3a3a3a;
+    --background-color-disabled: #cacaca;
     --background-gradient: radial-gradient(circle at center, #3b3c3e 0%, #202020 100%) fixed;
     --container-background: linear-gradient(to right, #333333 0%, #404040 28%, #404040 100%);
     --border-color: #4d4d4d;
@@ -81,6 +82,7 @@ label {
 
     input[disabled] {
         color: var(--color-disabled);
+        background-color: var(--background-color-disabled);
     }
 }
 
@@ -151,7 +153,9 @@ div.content-container {
     z-index: 2;
     user-select: none;
     cursor: default;
+    box-shadow: none;
 }
+
 
 .toast-success {
     padding: 18px 15px 18px 15px;

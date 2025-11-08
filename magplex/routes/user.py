@@ -113,10 +113,9 @@ def save_user_device():
     device_id2 = data.get('device_id2')
     signature = data.get('signature')
     portal = data.get('portal')
-    language = data.get('language')
     tz = data.get('timezone')
     database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
-                                       portal, language, tz)
+                                       portal, tz)
     return Response(status=HTTPStatus.NO_CONTENT)
 
 

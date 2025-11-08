@@ -52,7 +52,6 @@ create table if not exists devices (
     device_id2              varchar(128)                ,
     signature               varchar(128)                ,
     portal                  varchar(128)                not null,
-    language                varchar(32)                 not null,
     timezone                varchar(64)                 not null,
     modified_timestamp      timestamp with time zone    not null default current_timestamp,
     creation_timestamp      timestamp with time zone    not null default current_timestamp
@@ -91,8 +90,9 @@ create table if not exists channels (
     foreign key (device_uid, genre_id) references genres (device_uid, genre_id)
 );
 create index if not exists channels_device_uid_channel_number_idx on channels (device_uid, channel_number);
+create index if not exists channels_device_uid_channel_enabled_idx on channels (device_uid, channel_enabled);
+create index if not exists channels_device_uid_channel_stale_idx on channels (device_uid, channel_stale);
 create index if not exists channels_device_uid_genre_id_idx on channels (device_uid, genre_id);
-create index if not exists channels_channel_idx on channels (channel_id);
 
 
 create table if not exists channel_guides (

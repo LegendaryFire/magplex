@@ -41,7 +41,7 @@ class SettingsModal extends Modal {
                     <div class="content-container">
                         <div class="about-container">
                             <div class="left-container">
-                                <h1>Magplex</h1>
+                                <h2>Magplex</h2>
                                 <h4>by LegendaryFire</h4>
                             </div>
                             <div class="right-container">
