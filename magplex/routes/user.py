@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, Response, g, jsonify, redirect, request
 
-from magplex.decorators import authorize_route, AuthMethod
+from magplex.decorators import AuthMethod, authorize_route
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale

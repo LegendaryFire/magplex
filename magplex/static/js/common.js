@@ -36,3 +36,13 @@ async function getDeviceProfile() {
         return null;
     }
 }
+
+function debounceFn(fn, delay = 300) {
+  let timer, controller;
+  return (...args) => {
+    clearTimeout(timer);
+    if (controller) controller.abort();
+    controller = new AbortController();
+    timer = setTimeout(() => fn(...args, controller.signal), delay);
+  };
+}

@@ -13,7 +13,7 @@ class Genre:
     creation_timestamp: datetime | None
 
 
-@dataclass
+@dataclass(slots=True)
 class Channel:
     device_uid: UUID | None
     channel_id: int

@@ -8,7 +8,7 @@ class ChannelList extends HTMLElement {
         super();
         this.listMode = null;
         this.deviceProfile = null;
-        this.genres = []
+        this.genreList = []
         this.channelList = [];
     }
 
@@ -29,8 +29,12 @@ class ChannelList extends HTMLElement {
 
 
     async connectedCallback() {
-        this.listMode = this.getAttribute("list-mode");
         this.deviceProfile = await getDeviceProfile();
+        if (this.deviceProfile === null) {
+            this.renderNotConfigured();
+            return;
+        }
+        this.listMode = this.getAttribute("list-mode");
         this.initializeVariables();
 
         this.innerHTML = `
@@ -116,8 +120,9 @@ class ChannelList extends HTMLElement {
         const searchInputElem = searchContainerElem.querySelector('input[name=search]');
         const genreSelectElem = searchContainerElem.querySelector('select[name=genre]');
 
-        searchInputElem.addEventListener('keyup', async () => {
-            await this.searchChannelList();
+        const debouncedSearch = debounceFn(this.searchChannelList.bind(this), 300);
+        searchInputElem.addEventListener('input', () => {
+            debouncedSearch()
         });
 
         genreSelectElem.addEventListener('change', async () => {
@@ -242,6 +247,18 @@ class ChannelList extends HTMLElement {
         `
         template = template.content.querySelector('.channel');
         containerElement.appendChild(template);
+    }
+
+    renderNotConfigured() {
+        let template = document.createElement('template');
+        template.innerHTML = `
+            <div class="message-container">
+                <h2>Device not configured</h2>
+                <h4>Configure your device under settings before continuing</h4>
+            </div>
+        `;
+        template = template.content.querySelector('div');
+        this.appendChild(template);
     }
 }
 

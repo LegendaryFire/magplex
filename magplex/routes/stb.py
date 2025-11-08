@@ -6,11 +6,11 @@ import ffmpeg
 import requests
 from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
-from magplex.utilities.error import ErrorResponse
-from magplex.decorators import authorize_route, AuthMethod
+from magplex.decorators import AuthMethod, authorize_route
 from magplex.device import database, media
 from magplex.device.manager import DeviceManager
 from magplex.stb import parser
+from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 

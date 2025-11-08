@@ -1,4 +1,5 @@
 import logging
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -7,7 +8,7 @@ from urllib.parse import urljoin
 import requests
 from flask import Blueprint, Response, g, jsonify, redirect, request, stream_with_context
 
-from magplex.decorators import authorize_route, AuthMethod
+from magplex.decorators import AuthMethod, authorize_route
 from magplex.device import database
 from magplex.device.manager import DeviceManager
 from magplex.utilities import sanitizer
@@ -37,6 +38,7 @@ def get_genres(device_uid):
 @device.get('/<uuid:device_uid>/channels')
 @authorize_route(auth_method=AuthMethod.ALL)
 def get_channels(device_uid):
+    start = time.perf_counter()
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None or user_device.device_uid != str(device_uid):
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
@@ -51,8 +53,10 @@ def get_channels(device_uid):
     if 'q' in request.args:
         kwargs.update({'q': sanitizer.sanitize_string(request.args.get('q'))})
     channels = database.get_channels(g.db_conn, user_device.device_uid, **kwargs)
-    return jsonify(channels)
-
+    channels = jsonify(channels)
+    end = time.perf_counter()
+    logging.error(f'Time to run get channels route, {(end - start):.3f} seconds.')
+    return channels
 
 
 @device.post('/<uuid:device_uid>/channels')

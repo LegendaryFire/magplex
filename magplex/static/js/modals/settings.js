@@ -1,7 +1,7 @@
 class SettingsModal extends Modal {
     async connectedCallback() {
-        this.deviceProfile = await getDeviceProfile();
         this.modalTitle = "Settings";
+        this.deviceProfile = await getDeviceProfile();
         this.magplexInfo = await this.getInfo();
         this.innerHTML = `
             <div class="content-wrapper">
@@ -19,8 +19,8 @@ class SettingsModal extends Modal {
                     <h2 class="content-title">Device</h2>
                     <div class="content-container">
                         <div class="button-row">
-                            <button id="configure-device-btn">Configure Device</button>
-                            <button id="channel-filter-btn">Channel Filter</button>
+                            <button id="configure-device-btn">Device Configuration</button>
+                            <button id="channel-filter-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Channel Filter</button>
                         </div>
                     </div>
                 </div>
@@ -28,8 +28,8 @@ class SettingsModal extends Modal {
                 <div class="content-group">
                     <h2 class="content-title">Background Tasks</h2>
                     <div class="content-container">
-                        <button id="refresh-channels-btn">Refresh Channels</button>
-                        <button id="refresh-epg-btn">Refresh EPG</button>
+                        <button id="refresh-channels-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh Channels</button>
+                        <button id="refresh-epg-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh EPG</button>
                     </div>
                 </div>
                 
@@ -44,7 +44,7 @@ class SettingsModal extends Modal {
                             <div class="right-container">
                                 <p class="version">Version ${this.magplexInfo.version}</p>
                                 <p class="build-date">${this.magplexInfo.build_date}</p>
-                                <p class="build-date">Device UID: ${this?.deviceProfile.device_uid}</p>
+                                ${this.deviceProfile !== null ? `<p class>Device UID: ${this.deviceProfile.device_uid}</p>` : ''}
                             </div>
                         </div>
                     </div>
@@ -79,12 +79,12 @@ class SettingsModal extends Modal {
 
         const refreshChannelsBtn = document.querySelector('#refresh-channels-btn');
         refreshChannelsBtn.addEventListener('click', () => {
-            this.refreshChannels();
+            this.triggerChannelSync();
         });
 
         const refreshEpgBtn = document.querySelector('#refresh-epg-btn');
         refreshEpgBtn.addEventListener('click', (event) => {
-            this.refreshEpg();
+            this.triggerGuideSync();
         });
     }
 
@@ -97,7 +97,7 @@ class SettingsModal extends Modal {
         }
     }
 
-    async refreshEpg() {
+    async triggerGuideSync() {
         const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides/sync`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
@@ -111,7 +111,7 @@ class SettingsModal extends Modal {
         }
     }
 
-    async refreshChannels() {
+    async triggerChannelSync() {
         const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/sync`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}

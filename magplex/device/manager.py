@@ -1,5 +1,3 @@
-import uuid
-
 from magplex import PostgresConnection, users
 from magplex.device.device import Device
 

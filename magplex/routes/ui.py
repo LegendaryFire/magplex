@@ -3,7 +3,7 @@ from http import HTTPStatus
 from flask import Blueprint, Response, jsonify, render_template, send_file
 
 import version
-from magplex.decorators import authorize_route, AuthMethod
+from magplex.decorators import AuthMethod, authorize_route
 from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 

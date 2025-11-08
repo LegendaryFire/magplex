@@ -1,7 +1,6 @@
-import json
 from http import HTTPStatus
 
-from flask import Flask, g, Request
+from flask import Flask, Request, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import magplex.database as database
@@ -13,7 +12,7 @@ from magplex.routes.ui import ui
 from magplex.routes.user import user
 from magplex.utilities.error import ErrorResponse, InvalidJsonError
 from magplex.utilities.localization import Locale
-from magplex.utilities.serializers import StrictJSONProvider
+from magplex.utilities.serializers import ORJSONProvider
 
 
 class CustomRequest(Request):
@@ -52,4 +51,5 @@ def create_app():
         return ErrorResponse(Locale.GENERAL_EXPECTED_JSON, status=HTTPStatus.BAD_REQUEST)
 
     app.request_class = CustomRequest
+    app.json = ORJSONProvider(app)
     return app

@@ -4,6 +4,7 @@ class Modal extends HTMLElement {
     }
 
     connectedCallback() {
+        document.querySelector('body').classList.add('modal-visible');
         this.innerHTML = `
             <div class="modal-overlay">
                 <div class="modal-container">
@@ -24,6 +25,7 @@ class Modal extends HTMLElement {
     }
 
     closeModal() {
+        document.querySelector('body').classList.remove('modal-visible');
         this.remove();
     }
 }

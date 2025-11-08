@@ -1,4 +1,3 @@
-import logging
 from functools import wraps
 from http import HTTPStatus
 
@@ -6,7 +5,6 @@ from flask import g, redirect, request
 
 from magplex import PostgresConnection, users
 from magplex.utilities.error import ErrorResponse
-
 from magplex.utilities.localization import Locale
 
 

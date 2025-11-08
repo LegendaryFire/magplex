@@ -93,11 +93,17 @@ button:not(:first-child) {
     margin-top: 8px;
 }
 
-button:hover, button:focus-visible {
+button:not([disabled]):hover, button:focus-visible {
     cursor: pointer;
     outline: none;
     border: 2px solid #61a2bd;
     box-shadow: 0 3px 8px -1px rgba(0,0,0,0.3);
+}
+
+button[disabled] {
+    background: color-mix(in srgb, var(--primary-button-color) 70%, black);
+    color: color-mix(in srgb, var(--color) 70%, black);
+    cursor: not-allowed;
 }
 
 div.button-row {
