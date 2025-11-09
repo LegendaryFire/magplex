@@ -6,7 +6,7 @@ Features include electronic program guide (EPG) synchronization, interval-based 
 ## Configuration
 ### Requirements
 You will need your Mag box `DEVICE_ID`, `DEVICE_ID2` and `SIGNATURE` depending on the provider. These can be obtained by sniffing the network traffic between your set top box and the portal. 
-Device configuration can be edited under Settings, Device Configuration. The devices `MAC_ADDRESS` is also needed, and can be found physically on the bottom of the device.
+The devices `MAC_ADDRESS` is also needed, and can be found physically on the bottom of the device.
 
 ### Example `docker-compose.yml`
 ```
@@ -14,16 +14,12 @@ services:
   redis:
     image: redis
     container_name: redis
-    ports:
-      - "6379:6379"
     restart: unless-stopped
 
   postgres:
     image: postgres:17
     container_name: postgres
     shm_size: 128mb
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_USER=username
       - POSTGRES_PASSWORD=password
@@ -33,7 +29,7 @@ services:
     image: magplex
     container_name: magplex
     ports:
-      - 5123:5123
+      - 8080:8080
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -41,16 +37,19 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=username
       - POSTGRES_PASSWORD=password
+    depends_on:
+      - redis
+      - postgres
     volumes:
       - ./media/magplex/logs:/logs
     restart: unless-stopped
 ```
 
 ### Optional Environment Variables
-| Variable       | Default          | Description                        |
-|:---------------|:-----------------|:-----------------------------------|
-| FFMPEG         | Automatic        | Path to your FFMPEG executable     |
-| CODEC          | Remux            | The FFMPEG codec for the STB.      |
+| Variable       | Default                    | Description                                                       |
+|:---------------|:---------------------------|:------------------------------------------------------------------|
+| FFMPEG         | Automatic                  | Path to your FFMPEG executable                                    |
+| CODEC          | Remux                      | The FFMPEG codec for HDHomeRun *(remux not recommended)*          |
 
 ### Available Codecs
 The FFMPEG stream is used by the HDHomeRun endpoints, and are remuxed by default. For Plex and Jellyfin integrations, hardware or software encoding is **strongly** recommended. Relying solely on remux can result in unreliable playback due to strict timing requirements in both platforms, particularly with mux delay and preload handling. When software or hardware encoding is enabled, all streams are re-encoded to H265.
@@ -79,7 +78,126 @@ gpus: "all"
 environment:
   - NVIDIA_DRIVER_CAPABILITIES=video
 ```
-<br>
+
+### Initial Setup
+MagPlex exposes it's web portal on port 8080, which is used to configure your device. The default login credentials are admin for the username, and admin for the password. It's **highly** recommended you change these to something more secure.
+
+Your username and password can be updated by navigating to `Settings → Change Username`, and `Settings → Change Password` respectively. Once you've updated your credentials, you can add your device in `Settings → Device Configuration`.
+
+Once your device has been added, allow a minute or so for MagPlex to pull your providers channel playlist. Navigating back to the home page, you should see a list of all channels which are ready to be played.
+
+It's also strongly recommended to run MagPlex behind a reverse proxy, preferrably through HTTPS. This is also required for integration with Plex and Jellyfin. See integration with Plex and Jellyfin for more information.
+
+## Integrating with Plex and Jellyfin
+All required endpoints are authenticated using either a session or API key. This was done to prevent unauthorized access to a users device for those who only wish to use the web player. With that
+being said, it adds a layer of complexity to integrating with Plex and Jellyfin. Since there's no way to add headers to the requests coming from Plex or Jellyfin, we must use a reverse proxy 
+to inject the `X-Device-Uid` and `X-Api-Key` headers when requests are made to MagPlex.
+
+The other reason a reverse proxy is required is to prevent conflict between the HDHomeRun endpoints, and the web portal endpoints. Plex and Jellyfin expect the HDHomeRun endpoints to exist at certain URL paths. MagPlex uses an internal nginx 
+instance to rewrite the URL's and forward any network requests sent to port 34400 to `/api/<device_uid>/stb`. 
+
+The configuration below assumes nginx is running in docker, on the same docker network as the other containers as they are accessible through container name opposed to IP addresses. Ensure ports 8080 and 34400 are mapped on your nginx docker 
+configuration and remove port 8080 from MagPlex (if using example Docker compose file). If you're adding to an existing Docker compose file, ensure they are using a bridge network to access containers by container name. To get the Device UID
+and API key, visit `Settings → API Key`.
+
+Once you have your nginx instance running, we can now go ahead and add your device to Plex and/or Jellyfin. Typically, Plex should detect MagPlex upon adding a HDHomeRun device. When prompted about a channel guide, click the `Have an XMLTV
+Channel Guide` button and enter `http://server-ip:34400/guide.xml` or `https://server-ip:34400/guide.xml` if you configured TLS certificates.
+
+#### Example Nginx and Docker Configuration
+##### docker-compose.yml
+```
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    depends_on:
+      - magplex
+    ports:
+      - "8080:8080"
+      - "34400:34400"
+    volumes:
+      # Mount your Nginx config file here.
+      - ./network/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+      # Optional: add a logs directory to view access/error logs locally
+      - ./media/nginx/logs:/var/log/nginx
+    restart: unless-stopped
+
+  redis:
+    image: redis
+    container_name: redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    shm_size: 128mb
+    environment:
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+    restart: unless-stopped
+
+  magplex:
+    image: magplex
+    container_name: magplex
+    ports:
+      - 8080:8080
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./media/magplex/logs:/logs
+    restart: unless-stopped
+```
+
+##### nginx.conf
+```
+server {
+    listen 8080;
+    server_name _;
+
+    location / {
+        proxy_pass http://magplex:8080;
+
+        # Pass through the original host and client IP
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        # Forward other common proxy headers
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 34400;
+    server_name _;
+
+    location / {
+        proxy_pass http://magplex:34400;
+
+        # Pass through original host and client IP
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        # Add authentication headers required by MagPlex
+        proxy_set_header X-Api-Key "INSERT_API_KEY";
+        proxy_set_header X-Device-Uid "INSERT_DEVICE_UID";
+
+        # Forward other common proxy headers
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 
 ## Endpoints
 ### REST API Endpoints
@@ -87,6 +205,9 @@ All endpoints respond with JSON unless specified otherwise. The Content-Type hea
 
 Certain endpoints, such as channel playback or proxy routes, may return an HTTP redirect or stream instead. Query parameters can be used to refine results, and optional parameters can be omitted.
 Each request must includes a `device_uid` path parameter to specify the target device. The channel proxy endpoint is primarily used to prevent CORS errors when streaming over the web portal.
+
+Each endpoint must be authenticated by setting the X-Api-Key header with the users API key, a key can be generated by visiting `Settings → API Key`. Both Plex and Jellyfin expect to see a HDHomeRun
+device using particular URL routes. To avoid conflict of routes between the web player and STB, MagPlex utilized nginx to rewrite HDHomeRun endpoint routes to their cooresponding MagPlex endpoints.
 
 #### Genres → `/api/devices/<uuid:device_uid>/genres`
 | Method    | Params                                                                         | Description                                                                     |
@@ -134,8 +255,8 @@ Each request must includes a `device_uid` path parameter to specify the target d
 #### Background Tasks → `/api/devices/<uuid:device_uid>/tasks`
 | Method    | Params                                                          | Description                                                                                                     |
 |:----------|:----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| `GET`     | `is_completed` *(bool, optional)*<br>                           | Returns the four most recent background tasks and their completion<br>statuses filtered from query parameters.  |
-<br>
+| `GET`     | `is_completed` *(bool, optional)*                               | Returns the four most recent background tasks and their completion<br>statuses filtered from query parameters.  |
+
 
 ### HDHomeRun Endpoints
 The endpoints found below are primarily for use for Plex and Jellyfin Live TV features, and are designed to simulate an HDHomeRun device. These endpoints primarily consist of XML and JSON.
