@@ -140,8 +140,6 @@ services:
   magplex:
     image: magplex
     container_name: magplex
-    ports:
-      - 8080:8080
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
