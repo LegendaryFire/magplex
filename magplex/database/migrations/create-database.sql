@@ -111,9 +111,13 @@ create index if not exists channel_guides_end_timestamp_idx on channel_guides (u
 
 ------------------------- Tasks -----------------------
 create table if not exists task_logs (
+    log_uid                 uuid                        not null default gen_random_uuid(),
     task_name               varchar(64)                 not null,
     device_uid              uuid                        references devices (device_uid) on delete set null,
-    creation_timestamp      timestamp with time zone    not null default current_timestamp
+    started_timestamp       timestamp with time zone    not null default current_timestamp,
+    completed_timestamp     timestamp with time zone    ,
+    primary key (log_uid)
 );
 create index if not exists task_logs_task_name_idx on task_logs (device_uid, task_name);
-create index if not exists task_logs_device_task_created_idx on task_logs (device_uid, task_name, creation_timestamp desc);
+create index if not exists task_logs_device_completed_started_idx
+    on task_logs (device_uid, completed_timestamp desc, started_timestamp desc);

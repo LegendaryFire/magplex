@@ -136,6 +136,56 @@ div.button-row {
     }
 }
 
+h4.table-title {
+    margin-bottom: 10px;
+    margin-left: 5px;
+}
+
+div.table-container {
+    & {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    table {
+        & {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* Base inner cell borders */
+        td, th {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        /* Remove inner borders along the outer edges */
+        tr:first-child th {
+            border-top: none;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr td:first-child,
+        tr th:first-child {
+            border-left: none;
+        }
+
+        tr td:last-child,
+        tr th:last-child {
+            border-right: none;
+        }
+    }
+}
+
 div.content-container {
     & {
         background: var(--container-background);

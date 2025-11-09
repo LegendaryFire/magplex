@@ -32,9 +32,31 @@ class SettingsModal extends Modal {
                     <h2 class="content-title">Background Tasks</h2>
                     <div class="content-container">
                         <button id="refresh-channels-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh Channels</button>
-                        <div id="refresh-channels-runtime" class="task-timestamp">Last Runtime: Never</div>
                         <button id="refresh-epg-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh EPG</button>
-                        <div id="refresh-epg-runtime"  class="task-timestamp">Last Runtime: Never</div>
+                        <h4 class="table-title">Completed Tasks</h4>
+                        <div class="table-container completed-tasks">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Completed</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <h4 class="table-title">Incomplete Tasks</h4>
+                        <div class="table-container incomplete-tasks">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Started</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 
@@ -56,8 +78,7 @@ class SettingsModal extends Modal {
             </div>
         `;
         super.connectedCallback();
-
-        await this.renderTaskRuntimes();
+        await this.renderTaskTables();
 
         const configureDeviceBtn = document.querySelector('#configure-device-btn');
         configureDeviceBtn.addEventListener('click', (event) => {
@@ -109,43 +130,86 @@ class SettingsModal extends Modal {
         }
     }
 
-    async getTaskRuntimes() {
+    async getTaskLogs(isCompleted) {
         try {
-            const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/tasks`);
+            const taskLogUrl = new URL(`/api/devices/${this.deviceProfile.device_uid}/tasks`, window.location.origin);
+            taskLogUrl.searchParams.set('is_completed', isCompleted);
+            const response = await fetch(taskLogUrl);
             return await response.json();
         } catch (error) {
             return null;
         }
     }
 
-    async renderTaskRuntimes() {
-        const channelRuntimeLabel = this.querySelector('#refresh-channels-runtime');
-        const guideRuntimeLabel = this.querySelector('#refresh-epg-runtime');
-        channelRuntimeLabel.innerText = 'Last Run: Never';
-        guideRuntimeLabel.innerText = 'Last Run: Never';
+
+    async renderTaskTables() {
+        const completedTableBody = this.querySelector('div.completed-tasks table tbody');
+        const incompleteTableBody = this.querySelector('div.incomplete-tasks table tbody');
+        completedTableBody.innerHTML = '';
+        incompleteTableBody.innerHTML = '';
+
+        const noTasksTemplate = document.createElement('template');
+        noTasksTemplate.innerHTML = `
+            <tr>
+                <td class="center" colspan="2">No Tasks</td>
+            </tr>
+        `.trim();
+
+
         if (this.deviceProfile === null) {
+            completedTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
+            incompleteTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
             return;
         }
 
-        const deviceTaskRuntimes = await this.getTaskRuntimes();
-        const channelsTask = deviceTaskRuntimes.find((task) => task.task_name === 'save_channels');
-        const guidesTask = deviceTaskRuntimes.find((task) => task.task_name === 'save_channel_guides');
         const dateFormatter = new Intl.DateTimeFormat("en-US", {
             month: "short", day: "numeric", year: "numeric",
             hour: "numeric", minute: "2-digit", hour12: true,
             timeZoneName: "short"
         });
 
-        if (channelsTask) {
-            const runDate = new Date(channelsTask.creation_timestamp);
-            channelRuntimeLabel.innerText = `Last Run: ${dateFormatter.format(runDate)}`;
+        const taskMap = {
+            'save_channels': "Save Channels",
+            'save_channel_guides': "Save Guides"
         }
 
-        if (guidesTask) {
-            const runDate = new Date(guidesTask.creation_timestamp);
-            guideRuntimeLabel.innerText = `Last Run: ${dateFormatter.format(runDate)}`;
+        const completedTaskRuntimes = await this.getTaskLogs(true);
+        if (completedTaskRuntimes.length === 0) {
+            completedTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
+        } else {
+            completedTaskRuntimes.forEach((task) => {
+                const template = document.createElement('template');
+                const taskTimestamp = new Date(task.completed_timestamp);
+                const friendlyName = taskMap[task.task_name];
+                template.innerHTML = `
+                    <tr>
+                        <td>${friendlyName ? friendlyName : task.task_name}</td>
+                        <td>${dateFormatter.format(taskTimestamp)}</td>
+                    </tr>
+                `.trim();
+                completedTableBody.appendChild(template.content.cloneNode(true));
+            });
+        }
+
+        const incompleteTaskRuntimes = await this.getTaskLogs(false);
+        if (incompleteTaskRuntimes.length === 0) {
+            incompleteTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
+        } else {
+            incompleteTaskRuntimes.forEach((task) => {
+                const template = document.createElement('template');
+                const taskTimestamp = new Date(task.started_timestamp);
+                const friendlyName = taskMap[task.task_name];
+                template.innerHTML = `
+                    <tr>
+                        <td>${friendlyName ? friendlyName : task.task_name}</td>
+                        <td>${dateFormatter.format(taskTimestamp)}</td>
+                    </tr>
+                `.trim();
+                incompleteTableBody.appendChild(template.content.cloneNode(true));
+            });
         }
     }
+
 
     async triggerGuideSync() {
         const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides/sync`, {

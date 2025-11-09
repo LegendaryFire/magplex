@@ -43,9 +43,11 @@ class ChannelGuide:
 
 @dataclass(slots=True)
 class TaskLog:
-    device_uid: UUID
+    log_uid: UUID
+    device_uid: UUID | None
     task_name: str
-    creation_timestamp: datetime
+    started_timestamp: datetime
+    completed_timestamp: datetime
 
 
 def insert_genre(conn, device_uid, genre_id, genre_number, genre_name):
@@ -230,17 +232,30 @@ def insert_device_task_log(conn, device_uid, task_name):
         query = """
             insert into task_logs (device_uid, task_name)
             values (%(device_uid)s, %(task_name)s)
+            returning log_uid
+        """
+        cursor.execute(query, locals())
+        return cursor.fetchone()[0]
+
+
+def update_device_task_log(conn, log_uid, completed_timestamp):
+    with conn.cursor() as cursor:
+        query = """
+            update task_logs set completed_timestamp = %(completed_timestamp)s
+            where log_uid = %(log_uid)s
         """
         cursor.execute(query, locals())
 
 
-def get_latest_device_tasks(conn, device_uid):
+def get_latest_device_tasks(conn, device_uid, is_completed=None, limit=4):
     with conn.cursor() as cursor:
         query = """
-            select distinct on (task_name) device_uid, task_name, creation_timestamp
+            select log_uid, device_uid, task_name, started_timestamp, completed_timestamp
             from task_logs
             where device_uid = %(device_uid)s
-            order by task_name, creation_timestamp desc
+            and ((%(is_completed)s::bool is null) or (completed_timestamp is not null) = %(is_completed)s)
+            order by completed_timestamp desc, started_timestamp desc
+            limit %(limit)s
         """
         cursor.execute(query, locals())
         return [TaskLog(*row) for row in cursor]

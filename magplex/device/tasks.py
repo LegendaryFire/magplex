@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from itertools import batched
 
@@ -14,12 +15,15 @@ def save_channels(device_uid):
         logging.warning(Locale.DEVICE_UNAVAILABLE)
         return None
 
+    conn = PostgresConnection()
+    log_uid = database.insert_device_task_log(conn, user_device.device_uid, 'save_channels')
+    conn.commit()
+
     fetched_genres = user_device.get_genres()
     if fetched_genres is None:
         logging.warning(Locale.DEVICE_GENRE_LIST_UNAVAILABLE)
         return None
 
-    conn = PostgresConnection()
     for g in fetched_genres:
         g = parser.parse_genre(g)
         if g is None:
@@ -55,7 +59,7 @@ def save_channels(device_uid):
 
     # Get the latest copy of the channel list.
     channel_list = database.get_channels(conn, user_device.device_uid)
-    database.insert_device_task_log(conn, user_device.device_uid, 'save_channels')
+    database.update_device_task_log(conn, log_uid, datetime.now())
     logging.warning(Locale.DEVICE_CHANNEL_LIST_SUCCESSFUL)
     conn.commit()
     conn.close()
@@ -72,6 +76,9 @@ def save_channel_guides(device_uid):
         return
 
     conn = PostgresConnection()
+    log_uid = database.insert_device_task_log(conn, user_device.device_uid, 'save_channel_guides')
+    conn.commit()
+
     channel_list = database.get_channels(conn, user_device.device_uid, channel_enabled=True)
     if channel_list is None:
         logging.error(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)
@@ -102,6 +109,6 @@ def save_channel_guides(device_uid):
         conn.close()
 
     conn = PostgresConnection()
-    database.insert_device_task_log(conn, user_device.device_uid, 'save_channel_guides')
+    database.update_device_task_log(conn, log_uid, datetime.now())
     conn.commit()
     conn.close()

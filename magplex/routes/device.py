@@ -268,5 +268,10 @@ def get_tasks(device_uid):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
-    device_tasks = database.get_latest_device_tasks(g.db_conn, user_device.device_uid)
+
+    is_completed = request.args.get("is_completed")
+    if not is_completed:
+        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
+
+    device_tasks = database.get_latest_device_tasks(g.db_conn, user_device.device_uid, is_completed=is_completed)
     return jsonify(device_tasks)

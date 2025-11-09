@@ -21,13 +21,10 @@ def build_playlist(channels, genres, base_url):
 
 
 def build_channel_guide(channels, guides):
-    tv = etree.Element(
-        "tv",
-        attrib={
-            "generator-info-name": "XMLTV",
-            "source-info-name": f"MagPlex v{version}",
-        }
-    )
+    tv = etree.Element("tv", attrib={
+        "generator-info-name": "XMLTV",
+        "source-info-name": f"MagPlex v{version}",
+    })
 
     channel_map = {}
     for c in channels:

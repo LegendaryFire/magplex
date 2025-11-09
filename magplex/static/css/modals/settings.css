@@ -53,4 +53,18 @@ settings-modal {
     div.task-timestamp:not(:last-child) {
         margin-bottom: 5px;
     }
+
+    table {
+        & {
+            table-layout: auto;
+        }
+
+        th {
+            text-align: center;
+        }
+
+        td.center {
+            text-align: center;
+        }
+    }
 }
