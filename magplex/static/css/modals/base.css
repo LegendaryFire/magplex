@@ -1,4 +1,4 @@
-body.modal-visible {
+body.modal-visible, body.throbber-visible {
   overflow: hidden;
 }
 

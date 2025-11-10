@@ -9,7 +9,7 @@ class ThrobberOverlay extends HTMLElement {
     connectedCallback() {
         this.messageTitle = this.getAttribute('message-title');
         this.messageDescription = this.getAttribute('message-description');
-        document.querySelector('body').classList.add('modal-visible');
+        document.querySelector('body').classList.add('throbber-visible');
 
         // Delay rendering by 0.5s
         this.renderTimeout = setTimeout(() => {
@@ -28,6 +28,7 @@ class ThrobberOverlay extends HTMLElement {
 
     disconnectedCallback() {
         clearTimeout(this.renderTimeout);
+        document.querySelector('body').classList.remove('throbber-visible');
     }
 }
 
