@@ -10,3 +10,4 @@ maglex/docker/docker-compose.yml
 logs/
 README.md
 .env
+.env.example
