@@ -21,11 +21,13 @@ class Modal extends HTMLElement {
             </div>
         `
 
-        this.querySelector('nav .close-btn').addEventListener('click', () => this.closeModal());
+        this.querySelector('nav .close-btn').addEventListener('click', () => {
+            document.querySelector('body').classList.remove('modal-visible');
+            this.closeModal();
+        });
     }
 
     closeModal() {
-        document.querySelector('body').classList.remove('modal-visible');
         this.remove();
     }
 }

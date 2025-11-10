@@ -168,6 +168,7 @@ class ChannelList extends HTMLElement {
         const genreValue = genreElem.value !== 'selected' ? genreElem.value : null;
         const enabledOnly =  genreElem.value === 'selected' ? true : null;
         this.channelList = await this.getChannelList(searchValue, genreValue, enabledOnly);
+        this.genreList = await this.getGenreList();
         this.renderChannelList();
     }
 
