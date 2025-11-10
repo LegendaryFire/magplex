@@ -29,7 +29,7 @@ def build_channel_guide(channels, guides):
     channel_map = {}
     for c in channels:
         channel_elem = etree.SubElement(tv, "channel", id=str(c.channel_id))
-        etree.SubElement(channel_elem, "display-name").text = escape(c.channel_name)
+        etree.SubElement(channel_elem, "display-name").text = c.channel_name
         channel_map.update({c.channel_id: c.channel_name})
 
     for g in guides:
@@ -39,11 +39,11 @@ def build_channel_guide(channels, guides):
         start_timestamp = g.start_timestamp.strftime('%Y%m%d%H%M%S')
         end_timestamp = g.end_timestamp.strftime('%Y%m%d%H%M%S')
         guide_elem = etree.SubElement(tv, "programme", channel=str(g.channel_id), start=start_timestamp, stop=end_timestamp)
-        etree.SubElement(guide_elem, "title").text = escape(g.title)
+        etree.SubElement(guide_elem, "title").text = g.title
         if g.description:
-            etree.SubElement(guide_elem, "desc").text = escape(g.description)
+            etree.SubElement(guide_elem, "desc").text = g.description
         for category in g.categories:
-            etree.SubElement(guide_elem, "category").text = escape(category)
+            etree.SubElement(guide_elem, "category").text = category
 
     xml = etree.tostring(tv, pretty_print=True, encoding="UTF-8", xml_declaration=False).decode("UTF-8")
 

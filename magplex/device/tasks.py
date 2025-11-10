@@ -1,3 +1,5 @@
+import random
+import time
 from datetime import datetime
 import logging
 from itertools import batched
@@ -107,6 +109,7 @@ def save_channel_guides(device_uid):
                                               g.description, g.start_timestamp, g.end_timestamp)
         conn.commit()
         conn.close()
+        time.sleep(random.uniform(2.5, 4.5))
 
     conn = PostgresConnection()
     database.update_device_task_log(conn, log_uid, datetime.now())

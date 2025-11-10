@@ -70,8 +70,6 @@ def update_channels(device_uid):
     kwargs = {}
     if 'channel_enabled' in data:
         kwargs.update({'channel_enabled': sanitizer.sanitize_bool(data.get('channel_enabled'))})
-    if 'channel_stale' in data:
-        kwargs.update({'channel_stale': sanitizer.sanitize_bool(data.get('channel_stale'))})
     database.update_channels(g.db_conn, user_device.device_uid, **kwargs)
     return Response(status=HTTPStatus.OK)
 
@@ -123,10 +121,6 @@ def update_channel(device_uid, channel_id):
 
     data = request.get_json()
     kwargs = {}
-    if 'channel_name' in data:
-        kwargs.update({'channel_name': sanitizer.sanitize_string(data.get('channel_name'), max_length=128)})
-    if 'channel_hd' in data:
-        kwargs.update({'channel_hd': sanitizer.sanitize_bool(data.get('channel_hd'))})
     if 'channel_enabled' in data:
         kwargs.update({'channel_enabled': sanitizer.sanitize_bool(data.get('channel_enabled'))})
     database.update_channel(g.db_conn, user_device.device_uid, channel_id, **kwargs)
