@@ -225,6 +225,7 @@ class SettingsModal extends Modal {
         }
     }
 
+
     async triggerChannelSync() {
         const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/sync`, {
             method: 'POST',

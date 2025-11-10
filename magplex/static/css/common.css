@@ -114,6 +114,14 @@ button[disabled] {
     cursor: not-allowed;
 }
 
+label small {
+    display: block;
+    margin-top: -6px;
+    margin-bottom: 10px;
+    margin-left: 3px;
+    font-style: italic;
+}
+
 div.button-row {
     & {
         display: flex;

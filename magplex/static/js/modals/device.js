@@ -11,26 +11,32 @@ class DeviceModal extends Modal {
                             <label>
                                 MAC Address
                                 <input type="text" name="mac_address" placeholder="00-00-00-00-00-00" value="${deviceProfile?.mac_address ?? ''}" required>
+                                <small>Enter the MAC address, found on the bottom of the device.</small>
                             </label>
                             <label>
                                 Device ID 1
                                 <input type="text" name="device_id1" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.device_id1 ?? ''}">
+                                <small>Optional: Enter the 64-character hex Device ID 1. Required by some providers.</small>
                             </label>
                             <label>
                                 Device ID 2
                                 <input type="text" name="device_id2" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.device_id2 ?? ''}">
+                                <small>Optional: Enter the 64-character hex Device ID 2. Required by some providers.</small>
                             </label>
                             <label>
                                 Signature
                                 <input type="text" name="signature" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.signature ?? ''}">
+                                <small>Optional: Enter the 64-character hex signature. Required by some providers.</small>
                             </label>
                             <label>
                                 Timezone
                                 <input type="text" name="timezone" placeholder="America/Vancouver" value="${deviceProfile?.timezone ?? ''}" required>
+                                <small>Enter the timezone you want the portal to use. Primarily used for channel guides.</small>
                             </label>
                             <label>
                                 Portal
                                 <input type="text" name="portal" placeholder="example.portal.tv" value="${deviceProfile?.portal ?? ''}" required>
+                                <small>Enter the portal domain, without scheme. Example: provider.portal.tv</small>
                             </label>
                             <button type="submit">Save</button>
                         </form>
