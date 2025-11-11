@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import m3u8
+
 from magplex.device.database import Channel, ChannelGuide, Genre
 
 
@@ -71,7 +73,7 @@ def parse_channel_guide(guide, timezone):
     if start_timestamp >= end_timestamp:
         return None
 
-    title = guide.get('name') if guide.get('name') != 'No details available' else None
+    title = guide.get('name') if not guide.get('name').startswith('No details', 'No information') else None
     if title is None:
         return None
 
@@ -118,3 +120,24 @@ def sanitize_guide_title(title: str):
         return None
     title = title.replace('\r', ' ').replace('\n', ' ')
     return ' '.join(title.split())
+
+
+def parse_video_playlist(user_device, channel_id, base_link, stream_id, session_identifier, content):
+    content = m3u8.loads(content)
+    base_data = {
+        'stream_id': stream_id,
+        'base_link': base_link,
+        'session_identifier': session_identifier
+    }
+
+    for variant in [*content.playlists, *content.media]:
+        data = base_data.copy()
+        data.update({'path': variant.uri})
+        variant.uri = f"/api/devices/{user_device.device_uid}/channels/{channel_id}/proxy/variant.m3u8?variant_data={user_device.encrypt_data(data)}"
+
+    for segment in content.segments:
+        data = base_data.copy()
+        data.update({'path': segment.uri})
+        segment.uri = f"/api/devices/{user_device.device_uid}/channels/{channel_id}/proxy/stream.ts?segment_data={user_device.encrypt_data(data)}"
+
+    return content

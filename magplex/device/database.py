@@ -259,3 +259,12 @@ def get_latest_device_tasks(conn, device_uid, is_completed=None, limit=4):
         """
         cursor.execute(query, locals())
         return [TaskLog(*row) for row in cursor]
+
+
+def update_device_id(conn, mac_address, device_id1, device_id2):
+    with conn.cursor() as cursor:
+        query = """
+            update devices set device_id1 = %(device_id1)s, device_id2 = %(device_id2)s
+            where mac_address = %(mac_address)s
+        """
+        cursor.execute(query, locals())

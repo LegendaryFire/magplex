@@ -1,11 +1,14 @@
+import logging
 from http import HTTPStatus
 
-from flask import Blueprint, Response, jsonify, render_template, send_file
+from flask import Blueprint, Response, jsonify, render_template, send_file, request, make_response, g
 
 import version
+from magplex.utilities.error import ErrorResponse
 from magplex.decorators import AuthMethod, authorize_route
 from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
+from magplex.device import database
 
 ui = Blueprint("ui", __name__)
 
@@ -37,3 +40,26 @@ def get_about():
         'version': version.version,
         'build_date': getattr(version, "build_date", "Unknown")
     })
+
+
+@ui.get("/stalker")
+def portal_root():
+    return make_response(render_template('portal.html'), 200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Connection": "Keep-Alive"
+    })
+
+
+@ui.post("/stalker")
+def get_ids():
+    payload = request.get_json()
+    mac_address = payload.get('mac_address')
+    device_id1 = payload.get('device_id1')
+    device_id2 = payload.get('device_id2')
+
+    if device_id1 is None or device_id2 is None or mac_address is None:
+        return ErrorResponse("Unable to get device information.", HTTPStatus.BAD_REQUEST)
+
+    database.update_device_id(g.db_conn, mac_address, device_id1, device_id2)
+    logging.info(f"Device ID updated for MAC address: {mac_address}.")
+    return Response(status=200)

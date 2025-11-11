@@ -94,7 +94,7 @@ def save_channel_guides(device_uid):
         guide_urls.append(link)
 
     # Process the channel guide URLs in batches to prevent rate limiting.
-    for link_batch in batched(guide_urls, 3):
+    for link_batch in batched(guide_urls, 5):
         guide_batch = user_device.get_batch(link_batch)
         conn = PostgresConnection()
         for guides in guide_batch:
@@ -109,7 +109,7 @@ def save_channel_guides(device_uid):
                                               g.description, g.start_timestamp, g.end_timestamp)
         conn.commit()
         conn.close()
-        time.sleep(random.uniform(2.5, 4.5))
+        time.sleep(random.uniform(0, 3))
 
     conn = PostgresConnection()
     database.update_device_task_log(conn, log_uid, datetime.now())

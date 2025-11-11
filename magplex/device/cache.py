@@ -46,4 +46,4 @@ def set_device_access_random(conn, device_uid, random):
 def expire_device_access(conn, device_uid):
     access_cache_key = _get_device_access_token_key(device_uid)
     random_cache_key = _get_device_access_random_key(device_uid)
-    conn.delete([access_cache_key, random_cache_key])
+    conn.delete(access_cache_key, random_cache_key)

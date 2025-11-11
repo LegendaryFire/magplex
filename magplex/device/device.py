@@ -32,6 +32,8 @@ class Device:
             'Accept-Language': f'en,*',
             'Host': f'{profile.portal}',
             'Referrer': f'http://{profile.portal}/stalker_portal/c/',
+            'X-User-Agent': 'X-User-Agent: Model: MAG420; Link: Ethernet',
+            'Connection': 'Keep-Alive',
         }
         self.cookies = {
             'mac': f'{profile.mac_address.replace('-', ':')}',

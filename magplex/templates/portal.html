@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>stalker_portal</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <style>
+            #out {
+                color: white;
+            }
+
+            h3.title {
+                color: green;
+                margin-bottom: 25px;
+            }
+
+            div.device-info {
+                margin-bottom: 5px;
+            }
+
+            #message.success {
+                color: green;
+            }
+
+            #message.error {
+                color: red;
+            }
+
+            div.close {
+                color: orange;
+                margin-top: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="out">
+            <h3 class="title">Magplex Device Sniffer</h3>
+            <div id="device-id1" class="device-info">Device ID: Not Found</div>
+            <div id="device-id2" class="device-info">Device ID2: Not Found</div>
+            <div id="mac-address" class="device-info">MAC Address: Not Found</div>
+            <div id="message"></div>
+            <div class="close">Press any button to reboot...</div>
+        </div>
+
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/json2/20160511/json2.min.js"></script>
+        <script type="text/javascript" defer="defer">
+            document.addEventListener("DOMContentLoaded", init);
+
+            function init() {
+                document.addEventListener("keydown", function(){
+                    gSTB.ExecAction("reboot");
+                }, false);
+
+
+                var deviceId1 = gSTB.GetUID();
+                if (deviceId1) {
+                    var deviceIdElem = document.getElementById("device-id1");
+                    deviceIdElem.innerText = "Device ID1: " + deviceId1;
+                }
+
+                var deviceId2 = gSTB.GetUID('device_id', 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+                if (deviceId2) {
+                    var deviceId2Elem = document.getElementById("device-id2");
+                    deviceId2Elem.innerText = "Device ID2: " + deviceId2;
+                }
+
+                var macAddress = gSTB.GetDeviceMacAddress();
+                if (macAddress) {
+                    var macAddressElem = document.getElementById("mac-address");
+                    macAddressElem.innerText = "MAC Address: " + macAddress;
+                }
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/stalker", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                xhr.addEventListener('loadend', function () {
+                    const messageElem = document.getElementById("message");
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        messageElem.classList.add('success');
+                        messageElem.innerText = "Device IDs have been saved successfully";
+                    } else {
+                        messageElem.classList.add('error');
+                        messageElem.innerText = "An unknown error occurred.";
+                    }
+                });
+
+
+                xhr.send(JSON.stringify({
+                    "device_id1": deviceId1,
+                    "device_id2": deviceId2,
+                    "mac_address": macAddress
+                }));
+            }
+        </script>
+    </body>
+</html>

@@ -9,7 +9,7 @@ import requests
 from flask import Blueprint, Response, g, jsonify, redirect, request, stream_with_context
 
 from magplex.decorators import AuthMethod, authorize_route
-from magplex.device import database
+from magplex.device import database, parser
 from magplex.device.manager import DeviceManager
 from magplex.utilities import sanitizer
 from magplex.utilities.error import ErrorResponse
@@ -170,7 +170,7 @@ def get_channel_guide(device_uid, channel_id):
     return jsonify(channel_guide)
 
 
-@device.get('/<uuid:device_uid>/channels/<int:channel_id>/proxy')
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>/master.m3u8')
 @authorize_route(auth_method=AuthMethod.ALL)
 def proxy_playlist(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
@@ -180,8 +180,8 @@ def proxy_playlist(device_uid, channel_id):
     channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
     if channel is None:
         return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
-    stream_link = user_device.get_channel_playlist(channel.stream_id)
 
+    stream_link = user_device.get_channel_playlist(channel.stream_id)
     if stream_link is None:
         return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, status=HTTPStatus.NOT_FOUND)
     response = requests.get(stream_link)
@@ -189,25 +189,53 @@ def proxy_playlist(device_uid, channel_id):
 
     # There are often redirects, which we must follow to get the final link path.
     base_link = urljoin(response.url, './')
-
-    current_playlist = response.text
-    proxied_playlist = []
-    for line in current_playlist.splitlines():
-        line = line.strip()
-        if line and not line.startswith("#"):
-            data = {
-                'stream_id': channel.stream_id,
-                'base_link': base_link,
-                'segment_path': line,
-                'session_identifier': session_identifier
-            }
-            proxied_url = f"/api/devices/{device_uid}/channels/{channel.channel_id}/proxy/stream.ts?data={user_device.encrypt_data(data)}"
-            proxied_playlist.append(proxied_url)
-        else:
-            proxied_playlist.append(line)
+    playlist = parser.parse_video_playlist(user_device, channel_id, base_link, channel.stream_id,
+                                           session_identifier, response.text)
 
     return Response(
-        "\n".join(proxied_playlist),
+        playlist.dumps(),
+        headers={
+            "Content-Type": "application/vnd.apple.mpegurl",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-cache",
+        }
+    )
+
+
+@device.get('/<uuid:device_uid>/channels/<int:channel_id>/proxy/variant.m3u8')
+def proxy_variant(device_uid, channel_id):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None or user_device.device_uid != str(device_uid):
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, HTTPStatus.FORBIDDEN)
+
+    channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
+    if channel is None:
+        return ErrorResponse(Locale.DEVICE_UNKNOWN_CHANNEL, HTTPStatus.NOT_FOUND)
+
+    variant_data = request.args.get('variant_data')
+    if variant_data is None:
+        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
+
+    variant_data = user_device.decrypt_data(variant_data)
+    stream_id = variant_data.get('stream_id')
+    if stream_id != channel.stream_id:
+        return ErrorResponse(Locale.DEVICE_CHANNEL_STREAM_MISMATCH, status=HTTPStatus.NOT_FOUND)
+
+    base_link = variant_data.get('base_link')
+    if base_link is None:
+        return ErrorResponse(Locale.GENERAL_UNKNOWN_ERROR, status=HTTPStatus.NOT_FOUND)
+
+    session_identifier = variant_data.get('session_identifier')
+    headers = {"X-Sid": session_identifier} if session_identifier else {}
+
+    variant_link = f"{variant_data.get('base_link')}{variant_data.get('path')}"
+    response = requests.get(variant_link, headers=headers)
+
+    playlist = parser.parse_video_playlist(user_device, channel_id, base_link, channel.stream_id,
+                                           session_identifier, response.text)
+
+    return Response(
+        playlist.dumps(),
         headers={
             "Content-Type": "application/vnd.apple.mpegurl",
             "Access-Control-Allow-Origin": "*",
@@ -218,13 +246,13 @@ def proxy_playlist(device_uid, channel_id):
 
 @device.get('/<uuid:device_uid>/channels/<int:channel_id>/proxy/stream.ts')
 def proxy_stream(device_uid, channel_id):
-    data = request.args.get("data")
-    if not data:
-        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
-
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+
+    data = request.args.get("segment_data")
+    if not data:
+        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, HTTPStatus.BAD_REQUEST)
 
     channel = database.get_channel(g.db_conn, user_device.device_uid, channel_id)
     if channel is None:
@@ -241,7 +269,7 @@ def proxy_stream(device_uid, channel_id):
     session_identifier = data.get('session_identifier')
     headers = {"X-Sid": session_identifier} if session_identifier else {}
 
-    stream_link = f"{data.get('base_link')}{data.get('segment_path')}"
+    stream_link = f"{data.get('base_link')}{data.get('path')}"
     logging.error(stream_link)
     r = requests.get(stream_link, headers=headers, stream=True, allow_redirects=True)
 

@@ -41,7 +41,7 @@ class PlayerModal extends Modal {
             return;
         }
 
-        const channelUrl = `/api/devices/${this.deviceProfile.device_uid}/channels/${this.channelId}/proxy`;
+        const channelUrl = `/api/devices/${this.deviceProfile.device_uid}/channels/${this.channelId}/master.m3u8`;
         this.hls = new Hls();
         this.hls.loadSource(channelUrl);
         this.hls.attachMedia(this.videoElem);
