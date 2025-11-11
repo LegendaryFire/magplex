@@ -73,7 +73,7 @@ def parse_channel_guide(guide, timezone):
     if start_timestamp >= end_timestamp:
         return None
 
-    title = guide.get('name') if not guide.get('name').startswith('No details', 'No information') else None
+    title = guide.get('name') if not guide.get('name').startswith(('No details', 'No information')) else None
     if title is None:
         return None
 
