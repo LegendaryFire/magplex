@@ -16,17 +16,12 @@ class DeviceModal extends Modal {
                             <label>
                                 Device ID 1
                                 <input type="text" name="device_id1" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.device_id1 ?? ''}">
-                                <small>Optional: Enter the 64-character hex Device ID 1. Required by some providers.</small>
+                                <small>Enter the 64-character hex Device ID 1. Required by some providers.</small>
                             </label>
                             <label>
                                 Device ID 2
                                 <input type="text" name="device_id2" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.device_id2 ?? ''}">
-                                <small>Optional: Enter the 64-character hex Device ID 2. Required by some providers.</small>
-                            </label>
-                            <label>
-                                Signature
-                                <input type="text" name="signature" placeholder="0000000000000000000000000000000000000000000000000000000000000000" value="${deviceProfile?.signature ?? ''}">
-                                <small>Optional: Enter the 64-character hex signature. Required by some providers.</small>
+                                <small>Enter the 64-character hex Device ID 2. Required by some providers.</small>
                             </label>
                             <label>
                                 Timezone
@@ -35,10 +30,11 @@ class DeviceModal extends Modal {
                             </label>
                             <label>
                                 Portal
-                                <input type="text" name="portal" placeholder="example.portal.tv" value="${deviceProfile?.portal ?? ''}" required>
+                                <input type="text" name="portal" placeholder="example.portal.tv" value="${deviceProfile?.portal ?? ''}" required ${deviceProfile?.portal ? 'disabled' : ''}>
                                 <small>Enter the portal domain, without scheme. Example: provider.portal.tv</small>
                             </label>
                             <button type="submit">Save</button>
+                            <button id="delete-btn">Delete Device</button>
                         </form>
                     </div>
                 </div>
@@ -51,6 +47,12 @@ class DeviceModal extends Modal {
             event.preventDefault();
             const deviceProfile = serializeForm(deviceForm);
             this.saveDevice(deviceProfile);
+        });
+
+        const deleteDeviceBtn = document.querySelector('#delete-btn');
+        deleteDeviceBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.deleteDevice(deviceProfile);
         });
     }
 
@@ -67,6 +69,21 @@ class DeviceModal extends Modal {
             showToast(message, ToastType.ERROR);
         } else {
             showToast("Device settings have been saved successfully!", ToastType.SUCCESS);
+        }
+    }
+
+    async deleteDevice() {
+        const response = await fetch('/api/user/device', {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            const data = await response.json()
+            const message = parseError(data);
+            showToast(message, ToastType.ERROR);
+        } else {
+            showToast("Device has been deleted successfully!", ToastType.WARNING);
+            this.connectedCallback();
         }
     }
 }

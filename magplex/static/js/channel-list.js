@@ -185,6 +185,22 @@ class ChannelList extends HTMLElement {
                 this.renderSelectChannel(channelListContainer, channel);
             }
         }
+
+        if (this.channelList.length === 0) {
+            this.renderNoChannels();
+        }
+    }
+
+    renderNoChannels() {
+        let template = document.createElement('template');
+        template.innerHTML = `
+            <div class="message-container">
+                <h3>No Channels Found</h3>
+                <h4>Please check your filters and try again.</h4>
+            </div>
+        `.trim();
+        template = template.content.cloneNode(true);
+        this.querySelector('ul.channel-list').appendChild(template);
     }
 
     registerChannelListEvents() {

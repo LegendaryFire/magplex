@@ -34,7 +34,6 @@ class DeviceProfile:
     mac_address: str
     device_id1: str
     device_id2: str
-    signature: str
     portal: str
     timezone: str
     modified_timestamp: datetime
@@ -180,8 +179,8 @@ def expire_user_session(conn, session_uid):
 def get_device_profile_by_uid(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
-                portal, timezone, modified_timestamp, creation_timestamp
+            select device_uid, user_uid, mac_address, device_id1, device_id2, portal, timezone,
+                   modified_timestamp, creation_timestamp
             from devices
             where device_uid = %(device_uid)s
             limit 1
@@ -194,8 +193,8 @@ def get_device_profile_by_uid(conn, device_uid):
 def get_device_profile_by_user(conn, user_uid):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, user_uid, mac_address, device_id1, device_id2, signature,
-                portal, timezone, modified_timestamp, creation_timestamp
+            select device_uid, user_uid, mac_address, device_id1, device_id2, portal, timezone, 
+                   modified_timestamp, creation_timestamp
             from devices
             where user_uid = %(user_uid)s
             limit 1
@@ -206,16 +205,24 @@ def get_device_profile_by_user(conn, user_uid):
 
 
 
-def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, signature, portal, timezone):
+def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, portal, timezone):
     with conn.cursor() as cursor:
         query = """
-            insert into devices (user_uid, mac_address, device_id1, device_id2, signature, portal, timezone)
-            values (%(user_uid)s, %(mac_address)s, %(device_id1)s, %(device_id2)s, %(signature)s, 
-                    %(portal)s, %(timezone)s)
+            insert into devices (user_uid, mac_address, device_id1, device_id2, portal, timezone)
+            values (%(user_uid)s, %(mac_address)s, %(device_id1)s, %(device_id2)s, %(portal)s, %(timezone)s)
             on conflict (user_uid) do update
             set mac_address = excluded.mac_address, device_id1 = excluded.device_id1, device_id2 = excluded.device_id2,
-                signature = excluded.signature, portal = excluded.portal, timezone = excluded.timezone, 
-                modified_timestamp = now()
+                timezone = excluded.timezone, portal = devices.portal, modified_timestamp = now()
+        """
+        cursor.execute(query, locals())
+        return None
+
+
+def delete_user_device(conn, user_uid):
+    with conn.cursor() as cursor:
+        query = """
+            delete from devices
+            where user_uid = %(user_uid)s
         """
         cursor.execute(query, locals())
         return None

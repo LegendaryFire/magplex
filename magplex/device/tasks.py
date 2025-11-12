@@ -88,9 +88,10 @@ def save_channel_guides(device_uid):
     conn.close()
 
     # Build a list of EPG links to get the program guide for each channel.
+    device_profile = user_device.get_device_profile()
     guide_urls = []
     for channel in channel_list:
-        link = f'http://{user_device.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel.channel_id}&JsHttpRequest=1-xml'
+        link = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel.channel_id}&JsHttpRequest=1-xml'
         guide_urls.append(link)
 
     # Process the channel guide URLs in batches to prevent rate limiting.
@@ -102,7 +103,7 @@ def save_channel_guides(device_uid):
                 continue
 
             for g in guides:
-                g = parser.parse_channel_guide(g, user_device.profile.timezone)
+                g = parser.parse_channel_guide(g, device_profile.timezone)
                 if g is None:
                     continue
                 database.insert_channel_guide(conn, user_device.device_uid, g.channel_id, g.title, g.categories,

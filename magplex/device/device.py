@@ -13,33 +13,32 @@ from apscheduler.jobstores.base import ConflictingIdError
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from requests.adapters import HTTPAdapter
 
-from magplex.database.database import RedisPool
+from magplex import users
+from magplex.database.database import RedisPool, PostgresConnection
+from magplex.decorators import limit_recursion
 from magplex.device import cache, tasks
 from magplex.utilities.localization import Locale
 from magplex.utilities.scheduler import TaskManager
 
 
 class Device:
-    def __init__(self, profile):
-        self.device_uid = str(profile.device_uid)
+    def __init__(self, device_uid):
         self.adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session = requests.session()
         self.session.mount("http://", self.adapter)
         self.session.mount("https://", self.adapter)
-        self.profile = profile
+        self.device_uid = device_uid
+        self.signature = None
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Unknown; Linux) AppleWebKit/538.1 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 734 Mobile Safari/538.1',
             'Accept-Language': f'en,*',
-            'Host': f'{profile.portal}',
-            'Referrer': f'http://{profile.portal}/stalker_portal/c/',
             'X-User-Agent': 'X-User-Agent: Model: MAG420; Link: Ethernet',
             'Connection': 'Keep-Alive',
         }
         self.cookies = {
-            'mac': f'{profile.mac_address.replace('-', ':')}',
             'stb_lang': f'en',
-            'timezone': f'{profile.timezone}',
         }
+        self.get_device_profile()
         self._schedule_tasks()
 
 
@@ -71,7 +70,7 @@ class Device:
 
 
     def __validate_response_text(self, response):
-        invalid_responses = {'Authorization failed', 'Access denied'}
+        invalid_responses = {'Authorization failed', 'Access denied', 'device_id mismatch'}
         valid_response = True
         if response.status_code != HTTPStatus.OK:
             logging.warning(Locale.DEVICE_INVALID_RESPONSE_CODE)
@@ -99,6 +98,27 @@ class Device:
         return True
 
 
+    def get_device_profile(self):
+        db_conn = PostgresConnection()
+        device_profile = users.database.get_device_profile_by_uid(db_conn, self.device_uid)
+        db_conn.close()
+        if device_profile is None:
+            logging.warning(Locale.DEVICE_UNAVAILABLE)
+            return None
+
+        self.headers.update({
+            'Host': f'{device_profile.portal}',
+            'Referrer': f'http://{device_profile.portal}/stalker_portal/c/'
+        })
+
+        self.cookies.update({
+            'mac': f'{device_profile.mac_address.replace('-', ':')}',
+            'timezone': f'{device_profile.timezone}'
+        })
+
+        return device_profile
+
+
     def get_device_encryption_key(self):
         """Gets the unique device hash, to be used as an encryption key."""
         return hashlib.sha256(uuid.UUID(self.device_uid).bytes).digest()
@@ -110,8 +130,12 @@ class Device:
         if awaiting_timeout:
             return None
 
+        device_profile = self.get_device_profile()
+        if device_profile is None:
+            return None
+
         self.headers.pop('Authorization', None)  # Remove the old authentication header.
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'
+        url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
 
         # Check for a valid response.
@@ -124,6 +148,8 @@ class Device:
             response_data = json.loads(response.text).get('js', {})
             access_token = response_data.get('token')
             random_token = response_data.get('random')
+            signature = random_token.encode() if random_token else os.urandom(32)
+            signature = hashlib.sha256(signature).hexdigest().upper()
         except json.JSONDecodeError:
             return None
 
@@ -133,7 +159,9 @@ class Device:
         cache_conn = RedisPool.get_connection()
         cache.set_device_access_token(cache_conn, self.device_uid, access_token)
         cache.set_device_access_random(cache_conn, self.device_uid, random_token)
+        cache.set_device_signature(cache_conn, self.device_uid, signature)
         self.headers['Authorization'] = f'Bearer {access_token}'
+        self.signature = signature
         if random_token is not None:
             self.headers['X-Random'] = random_token
             self.headers['Random'] = random_token
@@ -147,6 +175,7 @@ class Device:
         access_token = cache.get_device_access_token(cache_conn, self.device_uid)
         if access_token is not None:
             self.headers.update({'Authorization': f'Bearer {access_token}'})
+        self.signature = cache.get_device_signature(cache_conn, self.device_uid)
         random_token = cache.get_device_access_random(cache_conn, self.device_uid)
         if random_token is not None:
             self.headers.update({'X-Random': f'{random_token}'})
@@ -173,8 +202,12 @@ class Device:
         if awaiting_timeout:
             return None
 
+        device_profile = self.get_device_profile()
+        if device_profile is None:
+            return None
+
         self.update_access_token()
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={self.profile.device_id1}&device_id2={self.profile.device_id2}&signature={self.profile.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
+        url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={device_profile.device_id1}&device_id2={device_profile.device_id2}&signature={self.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
         valid_response = self.__validate_response_text(response)
         if not valid_response:
@@ -186,7 +219,7 @@ class Device:
 
         return json.loads(response.text).get('js', None)
 
-
+    @limit_recursion(max_depth=3)
     def get(self, url):
         """Authenticated get method for portal endpoints."""
         awaiting_timeout = self._awaiting_timeout()
@@ -248,7 +281,11 @@ class Device:
 
     def get_channel_playlist(self, stream_id):
         """Gets a generated channel playlist URL from channel ID."""
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
+        device_profile = self.get_device_profile()
+        if device_profile is None:
+            return None
+
+        url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
             logging.warning(Locale.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE)
@@ -270,7 +307,11 @@ class Device:
 
     def get_genres(self):
         """Gets a list of genres from the portal."""
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'
+        device_profile = self.get_device_profile()
+        if device_profile is None:
+            return None
+
+        url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'
         genre_list = self.get(url)
         if genre_list is None:
             logging.warning(Locale.DEVICE_GENRE_LIST_UNAVAILABLE)
@@ -281,7 +322,11 @@ class Device:
 
     def get_all_channels(self):
         """Gert a list of all the channels."""
-        url = f'http://{self.profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
+        device_profile = self.get_device_profile()
+        if device_profile is None:
+            return None
+
+        url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
             logging.warning(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)

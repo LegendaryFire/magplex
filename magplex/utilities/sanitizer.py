@@ -1,11 +1,14 @@
-def sanitize_string(value, *, lower=False, upper=False, strip=True, max_length=None):
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+
+def sanitize_string(value, *, lower=False, upper=False, strip=True, max_length=None, empty=False):
     if value is None:
-        return None
+        return None if not empty else ''
     value = str(value)
     if strip:
         value = value.strip()
     if not value:
-        return None
+        return None if not empty else ''
     if max_length is not None and len(value) > max_length:
         value = value[:max_length]
     if lower:
@@ -42,3 +45,16 @@ def sanitize_bool(value):
     if value in falsy:
         return False
     return False
+
+
+def sanitize_timezone(value):
+    if value is None:
+        return None
+    value = str(value).strip()
+    if not value:
+        return None
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError:
+        return None
+    return value

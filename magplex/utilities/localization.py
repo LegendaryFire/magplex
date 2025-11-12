@@ -6,7 +6,7 @@ class Locale(StrEnum):
     GENERAL_EXPECTED_JSON = 'Content type is not application/json or the JSON body is malformed.'
     GENERAL_INVALID_CREDENTIALS = 'Invalid credentials, please try again.'
     GENERAL_MISSING_ENDPOINT_PARAMETERS = 'Missing mandatory URL parameters or data'
-    GENERAL_MISSING_REQUIRED_FIELDS = 'Missing required fields, please try again'
+    GENERAL_MISSING_REQUIRED_FIELDS = 'Missing or invalid required fields, please try again'
     GENERAL_UNKNOWN_ERROR = 'An unknown error has occurred'
 
     # Device Localization
@@ -20,6 +20,7 @@ class Locale(StrEnum):
     DEVICE_GENRE_LIST_UNAVAILABLE = 'Unable to retrieve genre list'
     DEVICE_INVALID_RESPONSE_CODE = 'Invalid response code received'
     DEVICE_INVALID_RESPONSE_TEXT = 'Invalid response content received'
+    DEVICE_NOT_REGISTERED_TEXT = 'Device is not registered, or does not have an active subscription'
     DEVICE_RESPONSE_UNEXPECTED_JSON = 'Received unexpected JSON data'
     DEVICE_RESPONSE_NOT_JSON = 'Received a response which is not JSON'
     DEVICE_STREAM_ID_NOT_FOUND = 'Stream ID does not exist'

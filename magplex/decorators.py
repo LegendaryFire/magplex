@@ -1,3 +1,5 @@
+import logging
+import sys
 from functools import wraps
 from http import HTTPStatus
 
@@ -50,4 +52,27 @@ def authorize_route(*, auth_method=AuthMethod.ALL, force_redirect=False):
 
             return func(*args, **kwargs)
         return decorated
+    return decorator
+
+
+
+def limit_recursion(max_depth):
+    """Decorator that returns None after reaching max recursion depth."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Count only frames belonging to this function
+            frame = sys._getframe()
+            code = func.__code__
+            depth = 0
+            while frame:
+                if frame.f_code is code:
+                    depth += 1
+                frame = frame.f_back
+            logging.debug(f"[{func.__name__}] recursion level ({depth}).")
+            if depth > max_depth:
+                logging.debug(f"[{func.__name__}] Reached recursion limit ({max_depth}), returning None.")
+                return None
+            return func(*args, **kwargs)
+        return wrapper
     return decorator

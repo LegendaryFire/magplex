@@ -7,6 +7,7 @@ from magplex.decorators import AuthMethod, authorize_route
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
+from magplex.utilities import sanitizer
 
 user = Blueprint("user", __name__)
 
@@ -71,7 +72,7 @@ def save_password():
 @user.post('/login')
 def login():
     data = request.get_json()
-    username = data.get('username')
+    username =  sanitizer.sanitize_string(data.get('username'))
     password = data.get('password')
     if not username or not password:
         return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
@@ -108,14 +109,24 @@ def get_user_device():
 @authorize_route(auth_method=AuthMethod.SESSION)
 def save_user_device():
     data = request.get_json()
-    mac_address = data.get('mac_address')
-    device_id1 = data.get('device_id1')
-    device_id2 = data.get('device_id2')
-    signature = data.get('signature')
-    portal = data.get('portal')
-    tz = data.get('timezone')
-    database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, signature,
-                                       portal, tz)
+    mac_address = sanitizer.sanitize_string(data.get('mac_address'), upper=True)
+    device_id1 = sanitizer.sanitize_string(data.get('device_id1'), upper=True)
+    device_id2 = sanitizer.sanitize_string(data.get('device_id2'), upper=True)
+    portal = sanitizer.sanitize_string(data.get('portal'), empty=True)
+    timezone = sanitizer.sanitize_timezone(data.get('timezone'))
+
+    required_fields = (mac_address, timezone)
+    if not all(required_fields):
+        return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
+
+    database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, portal, timezone)
+    return Response(status=HTTPStatus.NO_CONTENT)
+
+
+@user.delete('/device')
+@authorize_route(auth_method=AuthMethod.SESSION)
+def delete_user_device():
+    database.delete_user_device(g.db_conn, g.user_session.user_uid)
     return Response(status=HTTPStatus.NO_CONTENT)
 
 

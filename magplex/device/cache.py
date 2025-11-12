@@ -10,6 +10,10 @@ def _get_device_access_random_key(device_uid):
     return f'magplex:device:{device_uid}:random'
 
 
+def _get_device_signature_key(device_uid):
+    return f'magplex:device:{device_uid}:signature'
+
+
 def set_device_timeout(conn, instance_id):
     cache_key = _get_device_timeout_key(instance_id)
     expiry = 30
@@ -41,6 +45,17 @@ def get_device_access_random(conn, device_uid):
 def set_device_access_random(conn, device_uid, random):
     cache_key = _get_device_access_random_key(device_uid)
     conn.set(cache_key, random, ex=3600)
+
+
+def get_device_signature(conn, device_uid):
+    cache_key = _get_device_signature_key(device_uid)
+    signature = conn.get(cache_key)
+    return signature
+
+
+def set_device_signature(conn, device_uid, signature):
+    cache_key = _get_device_signature_key(device_uid)
+    conn.set(cache_key, signature, ex=3600)
 
 
 def expire_device_access(conn, device_uid):
