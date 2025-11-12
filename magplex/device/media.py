@@ -51,6 +51,8 @@ def create_stream_response(url, encoder, headers):
         rw_timeout=60 * 10**6,  # 60 seconds, in microseconds.
         reconnect_streamed=1,
         reconnect_on_network_error=1,
+        thread_queue_size=512,
+        fflags='+genpts+discardcorrupt+igndts',
         headers = headers
     )
 
@@ -65,14 +67,16 @@ def create_stream_response(url, encoder, headers):
         process = process.output(
             'pipe:1',
             format='mpegts',
-            muxdelay=0.5,
-            muxpreload=0.5,
+            muxdelay=0.6,
+            muxpreload=0.6,
             vcodec=encoder.get_name(),
             preset=encoder.get_preset(),
             g=25,
             acodec='aac',
             audio_bitrate='128k',
-            bufsize='8000k'
+            bufsize='8000k',
+            avoid_negative_ts='make_zero',
+            max_muxing_queue_size='2048'
         )
 
     if Environment.DEBUG:

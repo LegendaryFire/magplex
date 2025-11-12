@@ -107,7 +107,10 @@ class PostgresPool:
     def close_pool(cls):
         if cls._pool:
             cls._pool.close()
+            pool = cls._pool
             cls._pool = None
+            del pool  # Force the garbage collector to remove before fork.
+
 
 
 class RedisPool:

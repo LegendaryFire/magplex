@@ -8,22 +8,29 @@ COPY . .
 RUN chmod +x docker/entrypoints/docker-entrypoint.sh
 
 # Install Nginx
-RUN apt-get update && \
+RUN apt-get update -y && \
     apt-get install -y nginx gettext-base && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/nginx/nginx.conf.template /etc/nginx/templates/nginx.conf.template
 
 # Install Intel Quick Sync driver
-RUN apt update && \
+RUN apt update -y && \
     apt install -y intel-media-va-driver vainfo && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Use Jellyfin FFmpeg build with QSV support
-RUN wget https://repo.jellyfin.org/files/ffmpeg/debian/latest-7.x/amd64/jellyfin-ffmpeg7_7.1.2-3-bookworm_amd64.deb && \
-    dpkg -i jellyfin-ffmpeg7_7.1.2-3-bookworm_amd64.deb || apt update && \
-    apt install -y -f && \
-    rm jellyfin-ffmpeg7_7.1.2-3-bookworm_amd64.deb
+RUN apt-get update && apt-get install -y curl gnupg apt-transport-https && \
+    curl -fsSL https://repo.jellyfin.org/debian/jellyfin_team.gpg.key \
+    | gpg --dearmor -o /usr/share/keyrings/jellyfin-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/jellyfin-archive-keyring.gpg arch=$(dpkg --print-architecture)] \
+    https://repo.jellyfin.org/debian bookworm main" > /etc/apt/sources.list.d/jellyfin.list && \
+    apt-get update && \
+    apt-get install -y jellyfin-ffmpeg7 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/usr/lib/jellyfin-ffmpeg:${PATH}"
 

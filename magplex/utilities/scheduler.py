@@ -4,7 +4,6 @@ from datetime import timezone
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from magplex.utilities.localization import Locale
 from magplex.utilities.variables import Environment
 
 
@@ -23,17 +22,12 @@ logging.getLogger("apscheduler.executors.default").addFilter(IgnoreWakeScheduler
 
 class TaskManager:
     _scheduler = None
-
     @classmethod
     def create_scheduler(cls):
         if cls._scheduler is None:
             cls._scheduler = BackgroundScheduler(
                 jobstores={
-                    'default': RedisJobStore(
-                        host=Environment.REDIS_HOST,
-                        port=Environment.REDIS_PORT,
-                        db=1
-                    )
+                    'default': RedisJobStore(host=Environment.REDIS_HOST, port=Environment.REDIS_PORT, db=1)
                 },
                 job_defaults={
                     'misfire_grace_time': 30,
@@ -42,9 +36,6 @@ class TaskManager:
                 },
                 timezone=timezone.utc
             )
-            cls._scheduler.add_job(wake_scheduler, 'interval', id="wake_scheduler",
-                                   seconds=5, replace_existing=True)
-            logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY)
 
         return cls._scheduler
 

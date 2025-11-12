@@ -5,10 +5,11 @@ import time
 import psycopg
 import redis
 
+from magplex import Locale
 from magplex.database.database import PostgresConnection, PostgresPool, RedisPool
 from magplex.database.migrations import migrations
 from magplex.utilities import logs
-from magplex.utilities.scheduler import TaskManager
+from magplex.utilities.scheduler import TaskManager, wake_scheduler
 from magplex.utilities.variables import Environment
 from version import version
 
@@ -54,18 +55,15 @@ def initialize():
     migrations.create_database()
     migrations.run_missing_migrations()
 
+    # TODO: Initialize all devices on startup, and add their background tasks to the queue.
+    PostgresPool.close_pool()
 
+
+def run_scheduler():
     # Start background task scheduler.
     scheduler = TaskManager.get_scheduler()
+    scheduler.remove_all_jobs()
+    scheduler.add_job(wake_scheduler, 'interval', id="wake_scheduler", seconds=5, replace_existing=True)
+    logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY)
     if not scheduler.running:
         scheduler.start()
-
-    # TODO: Initialize all devices on startup, and add their background tasks to the queue.
-    """
-    # Create STB profile and device.
-    device = DeviceManager.get_device()
-    if device is None:
-        logging.warning("Unable to get device. It's likely that a STB device has not been configured yet.")
-    """
-
-    PostgresPool.close_pool()

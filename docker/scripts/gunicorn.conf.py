@@ -1,6 +1,6 @@
 import multiprocessing
 
-from app_setup import initialize
+from app_setup import initialize, run_scheduler
 from magplex.database.database import PostgresPool
 
 # Configuration
@@ -23,6 +23,10 @@ bind = "0.0.0.0:8000"
 
 def on_starting(server):
     initialize()
+
+def when_ready(server):
+    # Start background task scheduler.
+    run_scheduler()
 
 def post_fork(server, worker):
     # Set the pool name so it's easy to identify.
