@@ -58,11 +58,11 @@ class SettingsModal extends Modal {
                             </table>
                         </div>
                         <div class="button-row">
-                            <button id="refresh-logs-btn">Refresh Logs</button>
+                            <button id="refresh-logs-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Refresh Logs</button>
                         </div>
                         <div class="button-row">
-                            <button id="clear-logs-btn">Clear All Logs</button>
-                            <button id="clear-incomplete-btn">Clear Incomplete Logs</button>
+                            <button id="clear-logs-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Clear All Logs</button>
+                            <button id="clear-incomplete-btn" ${this.deviceProfile === null ? 'disabled' : ''}>Clear Incomplete Logs</button>
                         </div>
                     </div>
                 </div>
