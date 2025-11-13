@@ -30,11 +30,11 @@ def index():
 def logs():
     heartbeat_interval = 15
     def event_stream():
-        cache = RedisPool.get_connection()
-        pubsub = cache.pubsub(ignore_subscribe_messages=True)
+        cache_conn = RedisPool.get_connection()
+        pubsub = cache_conn.pubsub(ignore_subscribe_messages=True)
         pubsub.subscribe(REDIS_BUFFER_CHANNEL)
 
-        history = cache.lrange(REDIS_LOG_BUFFER, 0, -1)
+        history = cache_conn.lrange(REDIS_LOG_BUFFER, 0, -1)
         for entry in reversed(history):
             if isinstance(entry, bytes):
                 entry = entry.decode()
