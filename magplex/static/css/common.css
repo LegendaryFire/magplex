@@ -147,6 +147,7 @@ div.button-row {
 h4.table-title {
     margin-bottom: 10px;
     margin-left: 5px;
+    margin-top: 10px;
 }
 
 div.table-container {
@@ -156,6 +157,7 @@ div.table-container {
         overflow: hidden;
         display: inline-block;
         width: 100%;
+        margin-bottom: 10px;
     }
 
     table {

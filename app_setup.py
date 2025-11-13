@@ -38,7 +38,7 @@ def initialize():
 
     # Test Postgres database connection.
     try:
-        conn = PostgresConnection()
+        conn = PostgresConnection().get_connection(use_pool=False)
         with conn.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()

@@ -112,7 +112,7 @@ create index if not exists channel_guides_end_timestamp_idx on channel_guides (u
 create table if not exists task_logs (
     log_uid                 uuid                        not null default gen_random_uuid(),
     task_name               varchar(64)                 not null,
-    device_uid              uuid                        references devices (device_uid) on delete set cascade,
+    device_uid              uuid                        references devices (device_uid) on delete cascade,
     started_timestamp       timestamp with time zone    not null default current_timestamp,
     completed_timestamp     timestamp with time zone    ,
     primary key (log_uid)

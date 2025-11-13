@@ -297,3 +297,16 @@ def get_tasks(device_uid):
 
     device_tasks = database.get_latest_device_tasks(g.db_conn, user_device.device_uid, is_completed=is_completed)
     return jsonify(device_tasks)
+
+
+@device.delete('/<uuid:device_uid>/tasks')
+@authorize_route(auth_method=AuthMethod.ALL)
+def delete_tasks(device_uid):
+    user_device = DeviceManager.get_user_device(device_uid)
+    if user_device is None:
+        return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
+
+    data = request.get_json()
+    is_completed = sanitizer.sanitize_bool(data.get("is_completed"), empty=True)
+    database.delete_device_task_logs(g.db_conn, user_device.device_uid, is_completed=is_completed)
+    return Response(status=HTTPStatus.OK)

@@ -12,10 +12,18 @@ class PostgresConnection:
     def __init__(self):
         self._conn = None
 
-    def get_connection(self):
-        """Lazily get a live connection from the pool."""
-        if self._conn is None or self._conn.closed:
+    def get_connection(self, use_pool=True):
+        """Lazily get a live connection from the pool by default."""
+        if use_pool and (self._conn is None or self._conn.closed):
             self._conn = PostgresPool.get_connection()
+        elif not use_pool and (self._conn is None or self._conn.closed):
+            conninfo = (f"postgresql://{Environment.POSTGRES_USER}:"
+                f"{Environment.POSTGRES_PASSWORD}@"
+                f"{Environment.POSTGRES_HOST}:"
+                f"{Environment.POSTGRES_PORT}/"
+                f"{Environment.POSTGRES_DB}"
+            )
+            self._conn = psycopg.connect(conninfo)
         return self._conn
 
     def cursor(self, *args, **kwargs):

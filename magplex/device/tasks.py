@@ -1,8 +1,10 @@
 import random
 import time
+import zoneinfo
 from datetime import datetime
 import logging
 from itertools import batched
+from zoneinfo import ZoneInfo
 
 from magplex.database.database import PostgresConnection
 from magplex.device import database, parser
@@ -113,6 +115,6 @@ def save_channel_guides(device_uid):
         time.sleep(random.uniform(0, 3))
 
     conn = PostgresConnection()
-    database.update_device_task_log(conn, log_uid, datetime.now())
+    database.update_device_task_log(conn, log_uid, datetime.now(zoneinfo.ZoneInfo("Etc/UTC")))
     conn.commit()
     conn.close()

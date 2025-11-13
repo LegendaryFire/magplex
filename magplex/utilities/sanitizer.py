@@ -32,9 +32,9 @@ def sanitize_int(value, *, minimum=None, maximum=None):
     return value
 
 
-def sanitize_bool(value):
+def sanitize_bool(value, empty=False):
     if value is None:
-        return None
+        return False if not empty else None
     if isinstance(value, bool):
         return value
     value = str(value).strip().lower()
@@ -44,7 +44,7 @@ def sanitize_bool(value):
         return True
     if value in falsy:
         return False
-    return False
+    return False if not empty else None
 
 
 def sanitize_timezone(value):

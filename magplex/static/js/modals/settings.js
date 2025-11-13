@@ -57,6 +57,13 @@ class SettingsModal extends Modal {
                                 <tbody></tbody>
                             </table>
                         </div>
+                        <div class="button-row">
+                            <button id="refresh-logs-btn">Refresh Logs</button>
+                        </div>
+                        <div class="button-row">
+                            <button id="clear-logs-btn">Clear All Logs</button>
+                            <button id="clear-incomplete-btn">Clear Incomplete Logs</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -111,13 +118,30 @@ class SettingsModal extends Modal {
         });
 
         const refreshChannelsBtn = document.querySelector('#refresh-channels-btn');
-        refreshChannelsBtn.addEventListener('click', () => {
-            this.triggerChannelSync();
+        refreshChannelsBtn.addEventListener('click', async () => {
+            await this.triggerChannelSync();
         });
 
         const refreshEpgBtn = document.querySelector('#refresh-epg-btn');
-        refreshEpgBtn.addEventListener('click', (event) => {
-            this.triggerGuideSync();
+        refreshEpgBtn.addEventListener('click', async () => {
+            await this.triggerGuideSync();
+        });
+
+        const refreshLogsBtn = document.querySelector('#refresh-logs-btn');
+        refreshLogsBtn.addEventListener('click', async (t) => {
+            await this.renderTaskTables();
+        });
+
+        const clearLogsBtn = document.querySelector('#clear-logs-btn');
+        clearLogsBtn.addEventListener('click', async () => {
+            await this.clearTaskLogs();
+            await this.renderTaskTables();
+        });
+
+        const clearIncompleteBtn = document.querySelector('#clear-incomplete-btn');
+        clearIncompleteBtn.addEventListener('click', async () => {
+            await this.clearTaskLogs(false);
+            await this.renderTaskTables();
         });
     }
 
@@ -141,6 +165,54 @@ class SettingsModal extends Modal {
         }
     }
 
+    async clearTaskLogs(isCompleted=null) {
+        try {
+            const taskLogUrl = new URL(`/api/devices/${this.deviceProfile.device_uid}/tasks`, window.location.origin);
+            await fetch(taskLogUrl, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({'is_completed': isCompleted})
+            });
+            if (isCompleted === null) {
+                showToast("All task logs have been deleted successfully", ToastType.SUCCESS);
+            } else if (isCompleted === true) {
+                showToast("Completed task logs have been deleted successfully", ToastType.SUCCESS);
+            } else {
+                showToast("Incomplete task logs have been deleted successfully", ToastType.SUCCESS);
+            }
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async triggerGuideSync() {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides/sync`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        if (!response.ok) {
+            const data = await response.json()
+            const message = parseError(data);
+            showToast(message, ToastType.ERROR);
+        } else {
+            showToast("Manual channel guide refresh has been triggered!", ToastType.SUCCESS);
+        }
+    }
+
+
+    async triggerChannelSync() {
+        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/sync`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        if (!response.ok) {
+            const data = await response.json()
+            const message = parseError(data);
+            showToast(message, ToastType.ERROR);
+        } else {
+            showToast("Manual channel list refresh has been triggered!", ToastType.SUCCESS);
+        }
+    }
 
     async renderTaskTables() {
         const completedTableBody = this.querySelector('div.completed-tasks table tbody');
@@ -207,36 +279,6 @@ class SettingsModal extends Modal {
                 `.trim();
                 incompleteTableBody.appendChild(template.content.cloneNode(true));
             });
-        }
-    }
-
-
-    async triggerGuideSync() {
-        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/guides/sync`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
-        });
-        if (!response.ok) {
-            const data = await response.json()
-            const message = parseError(data);
-            showToast(message, ToastType.ERROR);
-        } else {
-            showToast("Manual channel guide refresh has been triggered!", ToastType.SUCCESS);
-        }
-    }
-
-
-    async triggerChannelSync() {
-        const response = await fetch(`/api/devices/${this.deviceProfile.device_uid}/channels/sync`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
-        });
-        if (!response.ok) {
-            const data = await response.json()
-            const message = parseError(data);
-            showToast(message, ToastType.ERROR);
-        } else {
-            showToast("Manual channel list refresh has been triggered!", ToastType.SUCCESS);
         }
     }
 }

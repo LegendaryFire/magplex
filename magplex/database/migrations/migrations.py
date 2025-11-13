@@ -6,7 +6,7 @@ from magplex.database.database import PostgresConnection
 migrations_folder = os.path.dirname(__file__)
 
 def create_database():
-    conn = PostgresConnection()
+    conn = PostgresConnection().get_connection(use_pool=False)
 
     # Check to see if the database already exists.
     query = """
@@ -44,7 +44,7 @@ def create_database():
 
 
 def run_missing_migrations():
-    conn = PostgresConnection()
+    conn = PostgresConnection().get_connection(use_pool=False)
     migration_names = sorted(os.listdir(migrations_folder))
 
     for migration_name in migration_names:

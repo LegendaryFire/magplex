@@ -118,9 +118,10 @@ def get_disabled_channel_genres(conn, device_uid):
 def insert_channel(conn, device_uid, channel_id, channel_number, channel_name, channel_hd, genre_id, stream_id):
     with conn.cursor() as cursor:
         query = """
-            insert into channels (device_uid, channel_id, channel_number, channel_name, channel_hd, genre_id, stream_id)
+            insert into channels (device_uid, channel_id, channel_number, channel_name, channel_hd, 
+                                  genre_id, stream_id, channel_enabled)
             values (%(device_uid)s, %(channel_id)s, %(channel_number)s, %(channel_name)s, %(channel_hd)s,
-                %(genre_id)s, %(stream_id)s)
+                %(genre_id)s, %(stream_id)s, false)
             on conflict (device_uid, channel_id)
             do update set channel_number = excluded.channel_number, channel_name = excluded.channel_name,
                 channel_hd = excluded.channel_hd, genre_id = excluded.genre_id, stream_id = excluded.stream_id,
@@ -243,6 +244,16 @@ def update_device_task_log(conn, log_uid, completed_timestamp):
         query = """
             update task_logs set completed_timestamp = %(completed_timestamp)s
             where log_uid = %(log_uid)s
+        """
+        cursor.execute(query, locals())
+
+
+def delete_device_task_logs(conn, device_uid, is_completed=None):
+    with conn.cursor() as cursor:
+        query = """
+            delete from task_logs
+            where  device_uid = %(device_uid)s
+            and ((%(is_completed)s::bool is null) or (completed_timestamp is not null) = %(is_completed)s)
         """
         cursor.execute(query, locals())
 
