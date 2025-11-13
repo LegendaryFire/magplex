@@ -1,13 +1,14 @@
 import logging
+import time
 from http import HTTPStatus
 
-from flask import Blueprint, Response, jsonify, render_template, send_file, request, make_response, g
+from flask import Blueprint, Response, jsonify, render_template, request, make_response, g
 
 import version
+from magplex import RedisPool
+from magplex.utilities.logs import REDIS_BUFFER_CHANNEL, REDIS_LOG_BUFFER
 from magplex.utilities.error import ErrorResponse
 from magplex.decorators import AuthMethod, authorize_route
-from magplex.utilities.localization import Locale
-from magplex.utilities.variables import Environment
 from magplex.device import database
 
 ui = Blueprint("ui", __name__)
@@ -27,10 +28,37 @@ def index():
 @ui.route('/logs')
 @authorize_route(auth_method=AuthMethod.SESSION)
 def logs():
-    try:
-        return send_file(Environment.BASE_LOG, as_attachment=False)
-    except FileNotFoundError:
-        return Response(Locale.LOG_FILE_NOT_FOUND, HTTPStatus.NOT_FOUND)
+    heartbeat_interval = 15
+    def event_stream():
+        cache = RedisPool.get_connection()
+        pubsub = cache.pubsub(ignore_subscribe_messages=True)
+        pubsub.subscribe(REDIS_BUFFER_CHANNEL)
+
+        history = cache.lrange(REDIS_LOG_BUFFER, 0, -1)
+        for entry in reversed(history):
+            if isinstance(entry, bytes):
+                entry = entry.decode()
+            for line in entry.split("\n"):
+                if line.strip():
+                    yield f"data: {line}\n\n".encode("utf-8")
+
+        last_heartbeat = time.time()
+        while True:
+            msg = pubsub.get_message(timeout=0.5)
+            if msg and msg["type"] == "message":
+                data = msg["data"]
+                if isinstance(data, bytes):
+                    data = data.decode()
+                for line in data.split("\n"):
+                    if line.strip():
+                        yield f"data: {line}\n\n".encode("utf-8")
+            now = time.time()
+            if now - last_heartbeat >= heartbeat_interval:
+                yield b": heartbeat\n\n"
+                last_heartbeat = now
+
+    return Response(event_stream(), mimetype="text/event-stream", direct_passthrough=True,
+                    headers={"Cache-Control": "no-cache"})
 
 
 @ui.route('/about')

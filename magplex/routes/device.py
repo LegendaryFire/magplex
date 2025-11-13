@@ -266,7 +266,6 @@ def proxy_stream(device_uid, channel_id):
     headers = {"X-Sid": session_identifier} if session_identifier else {}
 
     stream_link = f"{data.get('base_link')}{data.get('path')}"
-    logging.error(stream_link)
     r = requests.get(stream_link, headers=headers, stream=True, allow_redirects=True)
 
     if r.status_code != HTTPStatus.OK:

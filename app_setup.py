@@ -54,7 +54,6 @@ def initialize():
     logging.info("Creating Postgres database schema if it doesn't already exist.")
     migrations.create_database()
     migrations.run_missing_migrations()
-
     # TODO: Initialize all devices on startup, and add their background tasks to the queue.
     PostgresPool.close_pool()
 

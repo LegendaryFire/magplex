@@ -76,7 +76,8 @@ def create_stream_response(url, encoder, headers):
             audio_bitrate='128k',
             bufsize='8000k',
             avoid_negative_ts='make_zero',
-            max_muxing_queue_size='2048'
+            max_muxing_queue_size='2048',
+            fps_mode='cfr'
         )
 
     if Environment.DEBUG:

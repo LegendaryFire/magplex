@@ -1,0 +1,7 @@
+logs-modal {
+    textarea {
+        min-height: 350px;
+        max-height: 800px;
+        height: 500px;
+    }
+}

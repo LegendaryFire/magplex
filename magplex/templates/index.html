@@ -23,11 +23,13 @@
     <!-- Modal Styles -->
     <link href="/static/css/modals/base.css" rel="stylesheet">
     <link href="/static/css/modals/settings.css" rel="stylesheet">
+    <link href="/static/css/modals/logs.css" rel="stylesheet">
     <link href="/static/css/modals/channel-filter.css" rel="stylesheet">
 
     <!-- Modals Scripts -->
     <script src="/static/js/modals/base.js"></script>
     <script src="/static/js/modals/settings.js"></script>
+    <script src="/static/js/modals/logs.js"></script>
     <script src="/static/js/modals/username.js"></script>
     <script src="/static/js/modals/password.js"></script>
     <script src="/static/js/modals/device.js"></script>
@@ -108,6 +110,11 @@
                document.querySelector('body').appendChild(settingsModal);
            });
 
+          document.querySelector('#logs-btn').addEventListener('click', () => {
+               const logsModal = document.createElement('logs-modal');
+               document.querySelector('body').appendChild(logsModal);
+           });
+
            document.querySelector('channel-list').channelClickCallback = playMediaCallback;
         });
 
@@ -126,6 +133,7 @@
                 <li class="title">Mag Plex</li>
                 <li class="active">Home</li>
                 <li id="settings-btn">Settings</li>
+                <li id="logs-btn">Logs</li>
                 <li class="align-right"><a href="/api/user/logout" target="_blank">Logout</a></li>
             </ul>
         </nav>
