@@ -7,10 +7,12 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from http import HTTPStatus
+from urllib.parse import urlparse
 
 import requests
 from apscheduler.jobstores.base import ConflictingIdError
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from requests import ReadTimeout
 from requests.adapters import HTTPAdapter
 
 from magplex import users
@@ -55,9 +57,9 @@ class Device:
                 if scheduler.get_job(job_name) is not None:
                     continue
                 scheduler.add_job(job, 'interval', id=job_name, next_run_time=datetime.now(timezone.utc), **kwargs)
-                logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY)
+                logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY(device_uid=self.device_uid, job=job_name))
             except ConflictingIdError:
-                logging.warning(Locale.TASK_CONFLICTING_JOB_IGNORED)
+                logging.warning(Locale.TASK_CONFLICTING_JOB_IGNORED(device_uid=self.device_uid, job=job_name))
 
 
     def _awaiting_timeout(self):
@@ -73,11 +75,11 @@ class Device:
         invalid_responses = {'Authorization failed', 'Access denied', 'device_id mismatch'}
         valid_response = True
         if response.status_code != HTTPStatus.OK:
-            logging.warning(Locale.DEVICE_INVALID_RESPONSE_CODE)
+            logging.warning(Locale.DEVICE_INVALID_RESPONSE_CODE(device_uid=self.device_uid, status_code=response.status_code))
             valid_response = False
         for response_text in invalid_responses:
             if response_text in response.text:
-                logging.warning(Locale.DEVICE_INVALID_RESPONSE_TEXT)
+                logging.warning(Locale.DEVICE_INVALID_RESPONSE_TEXT(device_uid=self.device_uid, text=response_text))
                 valid_response = False
         if not valid_response:
             self.headers.pop('Authorization', None)
@@ -89,10 +91,10 @@ class Device:
         try:
             data = json.loads(response.text)
             if data is None or not isinstance(data, (list, dict)):
-                logging.warning(Locale.DEVICE_RESPONSE_UNEXPECTED_JSON)
+                logging.warning(Locale.DEVICE_RESPONSE_UNEXPECTED_JSON(device_uid=self.device_uid, text=response.text))
                 return False
         except json.JSONDecodeError:
-            logging.warning(Locale.DEVICE_RESPONSE_NOT_JSON)
+            logging.warning(Locale.DEVICE_RESPONSE_NOT_JSON(device_uid=self.device_uid, text=response.text))
             return False
 
         return True
@@ -103,7 +105,7 @@ class Device:
         device_profile = users.database.get_device_profile_by_uid(db_conn, self.device_uid)
         db_conn.close()
         if device_profile is None:
-            logging.warning(Locale.DEVICE_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_UNAVAILABLE(device_uid=self.device_uid))
             return None
 
         self.headers.update({
@@ -141,7 +143,6 @@ class Device:
         # Check for a valid response.
         valid_response = self.__validate_response_text(response)
         if not valid_response:
-            logging.warning(Locale.DEVICE_INVALID_RESPONSE_TEXT)
             return None
 
         try:
@@ -227,7 +228,11 @@ class Device:
             return None
 
         self.update_access_token()
-        response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
+        try:
+            response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
+        except ReadTimeout:
+            logging.warning(Locale.GENERAL_TIMEOUT_ERROR(device_uid=self.device_uid, url=url))
+            return None
 
         # An invalid authorization will still return a 200 status code. Check the payload and reauthenticate.
         valid_response = self.__validate_response_text(response)
@@ -236,14 +241,14 @@ class Device:
             # Attempt to refresh the access token.
             access_token = self.refresh_access_token()
             if access_token is None:
-                logging.warning(Locale.DEVICE_ACCESS_TOKEN_UNAVAILABLE)
+                logging.warning(Locale.DEVICE_ACCESS_TOKEN_UNAVAILABLE(device_uid=self.device_uid))
                 cache.set_device_timeout(cache_conn, self.device_uid)
                 self.invalidate_authorization()
                 return None
 
             is_authorized = self.update_authorization()
             if is_authorized is None:
-                logging.warning(Locale.DEVICE_AUTHORIZATION_FAILED)
+                logging.warning(Locale.DEVICE_AUTHORIZATION_FAILED(device_uid=self.device_uid))
                 cache.set_device_timeout(cache_conn, self.device_uid)
                 self.invalidate_authorization()
                 return None
@@ -288,7 +293,7 @@ class Device:
         url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/{stream_id}&series=&forced_storage=undefined&disable_ad=0&download=0&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
-            logging.warning(Locale.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE(device_uid=self.device_uid))
             return None
 
         # Attempt to get the stream ID from the channel playlist command.
@@ -296,10 +301,10 @@ class Device:
         if not stream_link:
             error = data.get('error')
             if error == 'link_fault':
-                logging.warning(Locale.DEVICE_STREAM_ID_NOT_FOUND)
+                logging.warning(Locale.DEVICE_STREAM_ID_NOT_FOUND(device_uid=self.device_uid))
                 return None
             else:
-                logging.warning(Locale.GENERAL_UNKNOWN_ERROR)
+                logging.warning(Locale.GENERAL_UNKNOWN_ERROR(device_uid=self.device_uid))
                 return None
 
         return stream_link
@@ -314,7 +319,7 @@ class Device:
         url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'
         genre_list = self.get(url)
         if genre_list is None:
-            logging.warning(Locale.DEVICE_GENRE_LIST_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_GENRE_LIST_UNAVAILABLE(device_uid=self.device_uid))
             return None
 
         return genre_list
@@ -329,7 +334,7 @@ class Device:
         url = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml'
         data = self.get(url)
         if data is None:
-            logging.warning(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE)
+            logging.warning(Locale.DEVICE_CHANNEL_LIST_UNAVAILABLE(device_uid=self.device_uid))
             return None
 
         channels = data.get('data') if data else None

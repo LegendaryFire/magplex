@@ -64,6 +64,6 @@ def run_scheduler():
     scheduler = TaskManager.get_scheduler()
     scheduler.remove_all_jobs()
     scheduler.add_job(wake_scheduler, 'interval', id="wake_scheduler", seconds=5, replace_existing=True)
-    logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY)
+    logging.info(Locale.TASK_JOB_ADDED_SUCCESSFULLY(job="wake_scheduler"))
     if not scheduler.running:
         scheduler.start()
