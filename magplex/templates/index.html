@@ -45,8 +45,7 @@
         }
 
         @media (min-width: 768px) {
-            main,
-            .modal-container {
+            main, .modal-container {
                 max-width: 800px;
                 width: 800px;
                 margin: 0;
@@ -97,6 +96,18 @@
                     span.material-symbols-outlined:hover, span.close-btn:hover {
                         cursor: pointer;
                         color: var(--color-hover);
+                    }
+
+                    @media (max-width: 768px) {
+                        & {
+                            width: auto;
+                            padding: 0 5px;
+                        }
+
+                        &.title {
+                            margin-right: 5px;
+                            padding-right: 0;
+                        }
                     }
                 }
             }
