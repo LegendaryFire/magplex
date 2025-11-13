@@ -291,6 +291,7 @@ class ChannelList extends HTMLElement {
             </div>
         `.trim();
         template = template.content.cloneNode(true);
+        this.innerHTML = ``;
         this.appendChild(template);
     }
 }

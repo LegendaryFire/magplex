@@ -68,7 +68,12 @@ class DeviceModal extends Modal {
             const message = parseError(data);
             showToast(message, ToastType.ERROR);
         } else {
+            showThrobber("Saving Device", "Please wait...")
+            await document.querySelector('channel-list').connectedCallback();
+            await document.querySelector('settings-modal').connectedCallback();
+            hideThrobber();
             showToast("Device settings have been saved successfully!", ToastType.SUCCESS);
+            this.connectedCallback();
         }
     }
 
@@ -82,6 +87,10 @@ class DeviceModal extends Modal {
             const message = parseError(data);
             showToast(message, ToastType.ERROR);
         } else {
+            showThrobber("Deleting Device", "Please wait...")
+            await document.querySelector('channel-list').connectedCallback();
+            await document.querySelector('settings-modal').connectedCallback();
+            hideThrobber();
             showToast("Device has been deleted successfully!", ToastType.WARNING);
             this.connectedCallback();
         }
