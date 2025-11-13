@@ -12,21 +12,31 @@ class ChannelList extends HTMLElement {
         this.channelList = [];
     }
 
-    initializeVariables() {
-        this.getGenresUrl = new URL(`/api/devices/${this.deviceProfile.device_uid}/genres`, window.location.origin);
-        this.getChannelsUrl = new URL(`/api/devices/${this.deviceProfile.device_uid}/channels`, window.location.origin);
+    getGenresUrl() {
+        const link = new URL(`/api/devices/${this.deviceProfile.device_uid}/genres`, window.location.origin);
+        link.searchParams.set('channel_stale', 'false');
 
         if (this.listMode === ChannelListMode.PLAYER) {
-            this.getGenresUrl.searchParams.set('channel_stale', 'false');
-            this.getGenresUrl.searchParams.set('channel_enabled', 'true');
-            this.getChannelsUrl.searchParams.set('channel_stale', 'false');
-            this.getChannelsUrl.searchParams.set('channel_enabled', 'true');
+            link.searchParams.set('channel_enabled', 'true');
         } else if (this.listMode === ChannelListMode.FILTER) {
-            this.getGenresUrl.searchParams.set('channel_stale', 'false');
-            this.getChannelsUrl.searchParams.set('channel_stale', 'false');
+            link.searchParams.set('channel_stale', 'false');
         }
+
+        return link;
     }
 
+    getChannelsUrl() {
+        const link = new URL(`/api/devices/${this.deviceProfile.device_uid}/channels`, window.location.origin);
+        link.searchParams.set('channel_stale', 'false');
+
+        if (this.listMode === ChannelListMode.PLAYER) {
+            link.searchParams.set('channel_enabled', 'true');
+        } else if (this.listMode === ChannelListMode.FILTER) {
+            link.searchParams.set('channel_stale', 'false');
+        }
+
+        return link;
+    }
 
     async connectedCallback() {
         showThrobber();
@@ -37,8 +47,6 @@ class ChannelList extends HTMLElement {
             return;
         }
         this.listMode = this.getAttribute("list-mode");
-        this.initializeVariables();
-
         this.innerHTML = `
             <div class="message-container">
                 <h3>Loading Channels</h3>
@@ -67,7 +75,7 @@ class ChannelList extends HTMLElement {
 
     async getGenreList() {
         try {
-            const response = await fetch(this.getGenresUrl);
+            const response = await fetch(this.getGenresUrl());
             const genres = await response.json();
             return genres.sort((a, b) => a.genre_number - b.genre_number);
         } catch (error) {
@@ -77,7 +85,7 @@ class ChannelList extends HTMLElement {
 
     async getChannelList(q=null, genreId=null, enabledOnly=null) {
         try {
-            const getChannelsUrl = new URL(this.getChannelsUrl);
+            const getChannelsUrl = new URL(this.getChannelsUrl());
             if (q != null) {
                 q = q.trim();
                 if (q !== "") {
@@ -151,6 +159,10 @@ class ChannelList extends HTMLElement {
             allSelectedElem.value = 'selected';
             allSelectedElem.innerText = 'Selected';
             genreSelectElem.appendChild(allSelectedElem);
+        }
+
+        if (this.genreList === null) {
+            return;
         }
 
         for (const genre of this.genreList) {
@@ -228,7 +240,7 @@ class ChannelList extends HTMLElement {
 
     renderSelectChannel(containerElement, channel) {
         let template = document.createElement('template');
-        const genre = this.genreList.find((g) => g.genre_id === channel.genre_id);
+        const genre = this.genreList.find((g) => g?.genre_id === channel.genre_id);
         template.innerHTML = `
             <li class="channel" data-channel-id="${channel.channel_id}" ${channel.channel_enabled ? 'selected' : ''}>
                 <div class="channel-left">
@@ -236,21 +248,21 @@ class ChannelList extends HTMLElement {
                 </div>
                 <div class="channel-details">
                     <span class="channel-name">${channel.channel_name}</span>
-                    <span class="channel-group">${genre.genre_name}</span>
+                    <span class="channel-group">${genre ? genre.genre_name : 'Unknown'}</span>
                 </div>
                 <div class="channel-right">
                     <span class="material-symbols-outlined">hd</span>
                     <span class="channel-number">${channel.channel_id}</span>
                 </div>
             </li>
-        `
-        template = template.content.querySelector('.channel');
+        `.trim()
+        template = template.content.cloneNode(true);
         containerElement.appendChild(template);
     }
 
     renderButtonChannel(containerElement, channel) {
         let template = document.createElement('template');
-        const genre = this.genreList.find((g) => g.genre_id === channel.genre_id);
+        const genre = this.genreList.find((g) => g?.genre_id === channel.genre_id);
         template.innerHTML = `
             <li class="channel" data-channel-id="${channel.channel_id}">
                 <div class="channel-left">
@@ -258,15 +270,15 @@ class ChannelList extends HTMLElement {
                 </div>
                 <div class="channel-details">
                     <span class="channel-name">${channel.channel_name}</span>
-                    <span class="channel-group">${genre.genre_name}</span>
+                    <span class="channel-group">${genre ? genre.genre_name : 'Unknown'}</span>
                 </div>
                 <div class="channel-right">
                     <span class="material-symbols-outlined">hd</span>
                     <span class="channel-number">${channel.channel_id}</span>
                 </div>
             </li>
-        `
-        template = template.content.querySelector('.channel');
+        `.trim()
+        template = template.content.cloneNode(true);
         containerElement.appendChild(template);
     }
 
@@ -277,8 +289,8 @@ class ChannelList extends HTMLElement {
                 <h2>Device not configured</h2>
                 <h4>Configure your device under settings before continuing</h4>
             </div>
-        `;
-        template = template.content.querySelector('div');
+        `.trim();
+        template = template.content.cloneNode(true);
         this.appendChild(template);
     }
 }

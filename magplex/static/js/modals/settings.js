@@ -130,6 +130,7 @@ class SettingsModal extends Modal {
         const refreshLogsBtn = document.querySelector('#refresh-logs-btn');
         refreshLogsBtn.addEventListener('click', async (t) => {
             await this.renderTaskTables();
+            showToast('Task logs have been refreshed successfully', ToastType.SUCCESS);
         });
 
         const clearLogsBtn = document.querySelector('#clear-logs-btn');
@@ -195,7 +196,7 @@ class SettingsModal extends Modal {
             const message = parseError(data);
             showToast(message, ToastType.ERROR);
         } else {
-            showToast("Manual channel guide refresh has been triggered!", ToastType.SUCCESS);
+            showToast("Manual channel guide refresh has been triggered", ToastType.SUCCESS);
         }
     }
 
@@ -210,15 +211,13 @@ class SettingsModal extends Modal {
             const message = parseError(data);
             showToast(message, ToastType.ERROR);
         } else {
-            showToast("Manual channel list refresh has been triggered!", ToastType.SUCCESS);
+            showToast("Manual channel list refresh has been triggered", ToastType.SUCCESS);
         }
     }
 
     async renderTaskTables() {
         const completedTableBody = this.querySelector('div.completed-tasks table tbody');
         const incompleteTableBody = this.querySelector('div.incomplete-tasks table tbody');
-        completedTableBody.innerHTML = '';
-        incompleteTableBody.innerHTML = '';
 
         const noTasksTemplate = document.createElement('template');
         noTasksTemplate.innerHTML = `
@@ -229,6 +228,8 @@ class SettingsModal extends Modal {
 
 
         if (this.deviceProfile === null) {
+            completedTableBody.innerHTML = '';
+            incompleteTableBody.innerHTML = '';
             completedTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
             incompleteTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
             return;
@@ -246,6 +247,9 @@ class SettingsModal extends Modal {
         }
 
         const completedTaskRuntimes = await this.getTaskLogs(true);
+        const incompleteTaskRuntimes = await this.getTaskLogs(false);
+        completedTableBody.innerHTML = '';
+        incompleteTableBody.innerHTML = '';
         if (completedTaskRuntimes.length === 0) {
             completedTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
         } else {
@@ -263,7 +267,6 @@ class SettingsModal extends Modal {
             });
         }
 
-        const incompleteTaskRuntimes = await this.getTaskLogs(false);
         if (incompleteTaskRuntimes.length === 0) {
             incompleteTableBody.appendChild(noTasksTemplate.content.cloneNode(true));
         } else {

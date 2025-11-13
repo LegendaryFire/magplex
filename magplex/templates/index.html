@@ -87,13 +87,14 @@
                     }
 
                     &.active,
-                    &:hover {
-                        color: var(--color);
+                    &:not(.title):hover {
+                        color: var(--color-hover);
                         border-bottom-color: var(--color);
                     }
 
-                    span.material-symbols-outlined:hover {
+                    span.material-symbols-outlined:hover, span.close-btn:hover {
                         cursor: pointer;
+                        color: var(--color-hover);
                     }
                 }
             }
