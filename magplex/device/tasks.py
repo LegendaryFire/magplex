@@ -70,7 +70,7 @@ def save_channels(device_uid):
 
     # Get the latest copy of the channel list.
     channel_list = database.get_channels(conn, user_device.device_uid)
-    database.update_device_task_log(conn, log_uid, datetime.now())
+    database.update_device_task_log(conn, log_uid, datetime.now(zoneinfo.ZoneInfo("Etc/UTC")))
     logging.info(Locale.DEVICE_CHANNEL_LIST_SUCCESSFUL(device_uid=user_device.device_uid))
     conn.commit()
     conn.close()
