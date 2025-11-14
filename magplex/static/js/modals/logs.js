@@ -11,7 +11,7 @@ class LogsModal extends Modal {
             <div class="content-wrapper">
                 <div class="content-group">
                     <div class="content-container">
-                        <textarea id="logs"></textarea>
+                        <textarea id="logs" readonly></textarea>
                     </div>
                 </div>
             </div>

@@ -3,5 +3,15 @@ logs-modal {
         min-height: 350px;
         max-height: 800px;
         height: 500px;
+        border: none;
+        padding: 10px;
+    }
+
+    div.content-container {
+        & {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0
+        }
     }
 }
