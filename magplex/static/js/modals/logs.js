@@ -10,9 +10,7 @@ class LogsModal extends Modal {
         this.innerHTML = `
             <div class="content-wrapper">
                 <div class="content-group">
-                    <div class="content-container">
-                        <textarea id="logs" readonly></textarea>
-                    </div>
+                    <textarea id="logs" readonly></textarea>
                 </div>
             </div>
         `;
