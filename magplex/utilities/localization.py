@@ -52,6 +52,7 @@ class Locale(StrEnum):
     UI_USERNAME_DIDNT_CHANGE = 'The new username is the same as current'
     UI_PASSWORD_REQUIREMENT_NOT_MET = 'New password must be at least 8 characters long'
     UI_PASSWORD_DOESNT_MATCH = 'The new passwords do not match, please try again'
+    UI_INVALID_PORTAL_ERROR = 'Unable to validate portal, check your portal URL and try again'
 
     def __call__(self, **kwargs):
         if not kwargs:

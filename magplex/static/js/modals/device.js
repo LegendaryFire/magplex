@@ -31,7 +31,7 @@ class DeviceModal extends Modal {
                             <label>
                                 Portal
                                 <input type="text" name="portal" placeholder="example.portal.tv" value="${deviceProfile?.portal ?? ''}" required ${deviceProfile?.portal ? 'disabled' : ''}>
-                                <small>Enter the portal domain, without scheme. Example: provider.portal.tv</small>
+                                <small>Enter the portal domain, <b>with</b> scheme. Example: http://provider.portal.tv</small>
                             </label>
                             <button type="submit">Save</button>
                             <button id="delete-btn">Delete Device</button>

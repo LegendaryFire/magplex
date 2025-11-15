@@ -57,17 +57,17 @@ def get_stb_lineup(device_uid):
     return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
 
 
-@stb.get('/<uuid:device_uid>/stb/playlist.m3u8')
-def get_stb_channel_playlist(device_uid):
+@stb.get('/<uuid:device_uid>/stb/<int:channel_id>/playlist.m3u8')
+def get_stb_channel_playlist(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
         return ErrorResponse(Locale.DEVICE_UNAVAILABLE, status=HTTPStatus.FORBIDDEN)
 
-    stream_id = request.args.get('stream_id')
-    if stream_id is None:
-        return ErrorResponse(Locale.GENERAL_MISSING_ENDPOINT_PARAMETERS, status=HTTPStatus.BAD_REQUEST)
+    channel = database.get_channel(g.db_conn, device_uid, channel_id)
+    if channel is None:
+        return ErrorResponse(Locale.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE, status=HTTPStatus.NOT_FOUND)
 
-    channel_url = user_device.get_channel_playlist(stream_id)
+    channel_url = user_device.get_channel_playlist(channel.stream_id)
     if channel_url is None:
         return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
 

@@ -102,7 +102,7 @@ def save_channel_guides(device_uid):
     device_profile = user_device.get_device_profile()
     guide_urls = []
     for channel in channel_list:
-        link = f'http://{device_profile.portal}/stalker_portal/server/load.php?type=itv&action=get_short_epg&ch_id={channel.channel_id}&JsHttpRequest=1-xml'
+        link = f'{device_profile.portal}?type=itv&action=get_short_epg&ch_id={channel.channel_id}&JsHttpRequest=1-xml'
         guide_urls.append(link)
 
     # Process the channel guide URLs in batches to prevent rate limiting.

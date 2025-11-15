@@ -34,8 +34,9 @@ class DeviceProfile:
     mac_address: str
     device_id1: str
     device_id2: str
-    portal: str
     timezone: str
+    portal: str
+    referer: str
     modified_timestamp: datetime
     creation_timestamp: datetime
 
@@ -179,7 +180,7 @@ def expire_user_session(conn, session_uid):
 def get_device_profile_by_uid(conn, device_uid):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, user_uid, mac_address, device_id1, device_id2, portal, timezone,
+            select device_uid, user_uid, mac_address, device_id1, device_id2, timezone, portal, referer,
                    modified_timestamp, creation_timestamp
             from devices
             where device_uid = %(device_uid)s
@@ -193,7 +194,7 @@ def get_device_profile_by_uid(conn, device_uid):
 def get_device_profile_by_user(conn, user_uid):
     with conn.cursor() as cursor:
         query = """
-            select device_uid, user_uid, mac_address, device_id1, device_id2, portal, timezone, 
+            select device_uid, user_uid, mac_address, device_id1, device_id2, timezone, portal, referer, 
                    modified_timestamp, creation_timestamp
             from devices
             where user_uid = %(user_uid)s
@@ -205,11 +206,12 @@ def get_device_profile_by_user(conn, user_uid):
 
 
 
-def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, portal, timezone):
+def insert_user_device(conn, user_uid, mac_address, device_id1, device_id2, timezone, portal, referer):
     with conn.cursor() as cursor:
         query = """
-            insert into devices (user_uid, mac_address, device_id1, device_id2, portal, timezone)
-            values (%(user_uid)s, %(mac_address)s, %(device_id1)s, %(device_id2)s, %(portal)s, %(timezone)s)
+            insert into devices (user_uid, mac_address, device_id1, device_id2, timezone, portal, referer)
+            values (%(user_uid)s, %(mac_address)s, %(device_id1)s, %(device_id2)s, %(timezone)s,
+                   coalesce(%(portal)s, ''), coalesce(%(referer)s, ''))
             on conflict (user_uid) do update
             set mac_address = excluded.mac_address, device_id1 = excluded.device_id1, device_id2 = excluded.device_id2,
                 timezone = excluded.timezone, portal = devices.portal, modified_timestamp = now()

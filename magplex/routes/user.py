@@ -4,6 +4,7 @@ from http import HTTPStatus
 from flask import Blueprint, Response, g, jsonify, redirect, request
 
 from magplex.decorators import AuthMethod, authorize_route
+from magplex.device.validators import validate_portal_loader, validate_portal_referer
 from magplex.users import database
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
@@ -112,14 +113,27 @@ def save_user_device():
     mac_address = sanitizer.sanitize_string(data.get('mac_address'), upper=True)
     device_id1 = sanitizer.sanitize_string(data.get('device_id1'), upper=True)
     device_id2 = sanitizer.sanitize_string(data.get('device_id2'), upper=True)
-    portal = sanitizer.sanitize_string(data.get('portal'), empty=True)
+    portal = sanitizer.sanitize_url(data.get('portal'))
     timezone = sanitizer.sanitize_timezone(data.get('timezone'))
 
     required_fields = (mac_address, timezone)
     if not all(required_fields):
         return ErrorResponse(Locale.GENERAL_MISSING_REQUIRED_FIELDS, HTTPStatus.BAD_REQUEST)
 
-    database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, portal, timezone)
+    referer = None
+    if 'portal' in data and portal is None:
+        return ErrorResponse(Locale.UI_INVALID_PORTAL_ERROR, HTTPStatus.BAD_REQUEST)
+    elif 'portal' in data:
+        referer = validate_portal_referer(portal)
+        if referer is None:
+            return ErrorResponse(Locale.UI_INVALID_PORTAL_ERROR, HTTPStatus.BAD_REQUEST)
+
+        portal = validate_portal_loader(referer)
+        if portal is None:
+            return ErrorResponse(Locale.UI_INVALID_PORTAL_ERROR, HTTPStatus.BAD_REQUEST)
+
+    database.insert_user_device(g.db_conn, g.user_session.user_uid, mac_address, device_id1, device_id2, timezone,
+                                portal, referer)
     return Response(status=HTTPStatus.NO_CONTENT)
 
 

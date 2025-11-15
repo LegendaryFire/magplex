@@ -51,6 +51,7 @@ create table if not exists devices (
     device_id1              varchar(128)                ,
     device_id2              varchar(128)                ,
     portal                  varchar(128)                not null,
+    referer                 varchar(128)                not null,
     timezone                varchar(64)                 not null,
     modified_timestamp      timestamp with time zone    not null default current_timestamp,
     creation_timestamp      timestamp with time zone    not null default current_timestamp
@@ -77,7 +78,7 @@ create table if not exists channels (
     device_uid              uuid                        not null references devices (device_uid) on delete cascade,
     channel_id              int                         not null,
     channel_number          int                         not null,
-    channel_name            varchar(128)                not null,
+    channel_name            varchar(256)                not null,
     channel_hd              boolean                     not null default false,
     channel_enabled         boolean                     not null default true,
     channel_stale           boolean                     not null default false,
