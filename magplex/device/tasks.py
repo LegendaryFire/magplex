@@ -1,8 +1,8 @@
+import logging
 import random
 import time
 import zoneinfo
 from datetime import datetime
-import logging
 from itertools import batched
 
 from psycopg.errors import ForeignKeyViolation

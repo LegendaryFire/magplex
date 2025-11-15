@@ -1,4 +1,5 @@
 import logging
+
 import werkzeug
 
 from magplex import RedisPool

@@ -16,7 +16,7 @@ from requests import ReadTimeout
 from requests.adapters import HTTPAdapter
 
 from magplex import users
-from magplex.database.database import RedisPool, PostgresConnection
+from magplex.database.database import PostgresConnection, RedisPool
 from magplex.decorators import limit_recursion
 from magplex.device import cache, tasks
 from magplex.utilities.localization import Locale

@@ -1,4 +1,4 @@
-from urllib.parse import urlunparse, urlparse
+from urllib.parse import urlparse, urlunparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 

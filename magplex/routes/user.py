@@ -6,9 +6,9 @@ from flask import Blueprint, Response, g, jsonify, redirect, request
 from magplex.decorators import AuthMethod, authorize_route
 from magplex.device.validators import validate_portal_loader, validate_portal_referer
 from magplex.users import database
+from magplex.utilities import sanitizer
 from magplex.utilities.error import ErrorResponse
 from magplex.utilities.localization import Locale
-from magplex.utilities import sanitizer
 
 user = Blueprint("user", __name__)
 

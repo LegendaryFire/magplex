@@ -2,14 +2,14 @@ import logging
 import time
 from http import HTTPStatus
 
-from flask import Blueprint, Response, jsonify, render_template, request, make_response, g
+from flask import Blueprint, Response, g, jsonify, make_response, render_template, request
 
 import version
 from magplex import RedisPool
-from magplex.utilities.logs import REDIS_BUFFER_CHANNEL, REDIS_LOG_BUFFER
-from magplex.utilities.error import ErrorResponse
 from magplex.decorators import AuthMethod, authorize_route
 from magplex.device import database
+from magplex.utilities.error import ErrorResponse
+from magplex.utilities.logs import REDIS_BUFFER_CHANNEL, REDIS_LOG_BUFFER
 
 ui = Blueprint("ui", __name__)
 
