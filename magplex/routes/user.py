@@ -113,7 +113,7 @@ def save_user_device():
     mac_address = sanitizer.sanitize_string(data.get('mac_address'), upper=True)
     device_id1 = sanitizer.sanitize_string(data.get('device_id1'), upper=True)
     device_id2 = sanitizer.sanitize_string(data.get('device_id2'), upper=True)
-    portal = sanitizer.sanitize_url(data.get('portal'))
+    portal = sanitizer.sanitize_url(data.get('portal'), safe_check=True)
     timezone = sanitizer.sanitize_timezone(data.get('timezone'))
 
     required_fields = (mac_address, timezone)

@@ -1,3 +1,5 @@
+import ipaddress
+import socket
 from urllib.parse import urlparse, urlunparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -19,7 +21,7 @@ def sanitize_string(value, *, lower=False, upper=False, strip=True, max_length=N
     return value
 
 
-def sanitize_url(value, *, require_scheme=True, allowed_schemes=("http", "https"), strip=True, empty=False):
+def sanitize_url(value, *, require_scheme=True, allowed_schemes=("http", "https"), strip=True, empty=False, safe_check=False):
     if value is None:
         return None if not empty else ''
     value = str(value)
@@ -36,8 +38,48 @@ def sanitize_url(value, *, require_scheme=True, allowed_schemes=("http", "https"
     if not parsed.netloc:
         return None
 
+    host = parsed.hostname
+    if not host:
+        return None
+
+    try:
+        host = host.encode("idna").decode("ascii").rstrip(".").lower()
+    except Exception:
+        return None
+    if not host:
+        return None
+
+    if safe_check:
+        if "." not in host:
+            return None
+        try:
+            ipaddress.ip_address(host)
+            ips = {host}
+        except ValueError:
+            try:
+                infos = socket.getaddrinfo(host, None)
+            except Exception:
+                return None
+            ips = set()
+            for fam, _, _, _, sockaddr in infos:
+                if fam in (socket.AF_INET, socket.AF_INET6):
+                    ips.add(sockaddr[0])
+            if not ips:
+                return None
+        for ip_str in ips:
+            try:
+                ip = ipaddress.ip_address(ip_str)
+            except ValueError:
+                return None
+            if not ip.is_global:
+                return None
+
+
     scheme = parsed.scheme.lower() if parsed.scheme else ""
-    netloc = parsed.netloc.lower()
+    netloc = host
+    if parsed.port:
+        netloc = f"{host}:{parsed.port}"
+
     return urlunparse((scheme, netloc, parsed.path or "", parsed.params or "", parsed.query or "", parsed.fragment or ""))
 
 def sanitize_int(value, *, minimum=None, maximum=None):

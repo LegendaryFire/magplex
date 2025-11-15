@@ -1,6 +1,5 @@
 import re
 from http import HTTPStatus
-
 import requests
 
 from magplex.utilities import sanitizer
