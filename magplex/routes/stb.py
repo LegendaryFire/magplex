@@ -1,8 +1,7 @@
 import logging
+import threading
 from http import HTTPStatus
-from subprocess import TimeoutExpired
 
-import ffmpeg
 import requests
 from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
@@ -57,7 +56,7 @@ def get_stb_lineup(device_uid):
     return jsonify([parser.build_lineup_channel(channel, domain) for channel in channel_list if channel])
 
 
-@stb.get('/<uuid:device_uid>/stb/<int:channel_id>/playlist.m3u8')
+@stb.get('/<uuid:device_uid>/stb/<int:channel_id>/stream.ts')
 def get_stb_channel_playlist(device_uid, channel_id):
     user_device = DeviceManager.get_user_device(device_uid)
     if user_device is None:
@@ -67,47 +66,38 @@ def get_stb_channel_playlist(device_uid, channel_id):
     if channel is None:
         return ErrorResponse(Locale.DEVICE_CHANNEL_PLAYLIST_UNAVAILABLE, status=HTTPStatus.NOT_FOUND)
 
-    channel_url = user_device.get_channel_playlist(channel.stream_id)
-    if channel_url is None:
-        return Response("Unable to retrieve channel.", status=HTTPStatus.NOT_FOUND)
-
-    # Attempt to get X-Sid header if it exists.
-    response = requests.get(channel_url, allow_redirects=True)
-
-    # Pass session header and others if they exist.
-    headers = {}
-    for key in ['X-Sid', 'User-Agent', 'Referer', 'Origin']:
-        if key in response.headers:
-            headers[key] = response.headers[key]
-    headers = ''.join(f"{k}: {v}\r\n" for k, v in headers.items())
-
     if Environment.BASE_FFMPEG is None:
         logging.error("Unable to find ffmpeg installation.")
         return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     encoder = media.get_encoder()
-    try:
-        process = media.create_stream_response(channel_url, encoder, headers)
-    except ffmpeg.Error as e:
-        logging.error(e.stderr.decode())
-        return Response(status=HTTPStatus.INTERNAL_SERVER_ERROR)
-
-    def generate():
+    def stream_generator():
+        process = None
         try:
-            for chunk in iter(lambda: process.stdout.read(64 * 1024), b''):
-                yield chunk
-        except GeneratorExit:
-            process.terminate()  # Client disconnected, terminate process.
+            while True:
+                channel_url = user_device.get_channel_playlist(channel.stream_id)
+                logging.error(channel_url)
+                if not channel_url:
+                    break
+                r = requests.get(channel_url, allow_redirects=True)
+                headers = ''.join(f"{k}: {v}\r\n" for k, v in r.headers.items() if k in ['X-Sid', 'User-Agent', 'Referer', 'Origin'])
+                process = media.create_stream_response(channel_url, encoder, headers)
+                for chunk in iter(lambda: process.stdout.read(64 * 1024), b''):
+                    yield chunk
         finally:
-            try:
-                process.wait(timeout=10)  # Wait for the process to properly clean up and close.
-            except TimeoutExpired:
-                process.kill()
-            finally:
-                process.stdout.close()
+            if process:
+                try:
+                    process.terminate()
+                except Exception:
+                    pass
+                threading.Thread(target=lambda p: (p.wait() or p.kill()), args=(process,), daemon=True).start()
+                try:
+                    process.stdout.close()
+                except Exception:
+                    pass
 
     return Response(
-        stream_with_context(generate()),
+        stream_with_context(stream_generator()),
         direct_passthrough=True,
         headers={
             "Content-Type": "video/mp2t",

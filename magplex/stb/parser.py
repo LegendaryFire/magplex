@@ -102,5 +102,5 @@ def build_lineup_channel(channel, domain):
     return {
         'GuideName': channel.channel_name,
         'GuideNumber': f'{channel.channel_id}',
-        'URL': f'{domain}/playlist.m3u8?stream_id={channel.stream_id}'
+        'URL': f'{domain}/{channel.channel_id}/stream.ts'
     }
