@@ -209,7 +209,11 @@ class Device:
             return None
 
         self.update_access_token()
-        url = f'{device_profile.portal}?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&device_id={device_profile.device_id1}&device_id2={device_profile.device_id2}&signature={self.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
+        url = f'{device_profile.portal}?type=stb&action=get_profile&hd=3&ver=ImageDescription:%202.20.04-420;%20ImageDate:%20Wed%20Aug%2019%2011:43:17%20UTC%202020;%20PORTAL%20version:%205.1.1;%20API%20Version:%20JS%20API%20version:%20348&num_banks=1&sn=092020N014162&stb_type=MAG420&image_version=220&video_out=hdmi&signature={self.signature}&auth_second_step=0&hw_version=04D-P0L-00&not_valid_token=0&JsHttpRequest=1-xml'
+        if device_profile.device_id1:
+            url += f"&device_id={device_profile.device_id1}"
+        if device_profile.device_id2:
+            url += f"&device_id2={device_profile.device_id2}"
         response = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=15)
         valid_response = self.__validate_response_text(response)
         if not valid_response:
